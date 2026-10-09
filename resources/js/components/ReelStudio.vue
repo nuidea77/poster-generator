@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue';
 import { api, debounce, downloadBlob, mapLimit } from '../lib/api';
-import { SIZES, drawReelFrame, ensureFonts, loadImage, reelDuration } from '../lib/render';
+import { SIZES, drawReelFrame, ensureFonts, isVideo, loadImage, reelDuration, sceneAt } from '../lib/render';
 import BriefForm from './BriefForm.vue';
 import CaptionBox from './CaptionBox.vue';
 import ImageControls from './ImageControls.vue';
@@ -12,17 +12,20 @@ const props = defineProps({
     active: { type: Boolean, default: true },
 });
 
+// Items made by the agent carry provider 'agent', which is not a selectable option.
+const known = (config, id, kind) => config.providers.find((p) => p.id === id && p[kind] && p.configured)?.id;
+
 const form = ref({
     prompt: props.initial?.prompt ?? '',
     style: props.initial?.options?.style ?? '',
     language: props.initial?.options?.language ?? 'mn',
     duration: props.initial?.options?.duration ?? 20,
     scenes: props.initial?.options?.scenes ?? 5,
-    text_provider: props.initial?.text_provider ?? props.config.default_text,
-    image_provider: props.initial?.image_provider ?? props.config.default_image,
+    text_provider: known(props.config, props.initial?.text_provider, 'text') ?? props.config.default_text,
+    image_provider: known(props.config, props.initial?.image_provider, 'image') ?? props.config.default_image,
 });
 
-const generation = ref(props.initial ? structuredClone(props.initial) : null);
+const generation = ref(props.initial ? JSON.parse(JSON.stringify(props.initial)) : null);
 const reel = computed(() => generation.value?.content);
 const total = computed(() => (reel.value ? reelDuration(reel.value) : 0));
 
@@ -93,12 +96,29 @@ function moveScene(i, dir) {
 async function loadImages() {
     if (!reel.value) return;
     await ensureFonts();
-    images.value = await Promise.all(reel.value.scenes.map((s) => loadImage(s.image_url)));
+    images.value = await Promise.all(reel.value.scenes.map((s) => loadImage(s.video_url || s.image_url)));
     draw();
+}
+
+// Keep video scenes in step with the timeline: play the active one, pause the rest.
+function syncVideos() {
+    if (!reel.value) return;
+    const { index, local } = sceneAt(reel.value, time.value);
+    images.value.forEach((el, i) => {
+        if (!isVideo(el)) return;
+        if (i !== index) {
+            if (!el.paused) el.pause();
+            return;
+        }
+        if (Math.abs(el.currentTime - local) > 0.35) el.currentTime = local;
+        if (playing.value && el.paused) el.play().catch(() => {});
+        if (!playing.value && !el.paused) el.pause();
+    });
 }
 
 function draw() {
     if (!reel.value || !canvas.value) return;
+    syncVideos();
     const [w, h] = SIZES['9:16'];
     if (canvas.value.width !== w) {
         canvas.value.width = w;
@@ -134,6 +154,7 @@ function play() {
 function stop() {
     cancelAnimationFrame(raf);
     playing.value = false;
+    images.value.forEach((el) => isVideo(el) && !el.paused && el.pause());
 }
 
 function toggle() {
@@ -357,7 +378,8 @@ const script = computed(() => reel.value?.scenes.map((s, i) => `${i + 1}. ${s.vo
                     <div v-for="(scene, i) in reel.scenes" :key="i" class="panel flex gap-3">
                         <div class="relative w-24 shrink-0">
                             <div class="aspect-[9/16] overflow-hidden rounded-lg bg-zinc-800">
-                                <img v-if="scene.image_url" :src="scene.image_url" class="size-full object-cover" />
+                                <video v-if="scene.video_url" :src="scene.video_url" class="size-full object-cover" muted playsinline />
+                                <img v-else-if="scene.image_url" :src="scene.image_url" class="size-full object-cover" />
                                 <div v-else class="grid size-full place-items-center text-[10px] text-zinc-500">зураггүй</div>
                             </div>
                             <div v-if="sceneBusy[i]" class="absolute inset-0 grid place-items-center rounded-lg bg-black/60">
@@ -381,7 +403,12 @@ const script = computed(() => reel.value?.scenes.map((s, i) => `${i + 1}. ${s.vo
                                 </select>
                             </div>
                             <input v-model="scene.voiceover" class="field text-xs" placeholder="Voiceover" />
+                            <div v-if="scene.video_url" class="flex items-center gap-2 text-[11px] text-zinc-400">
+                                🎥 AI видео клип
+                                <button class="text-red-400 hover:underline" @click="scene.video_url = null">зураг руу буцах</button>
+                            </div>
                             <ImageControls
+                                v-else
                                 v-model:prompt="scene.image_prompt"
                                 v-model:url="scene.image_url"
                                 compact

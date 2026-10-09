@@ -37,14 +37,26 @@ class OpenAIProvider implements ImageProvider, TextProvider
         return JsonExtractor::decode((string) $response->json('choices.0.message.content'));
     }
 
-    public function generateImage(string $prompt, string $aspect): ?array
+    public function generateImage(string $prompt, string $aspect, array $references = []): ?array
     {
-        $response = $this->client()->post('/images/generations', [
+        $params = [
             'model' => $this->config['image_model'],
             'prompt' => $prompt,
             'size' => self::SIZES[$aspect] ?? '1024x1024',
             'n' => 1,
-        ]);
+        ];
+
+        if ($references) {
+            // Reference images go through the edits endpoint (multipart).
+            $client = $this->client();
+            foreach ($references as $i => $ref) {
+                $ext = $ref['mime'] === 'image/jpeg' ? 'jpg' : ($ref['mime'] === 'image/webp' ? 'webp' : 'png');
+                $client = $client->attach('image[]', $ref['data'], "ref{$i}.{$ext}", ['Content-Type' => $ref['mime']]);
+            }
+            $response = $client->post('/images/edits', $params);
+        } else {
+            $response = $this->client()->post('/images/generations', $params);
+        }
 
         if ($response->failed()) {
             throw new AiException('OpenAI image: '.($response->json('error.message') ?? $response->body()));

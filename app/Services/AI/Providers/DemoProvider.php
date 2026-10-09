@@ -51,7 +51,7 @@ class DemoProvider implements ImageProvider, TextProvider
         ];
     }
 
-    public function generateImage(string $prompt, string $aspect): ?array
+    public function generateImage(string $prompt, string $aspect, array $references = []): ?array
     {
         return null;
     }

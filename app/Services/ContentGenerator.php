@@ -97,26 +97,42 @@ class ContentGenerator
      * Generate an image and store it on the public disk. Returns its URL,
      * or null when the provider does not render images (demo).
      */
-    public function image(string $prompt, string $aspect, string $provider): ?string
+    public function image(string $prompt, string $aspect, string $provider, array $references = []): ?string
     {
         $prompt = trim($prompt).'. High quality, professional, no text, no letters, no watermark, no logo.';
 
-        $image = $this->ai->image($provider)->generateImage($prompt, $aspect);
+        $image = $this->ai->image($provider)->generateImage($prompt, $aspect, $references);
 
-        if ($image === null) {
-            return null;
-        }
+        return $image === null ? null : self::store($image);
+    }
 
-        $ext = match ($image['mime']) {
+    /**
+     * Generate a short video clip with a video provider and store it.
+     */
+    public function video(string $prompt, string $aspect, int $duration, string $provider, ?array $firstFrame = null): string
+    {
+        return self::store($this->ai->video($provider)->generateVideo($prompt, $aspect, $duration, $firstFrame));
+    }
+
+    /**
+     * Store a generated binary on the public disk and return its URL.
+     *
+     * @param  array{data: string, mime: string}  $file
+     */
+    public static function store(array $file): string
+    {
+        $ext = match ($file['mime']) {
             'image/jpeg' => 'jpg',
             'image/webp' => 'webp',
+            'video/mp4' => 'mp4',
+            'video/webm' => 'webm',
             default => 'png',
         };
 
         $path = 'generated/'.now()->format('Y/m').'/'.Str::uuid().'.'.$ext;
-        Storage::disk('public')->put($path, $image['data']);
+        Storage::disk('public')->put($path, $file['data']);
 
-        // Relative URL keeps the image same-origin so the canvas can export it.
+        // Relative URL keeps the file same-origin so the canvas can export it.
         return '/storage/'.$path;
     }
 
@@ -130,7 +146,7 @@ class ContentGenerator
             ."\nimage_prompt values must always be in English.";
     }
 
-    private function normalizePoster(array $d): array
+    public function normalizePoster(array $d): array
     {
         return [
             'tagline' => (string) ($d['tagline'] ?? ''),
@@ -148,7 +164,7 @@ class ContentGenerator
         ];
     }
 
-    private function normalizeReel(array $d): array
+    public function normalizeReel(array $d): array
     {
         $scenes = collect(Arr::wrap($d['scenes'] ?? []))
             ->filter(fn ($s) => is_array($s))
@@ -160,6 +176,7 @@ class ContentGenerator
                 'image_prompt' => (string) ($s['image_prompt'] ?? ''),
                 'motion' => $this->oneOf($s['motion'] ?? null, self::MOTIONS),
                 'image_url' => null,
+                'video_url' => null,
             ])
             ->values()
             ->all();

@@ -19,6 +19,7 @@ const imageCache = new Map();
 
 export function loadImage(url) {
     if (!url) return Promise.resolve(null);
+    if (/\.(mp4|webm|mov)(\?|$)/i.test(url)) return loadVideo(url);
     if (!imageCache.has(url)) {
         imageCache.set(
             url,
@@ -35,6 +36,33 @@ export function loadImage(url) {
     }
     return imageCache.get(url);
 }
+
+// Video scene sources are HTMLVideoElements; drawCover reads their frame.
+export function loadVideo(url) {
+    if (!imageCache.has(url)) {
+        imageCache.set(
+            url,
+            new Promise((resolve) => {
+                const v = document.createElement('video');
+                v.muted = true;
+                v.playsInline = true;
+                v.loop = true;
+                v.preload = 'auto';
+                v.crossOrigin = 'anonymous';
+                v.onloadeddata = () => resolve(v);
+                v.onerror = () => {
+                    imageCache.delete(url);
+                    resolve(null);
+                };
+                v.src = url;
+                v.load();
+            }),
+        );
+    }
+    return imageCache.get(url);
+}
+
+export const isVideo = (el) => el instanceof HTMLVideoElement;
 
 let fontsReady;
 export function ensureFonts() {
@@ -53,9 +81,11 @@ const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
 const easeOut = (t) => 1 - Math.pow(1 - t, 3);
 
 function drawCover(ctx, img, rect, scale = 1, panX = 0) {
-    const r = Math.max(rect.w / img.width, rect.h / img.height) * scale;
-    const iw = img.width * r;
-    const ih = img.height * r;
+    const nw = img.videoWidth || img.width;
+    const nh = img.videoHeight || img.height;
+    const r = Math.max(rect.w / nw, rect.h / nh) * scale;
+    const iw = nw * r;
+    const ih = nh * r;
     const dx = rect.x + (rect.w - iw) / 2 + (panX * (iw - rect.w)) / 2;
     const dy = rect.y + (rect.h - ih) / 2;
     ctx.save();
@@ -267,6 +297,18 @@ export function drawPoster(ctx, c, img) {
     stack.draw(x, y, align);
 }
 
+/** Which scene is on screen at time t, and how far into it we are. */
+export function sceneAt(reel, t) {
+    let acc = 0;
+    for (let i = 0; i < reel.scenes.length; i++) {
+        const d = Number(reel.scenes[i].duration) || 0;
+        if (t < acc + d) return { index: i, local: t - acc };
+        acc += d;
+    }
+    const last = reel.scenes.length - 1;
+    return { index: last, local: Number(reel.scenes[last]?.duration) || 0 };
+}
+
 export function reelDuration(reel) {
     return reel.scenes.reduce((s, sc) => s + Number(sc.duration || 0), 0);
 }
@@ -279,7 +321,7 @@ const MOTION = {
 };
 
 function drawSceneVisual(ctx, scene, img, progress, rect, palette, index) {
-    const m = (MOTION[scene.motion] ?? MOTION['zoom-in'])(progress);
+    const m = isVideo(img) ? { scale: 1, panX: 0 } : (MOTION[scene.motion] ?? MOTION['zoom-in'])(progress);
     if (img) drawCover(ctx, img, rect, m.scale, m.panX);
     else drawFallback(ctx, rect, palette, index, progress);
 }

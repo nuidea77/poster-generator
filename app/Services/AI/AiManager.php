@@ -4,17 +4,21 @@ namespace App\Services\AI;
 
 use App\Services\AI\Contracts\ImageProvider;
 use App\Services\AI\Contracts\TextProvider;
+use App\Services\AI\Contracts\VideoProvider;
 use App\Services\AI\Exceptions\AiException;
 use App\Services\AI\Providers\AnthropicProvider;
 use App\Services\AI\Providers\DemoProvider;
 use App\Services\AI\Providers\GeminiProvider;
 use App\Services\AI\Providers\OpenAIProvider;
+use App\Services\AI\Providers\SeedanceProvider;
 
 class AiManager
 {
     public const TEXT_PROVIDERS = ['anthropic', 'openai', 'gemini', 'demo'];
 
     public const IMAGE_PROVIDERS = ['openai', 'gemini', 'demo'];
+
+    public const VIDEO_PROVIDERS = ['seedance'];
 
     public function text(?string $name = null): TextProvider
     {
@@ -38,6 +42,15 @@ class AiManager
         return $this->make($name);
     }
 
+    public function video(string $name): VideoProvider
+    {
+        if (! in_array($name, self::VIDEO_PROVIDERS, true)) {
+            throw new AiException("Unknown video provider [{$name}].");
+        }
+
+        return $this->make($name);
+    }
+
     public function isConfigured(string $name): bool
     {
         return $name === 'demo' || filled(config("ai.providers.{$name}.key"));
@@ -55,13 +68,14 @@ class AiManager
                 'configured' => $this->isConfigured($name),
                 'text' => in_array($name, self::TEXT_PROVIDERS, true),
                 'image' => in_array($name, self::IMAGE_PROVIDERS, true),
+                'video' => in_array($name, self::VIDEO_PROVIDERS, true),
                 'text_model' => $p['text_model'] ?? null,
                 'image_model' => $p['image_model'] ?? null,
             ])
             ->values()
             ->push([
                 'id' => 'demo', 'label' => 'Demo', 'configured' => true,
-                'text' => true, 'image' => true, 'text_model' => null, 'image_model' => null,
+                'text' => true, 'image' => true, 'video' => false, 'text_model' => null, 'image_model' => null,
             ]);
 
         return [
@@ -86,7 +100,7 @@ class AiManager
         return 'demo';
     }
 
-    private function make(string $name): TextProvider|ImageProvider
+    private function make(string $name): TextProvider|ImageProvider|VideoProvider
     {
         if ($name === 'demo') {
             return new DemoProvider;
@@ -103,6 +117,7 @@ class AiManager
             'anthropic' => new AnthropicProvider($config, $timeout),
             'openai' => new OpenAIProvider($config, $timeout),
             'gemini' => new GeminiProvider($config, $timeout),
+            'seedance' => new SeedanceProvider($config, $timeout),
         };
     }
 }

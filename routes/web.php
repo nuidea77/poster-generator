@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AgentController;
 use App\Http\Controllers\Api\GenerateController;
 use App\Http\Controllers\Api\GenerationController;
 use App\Http\Controllers\Api\VideoController;
@@ -14,6 +15,7 @@ Route::prefix('api')->group(function () {
     Route::post('videos/convert', [VideoController::class, 'convert']);
 
     Route::apiResource('generations', GenerationController::class)->except('store');
+    Route::apiResource('agent-runs', AgentController::class)->only(['index', 'store', 'show', 'destroy']);
 });
 
 // Vue SPA

@@ -11,16 +11,19 @@ const props = defineProps({
     initial: { type: Object, default: null },
 });
 
+// Items made by the agent carry provider 'agent', which is not a selectable option.
+const known = (config, id, kind) => config.providers.find((p) => p.id === id && p[kind] && p.configured)?.id;
+
 const form = ref({
     prompt: props.initial?.prompt ?? '',
     style: props.initial?.options?.style ?? '',
     language: props.initial?.options?.language ?? 'mn',
     format: props.initial?.options?.format ?? '4:5',
-    text_provider: props.initial?.text_provider ?? props.config.default_text,
-    image_provider: props.initial?.image_provider ?? props.config.default_image,
+    text_provider: known(props.config, props.initial?.text_provider, 'text') ?? props.config.default_text,
+    image_provider: known(props.config, props.initial?.image_provider, 'image') ?? props.config.default_image,
 });
 
-const generation = ref(props.initial ? structuredClone(props.initial) : null);
+const generation = ref(props.initial ? JSON.parse(JSON.stringify(props.initial)) : null);
 const content = computed(() => generation.value?.content);
 const busy = reactive({ text: false, image: false });
 const error = ref('');

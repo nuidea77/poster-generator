@@ -28,10 +28,15 @@ class GeminiProvider implements ImageProvider, TextProvider
         return JsonExtractor::decode($text);
     }
 
-    public function generateImage(string $prompt, string $aspect): ?array
+    public function generateImage(string $prompt, string $aspect, array $references = []): ?array
     {
+        $parts = array_map(fn (array $ref) => [
+            'inlineData' => ['mimeType' => $ref['mime'], 'data' => base64_encode($ref['data'])],
+        ], $references);
+        $parts[] = ['text' => $prompt];
+
         $response = $this->generateContent($this->config['image_model'], [
-            'contents' => [['role' => 'user', 'parts' => [['text' => $prompt]]]],
+            'contents' => [['role' => 'user', 'parts' => $parts]],
             'generationConfig' => [
                 'responseModalities' => ['IMAGE'],
                 'imageConfig' => ['aspectRatio' => $aspect],

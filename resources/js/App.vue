@@ -4,14 +4,16 @@ import { api } from './lib/api';
 import PosterStudio from './components/PosterStudio.vue';
 import ReelStudio from './components/ReelStudio.vue';
 import HistoryList from './components/HistoryList.vue';
+import AgentStudio from './components/AgentStudio.vue';
 
 const tabs = [
+    { id: 'agent', label: '🤖 Агент' },
     { id: 'poster', label: 'Постер' },
     { id: 'reel', label: 'Reels видео' },
     { id: 'history', label: 'Түүх' },
 ];
 
-const tab = ref('poster');
+const tab = ref('agent');
 const config = ref(null);
 const configError = ref('');
 const opened = ref({ poster: null, reel: null });
@@ -61,6 +63,7 @@ function open(generation) {
             <p v-if="configError" class="mb-4 rounded-lg bg-red-950 p-3 text-sm text-red-200">{{ configError }}</p>
 
             <template v-if="config">
+                <AgentStudio v-show="tab === 'agent'" :config="config" @open="open" />
                 <PosterStudio v-show="tab === 'poster'" :key="'p' + openKey" :config="config" :initial="opened.poster" />
                 <ReelStudio v-show="tab === 'reel'" :key="'r' + openKey" :config="config" :initial="opened.reel" :active="tab === 'reel'" />
                 <HistoryList v-if="tab === 'history'" @open="open" />
