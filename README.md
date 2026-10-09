@@ -33,6 +33,12 @@ Laravel 13 + Vue 3 + Tailwind CSS 4 дээр бүтээсэн, **Claude Fable**,
 - Бүх ажил хадгалагдаж, “Түүх” хэсгээс дахин нээж засна
 - API түлхүүргүй үед **Demo** горимоор UI-г туршиж болно
 
+## UI
+
+higgsfield.ai-ийн загвараар: дээд цэс (`Top`/`New` badge), #0b0b0b дэвсгэр, Inter + Space Grotesk uppercase гарчиг,
+лайм (#d1fe17) accent, хуудас бүрийн доор тогтмол prompt composer (chip цэсүүд: стиль, хэл, текст/зураг модель, хэмжээ)
+ба гэрэлтдэг GENERATE товч. Галерей masonry grid, Skills feature-card хэлбэртэй.
+
 ## Суулгах
 
 Шаардлага: PHP 8.3+ (GD өргөтгөлтэй), Composer, Node 20+, (сонголтоор) ffmpeg.

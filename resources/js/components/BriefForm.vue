@@ -1,44 +1,40 @@
 <script setup>
+import { computed } from 'vue';
+import ChipMenu from './ChipMenu.vue';
 import ModelPicker from './ModelPicker.vue';
 
-// Shared "brief" inputs: prompt, style, language and which AI to use.
+// Shared composer chips: style, language, text model, image model.
 const form = defineModel({ type: Object, required: true });
 
-defineProps({
+const props = defineProps({
     config: { type: Object, required: true },
-    placeholder: { type: String, default: '' },
 });
 
 const styles = ['Минимал', 'Неон', 'Ретро 80-аад', 'Люкс', 'Фото реалистик', '3D рендер', 'Хүүхэлдэйн', 'Монгол хээ'];
 
-function toggleStyle(s) {
-    form.value.style = form.value.style === s ? '' : s;
-}
+const label = (id) => props.config.providers.find((p) => p.id === id)?.label ?? id;
+const styleLabel = computed(() => form.value.style || 'Стиль');
 </script>
 
 <template>
-    <div class="space-y-5">
-        <div>
-            <label class="label">Prompt</label>
-            <textarea v-model="form.prompt" rows="4" class="field resize-none" :placeholder="placeholder" />
+    <ChipMenu :label="styleLabel" icon="layers" :active="!!form.style" width="w-72">
+        <div class="flex flex-wrap gap-1.5 p-1">
+            <button v-for="s in styles" :key="s" type="button" class="chip chip-sm" :class="{ 'chip-active': form.style === s }" @click="form.style = form.style === s ? '' : s">{{ s }}</button>
         </div>
+        <input v-model="form.style" class="field mt-2 py-2 text-xs" placeholder="Эсвэл өөрөө бичих…" />
+    </ChipMenu>
 
-        <div>
-            <label class="label">Стиль</label>
-            <div class="flex flex-wrap gap-1.5">
-                <button v-for="s in styles" :key="s" type="button" class="chip" :class="{ 'chip-active': form.style === s }" @click="toggleStyle(s)">
-                    {{ s }}
-                </button>
-            </div>
-            <input v-model="form.style" class="field mt-2 py-2 text-xs" placeholder="Эсвэл өөрөө бичих…" />
-        </div>
+    <button type="button" class="chip" @click="form.language = form.language === 'mn' ? 'en' : 'mn'">
+        {{ form.language === 'mn' ? 'Монгол' : 'English' }}
+    </button>
 
-        <div class="grid grid-cols-2 gap-1.5">
-            <button type="button" class="chip justify-center" :class="{ 'chip-active': form.language === 'mn' }" @click="form.language = 'mn'">Монгол</button>
-            <button type="button" class="chip justify-center" :class="{ 'chip-active': form.language === 'en' }" @click="form.language = 'en'">English</button>
-        </div>
+    <ChipMenu :label="label(form.text_provider)" icon="bolt" width="w-72">
+        <div class="label px-2 pt-1">Текст модель</div>
+        <ModelPicker v-model="form.text_provider" :config="config" kind="text" />
+    </ChipMenu>
 
-        <ModelPicker v-model="form.text_provider" :config="config" kind="text" label="Текст модель" />
-        <ModelPicker v-model="form.image_provider" :config="config" kind="image" label="Зураг модель" />
-    </div>
+    <ChipMenu :label="label(form.image_provider)" icon="image" width="w-72">
+        <div class="label px-2 pt-1">Зураг модель</div>
+        <ModelPicker v-model="form.image_provider" :config="config" kind="image" />
+    </ChipMenu>
 </template>

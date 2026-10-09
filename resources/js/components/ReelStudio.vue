@@ -4,6 +4,8 @@ import Icon from './Icon.vue';
 import { api, debounce, downloadBlob, mapLimit } from '../lib/api';
 import { SIZES, drawReelFrame, ensureFonts, isVideo, loadImage, reelDuration, sceneAt } from '../lib/render';
 import BriefForm from './BriefForm.vue';
+import ChipMenu from './ChipMenu.vue';
+import Composer from './Composer.vue';
 import CaptionBox from './CaptionBox.vue';
 import ImageControls from './ImageControls.vue';
 
@@ -14,6 +16,8 @@ const props = defineProps({
 });
 
 // Items made by the agent carry provider 'agent', which is not a selectable option.
+const heroCards = ['from-pink-500 to-rose-800', 'from-amber-400 to-orange-700', 'from-sky-400 to-indigo-800', 'from-lime-400 to-emerald-800'];
+
 const known = (config, id, kind) => config.providers.find((p) => p.id === id && p[kind] && p.configured)?.id;
 
 const form = ref({
@@ -290,47 +294,39 @@ const script = computed(() => reel.value?.scenes.map((s, i) => `${i + 1}. ${s.vo
 </script>
 
 <template>
-    <div class="grid gap-5 lg:grid-cols-[340px_1fr]">
-        <aside class="space-y-4 lg:sticky lg:top-5 lg:max-h-[calc(100vh-40px)] lg:overflow-y-auto lg:pr-1 scroll-thin">
-            <div class="panel space-y-5">
-                <div class="flex items-center gap-2">
-                    <Icon name="video" size="18" />
-                    <h1 class="text-base font-bold">Reels</h1>
-                </div>
-
-                <BriefForm v-model="form" :config="config" placeholder="Жишээ: Шинэ фитнес клубын нээлтийг сурталчлах эрч хүчтэй reels, залуучуудад зориулсан" />
-
-                <div class="grid grid-cols-2 gap-2">
-                    <div><label class="label">Урт (сек)</label><input v-model.number="form.duration" type="number" min="5" max="90" class="field" /></div>
-                    <div><label class="label">Үзэгдэл</label><input v-model.number="form.scenes" type="number" min="2" max="12" class="field" /></div>
-                </div>
-
-                <button class="btn btn-primary w-full py-3" :disabled="busyText || !form.prompt.trim()" @click="generate">
-                    <span v-if="busyText" class="spinner" /><Icon v-else name="sparkles" size="16" />
-                    {{ busyText ? 'AI сценари бичиж байна…' : 'Үүсгэх' }}
-                </button>
-                <p v-if="error" class="rounded-xl bg-red-950/70 p-3 text-sm text-red-200">{{ error }}</p>
+    <div>
+        <section v-if="!reel" class="mx-auto flex min-h-[62vh] max-w-3xl flex-col items-center justify-center text-center">
+            <div class="mb-8 flex items-end justify-center gap-2">
+                <div v-for="(c, i) in heroCards" :key="i" class="h-36 w-20 rounded-xl border border-white/20 bg-gradient-to-b shadow-xl md:h-44 md:w-24" :class="c" :style="{ transform: `rotate(${(i - 1.5) * 5}deg) translateY(${Math.abs(i - 1.5) * 8}px)` }" />
             </div>
+            <h1 class="display text-4xl leading-[0.95] md:text-6xl">
+                AI Reels генератор.<br />
+                <span class="text-lime">Студийн чанартай.</span>
+            </h1>
+            <p class="mt-4 max-w-xl text-base text-zinc-400 md:text-lg">Санаагаа бичихэд сценари, үзэгдэл бүрийн зураг, хөдөлгөөнт текст бүхий 9:16 видео бэлдэнэ</p>
+            <p v-if="error" class="mt-4 rounded-xl bg-red-950/70 p-3 text-sm text-red-200">{{ error }}</p>
+        </section>
 
-            <CaptionBox v-if="reel" :caption="reel.caption" :hashtags="reel.hashtags" :extra="reel.music_mood ? `🎵 Хөгжим: ${reel.music_mood}` : ''" />
-
-            <div v-if="script" class="panel space-y-2">
-                <div class="text-sm font-semibold">Voiceover</div>
-                <pre class="whitespace-pre-wrap font-sans text-xs text-zinc-400">{{ script }}</pre>
+        <section v-else class="mx-auto max-w-[1400px]">
+            <div class="mb-3 flex flex-wrap items-center gap-2">
+                <h1 class="display text-2xl">Reels</h1>
+                <span class="badge badge-dark">9:16 · {{ fmt(total) }}</span>
+                <span class="ml-auto flex gap-2">
+                    <label class="btn btn-ghost cursor-pointer">
+                        <Icon name="music" size="14" /> {{ music ? music.name : 'Хөгжим' }}
+                        <input type="file" accept="audio/*" class="hidden" @change="pickMusic" />
+                    </label>
+                    <button class="btn btn-lime" :disabled="recording || converting || anyImageBusy" @click="exportVideo">
+                        <template v-if="recording">Бичиж байна… {{ Math.round((time / total) * 100) }}%</template>
+                        <template v-else-if="converting">MP4 болгож байна…</template>
+                        <template v-else><Icon name="download" size="16" /> Видео татах {{ config.ffmpeg ? '(MP4)' : '' }}</template>
+                    </button>
+                </span>
             </div>
-        </aside>
+            <p v-if="error" class="mb-3 rounded-xl bg-red-950/70 p-3 text-sm text-red-200">{{ error }}</p>
 
-        <section class="min-w-0">
-            <div v-if="!reel" class="panel grid min-h-[70vh] place-items-center text-center">
-                <div class="max-w-sm">
-                    <div class="mx-auto mb-4 grid size-14 place-items-center rounded-2xl bg-white/5"><Icon name="video" size="26" /></div>
-                    <p class="font-semibold">Reels үүсгэх</p>
-                    <p class="mt-1 text-sm text-zinc-500">AI сценари, үзэгдэл бүрийн зураг, хөдөлгөөнт текст бүхий 9:16 видео бэлдэнэ.</p>
-                </div>
-            </div>
-
-            <div v-else class="grid gap-5 xl:grid-cols-[320px_1fr]">
-                <div class="space-y-3 xl:sticky xl:top-5 xl:self-start">
+            <div class="grid gap-5 xl:grid-cols-[320px_1fr_300px]">
+                <div class="space-y-3 xl:sticky xl:top-20 xl:self-start">
                     <div class="media-card relative bg-black">
                         <canvas ref="canvas" class="aspect-[9/16] w-full cursor-pointer" @click="!recording && toggle()" />
                         <div v-if="recording" class="absolute top-6 left-3 flex items-center gap-1.5 rounded-full bg-red-600 px-2.5 py-1 text-xs font-bold">
@@ -340,29 +336,17 @@ const script = computed(() => reel.value?.scenes.map((s, i) => `${i + 1}. ${s.vo
                             <span class="grid size-14 place-items-center rounded-full bg-white/90 text-black"><Icon name="play" size="22" /></span>
                         </button>
                     </div>
-
                     <div class="flex items-center gap-2">
                         <button class="btn btn-ghost w-11 px-0" :disabled="recording" @click="toggle"><Icon :name="playing ? 'pause' : 'play'" size="14" /></button>
                         <input type="range" class="flex-1" min="0" :max="total" step="0.01" :value="time" :disabled="recording" @input="seek" />
                         <span class="w-20 text-right text-xs tabular-nums text-zinc-400">{{ fmt(time) }} / {{ fmt(total) }}</span>
                     </div>
-
-                    <label class="btn btn-ghost w-full cursor-pointer text-xs">
-                        <Icon name="music" size="14" /> {{ music ? music.name : 'Хөгжим нэмэх' }}
-                        <input type="file" accept="audio/*" class="hidden" @change="pickMusic" />
-                    </label>
-
-                    <button class="btn btn-primary w-full py-3" :disabled="recording || converting || anyImageBusy" @click="exportVideo">
-                        <template v-if="recording">Бичиж байна… {{ Math.round((time / total) * 100) }}%</template>
-                        <template v-else-if="converting">MP4 болгож байна…</template>
-                        <template v-else><Icon name="download" size="16" /> Видео татах {{ config.ffmpeg ? '(MP4)' : '' }}</template>
-                    </button>
-                    <p class="text-[11px] leading-snug text-zinc-500">Видео бодит хугацаанд бичигдэнэ ({{ fmt(total) }}). Бичиж байх үед энэ табыг нээлттэй байлгаарай.</p>
+                    <p class="text-[11px] leading-snug text-muted">Видео бодит хугацаанд бичигдэнэ ({{ fmt(total) }}). Бичиж байх үед энэ табыг нээлттэй байлгаарай.</p>
                 </div>
 
                 <div class="space-y-3">
                     <div class="flex items-center justify-between">
-                        <h3 class="text-sm font-semibold">Үзэгдлүүд <span class="text-zinc-500">{{ reel.scenes.length }}</span></h3>
+                        <h3 class="text-sm font-semibold">Үзэгдлүүд <span class="text-muted">{{ reel.scenes.length }}</span></h3>
                         <div class="flex items-center gap-2">
                             <select v-model="reel.font" class="field w-auto py-1.5 text-xs">
                                 <option value="bold">Bold</option>
@@ -381,12 +365,11 @@ const script = computed(() => reel.value?.scenes.map((s, i) => `${i + 1}. ${s.vo
                             <div class="aspect-[9/16] overflow-hidden rounded-xl bg-surface-3">
                                 <video v-if="scene.video_url" :src="scene.video_url" class="size-full object-cover" muted playsinline />
                                 <img v-else-if="scene.image_url" :src="scene.image_url" class="size-full object-cover" />
-                                <div v-else class="grid size-full place-items-center text-[10px] text-zinc-500">зураггүй</div>
+                                <div v-else class="grid size-full place-items-center text-[10px] text-muted">зураггүй</div>
                             </div>
-                            <div v-if="sceneBusy[i]" class="absolute inset-0 grid place-items-center rounded-xl bg-black/60"><span class="spinner" /></div>
-                            <div class="mt-1 text-center text-xs font-bold text-zinc-500">#{{ i + 1 }}</div>
+                            <div v-if="sceneBusy[i]" class="absolute inset-0 grid place-items-center rounded-xl bg-black/60"><span class="spinner text-lime" /></div>
+                            <div class="mt-1 text-center text-xs font-bold text-muted">#{{ i + 1 }}</div>
                         </div>
-
                         <div class="min-w-0 flex-1 space-y-2">
                             <div class="flex gap-2">
                                 <input v-model="scene.text" class="field font-semibold" placeholder="Дэлгэцийн текст" />
@@ -407,17 +390,34 @@ const script = computed(() => reel.value?.scenes.map((s, i) => `${i + 1}. ${s.vo
                                 <button class="text-red-400 hover:underline" @click="scene.video_url = null">зураг руу буцах</button>
                             </div>
                             <ImageControls v-else v-model:prompt="scene.image_prompt" v-model:url="scene.image_url" compact :busy="!!sceneBusy[i]" @regenerate="generateSceneImage(i)" @error="error = $event" />
-                            <div class="flex justify-end gap-1 text-xs text-zinc-500">
+                            <div class="flex justify-end gap-1 text-xs text-muted">
                                 <button class="rounded-lg px-2 py-1 hover:bg-white/5" @click="moveScene(i, -1)">↑</button>
                                 <button class="rounded-lg px-2 py-1 hover:bg-white/5" @click="moveScene(i, 1)">↓</button>
                                 <button class="rounded-lg px-2 py-1 text-red-400 hover:bg-white/5" :disabled="reel.scenes.length < 2" @click="removeScene(i)">Устгах</button>
                             </div>
                         </div>
                     </div>
+                    <button class="btn btn-outline w-full" @click="addScene"><Icon name="plus" size="14" /> Үзэгдэл нэмэх</button>
+                </div>
 
-                    <button class="btn btn-ghost w-full" @click="addScene"><Icon name="plus" size="14" /> Үзэгдэл нэмэх</button>
+                <div class="space-y-4">
+                    <CaptionBox :caption="reel.caption" :hashtags="reel.hashtags" :extra="reel.music_mood ? `🎵 Хөгжим: ${reel.music_mood}` : ''" />
+                    <div v-if="script" class="panel space-y-2">
+                        <div class="text-sm font-semibold">Voiceover</div>
+                        <pre class="whitespace-pre-wrap font-sans text-xs text-zinc-400">{{ script }}</pre>
+                    </div>
                 </div>
             </div>
         </section>
+
+        <Composer v-if="active" v-model="form.prompt" placeholder="Reels-ийн санаагаа бичнэ үү — хэнд, юуг, ямар аясаар…" :busy="busyText" busy-label="Сценари бичиж байна" label="Generate" @generate="generate">
+            <BriefForm v-model="form" :config="config" />
+            <ChipMenu :label="form.duration + 'с · ' + form.scenes + ' үзэгдэл'" icon="clock" width="w-64">
+                <div class="grid grid-cols-2 gap-2 p-1">
+                    <div><label class="label">Урт (сек)</label><input v-model.number="form.duration" type="number" min="5" max="90" class="field" /></div>
+                    <div><label class="label">Үзэгдэл</label><input v-model.number="form.scenes" type="number" min="2" max="12" class="field" /></div>
+                </div>
+            </ChipMenu>
+        </Composer>
     </div>
 </template>

@@ -2,14 +2,12 @@
 import { computed } from 'vue';
 import Icon from './Icon.vue';
 
-// Higgsfield-style model selector: a list of model cards with badges instead of a <select>.
+// Model list rendered inside a composer chip popover.
 const model = defineModel({ type: String, required: true });
 
 const props = defineProps({
     config: { type: Object, required: true },
     kind: { type: String, required: true }, // text | image | video
-    label: { type: String, default: '' },
-    compact: { type: Boolean, default: false },
 });
 
 const meta = {
@@ -32,28 +30,25 @@ const items = computed(() =>
 </script>
 
 <template>
-    <div>
-        <label v-if="label" class="label">{{ label }}</label>
-        <div class="grid gap-1.5" :class="compact ? 'grid-cols-2' : 'grid-cols-1'">
-            <button
-                v-for="p in items"
-                :key="p.id"
-                type="button"
-                class="group flex items-center gap-2.5 rounded-xl border p-2 text-left transition disabled:cursor-not-allowed disabled:opacity-40"
-                :class="model === p.id ? 'border-white bg-white/10' : 'border-line bg-surface-2 hover:border-line-2'"
-                :disabled="!p.configured"
-                @click="model = p.id"
-            >
-                <span class="grid size-8 shrink-0 place-items-center rounded-lg bg-gradient-to-br text-xs font-black text-white" :class="p.color">{{ p.short }}</span>
-                <span class="min-w-0 flex-1">
-                    <span class="flex items-center gap-1.5">
-                        <span class="truncate text-sm font-semibold">{{ p.label }}</span>
-                        <span v-if="p.badge" class="badge" :class="p.badge === 'top' ? 'badge-top' : 'badge-new'">{{ p.badge }}</span>
-                    </span>
-                    <span class="block truncate text-[11px] text-zinc-500">{{ p.configured ? p.model || p.tag : 'API түлхүүр алга' }}</span>
+    <div class="space-y-1">
+        <button
+            v-for="p in items"
+            :key="p.id"
+            type="button"
+            class="flex w-full items-center gap-2.5 rounded-xl p-2 text-left transition hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-40"
+            :class="{ 'bg-white/5': model === p.id }"
+            :disabled="!p.configured"
+            @click="model = p.id"
+        >
+            <span class="grid size-8 shrink-0 place-items-center rounded-lg bg-gradient-to-br text-xs font-black text-white" :class="p.color">{{ p.short }}</span>
+            <span class="min-w-0 flex-1">
+                <span class="flex items-center gap-1.5">
+                    <span class="truncate text-sm font-medium">{{ p.label }}</span>
+                    <span v-if="p.badge" class="badge" :class="p.badge === 'top' ? 'badge-top' : 'badge-new'">{{ p.badge === 'top' ? 'Top' : 'New' }}</span>
                 </span>
-                <Icon v-if="model === p.id" name="check" size="16" class="shrink-0 text-white" />
-            </button>
-        </div>
+                <span class="block truncate text-[11px] text-muted">{{ p.configured ? p.model || p.tag : 'API түлхүүр алга' }}</span>
+            </span>
+            <Icon v-if="model === p.id" name="check" size="16" class="shrink-0 text-lime" />
+        </button>
     </div>
 </template>

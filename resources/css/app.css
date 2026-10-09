@@ -4,15 +4,23 @@
 @source '../../storage/framework/views/*.php';
 @source '../js/**/*.vue';
 
+/* Design tokens modelled on higgsfield.ai: #0b0b0b canvas, Inter body,
+   Space Grotesk uppercase display, lime #d1fe17 accent. */
 @theme {
     --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
-    --color-bg: #09090b;
-    --color-surface: #111113;
-    --color-surface-2: #18181b;
-    --color-surface-3: #1f1f23;
-    --color-line: #27272a;
-    --color-line-2: #3f3f46;
+    --font-display: 'Space Grotesk', 'Inter', ui-sans-serif, system-ui, sans-serif;
+    --color-bg: #0b0b0b;
+    --color-surface: #141414;
+    --color-surface-2: #1a1a1a;
+    --color-surface-3: #222222;
+    --color-line: rgba(255, 255, 255, 0.06);
+    --color-line-2: rgba(255, 255, 255, 0.14);
+    --color-lime: #d1fe17;
+    --color-ink: #1a1a1a;
+    --color-fg: #f7f7f8;
+    --color-muted: #9a9a9f;
+    --color-pink: #ff2e8a;
 }
 
 html {
@@ -21,85 +29,112 @@ html {
 
 body {
     background: var(--color-bg);
-    color: #f4f4f5;
+    color: var(--color-fg);
 }
 
 ::selection {
-    background: #fff;
+    background: var(--color-lime);
     color: #000;
 }
 
 @layer components {
+    .display {
+        @apply font-display font-bold tracking-[-0.04em] uppercase;
+    }
+
     /* Form controls */
     .field {
-        @apply w-full rounded-xl border border-line bg-surface-2 px-3.5 py-2.5 text-sm text-zinc-100 placeholder-zinc-500 outline-none transition focus:border-zinc-500 focus:bg-surface-3;
+        @apply w-full rounded-xl border border-line bg-surface-2 px-3.5 py-2.5 text-sm text-fg placeholder-zinc-500 outline-none transition focus:border-line-2 focus:bg-surface-3;
     }
     select.field {
         @apply appearance-none bg-[url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20width%3D%2712%27%20height%3D%2712%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27%23a1a1aa%27%20stroke-width%3D%272.5%27%3E%3Cpath%20d%3D%27m6%209%206%206%206-6%27/%3E%3C/svg%3E")] bg-[length:12px] bg-[right_12px_center] bg-no-repeat pr-9;
     }
     .label {
-        @apply mb-1.5 block text-[11px] font-semibold tracking-wider text-zinc-500 uppercase;
+        @apply mb-1.5 block text-[11px] font-semibold tracking-wider text-muted uppercase;
     }
 
     /* Buttons */
     .btn {
-        @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition select-none disabled:cursor-not-allowed disabled:opacity-40;
+        @apply inline-flex items-center justify-center gap-2 rounded-[10px] px-4 py-2 text-sm font-medium transition select-none disabled:cursor-not-allowed disabled:opacity-40;
     }
-    .btn-primary {
-        @apply bg-white text-black hover:bg-zinc-200 active:bg-zinc-300;
+    .btn-lime {
+        @apply bg-lime text-ink hover:brightness-105 active:brightness-95;
+    }
+    .btn-lime-soft {
+        @apply bg-lime/10 text-lime shadow-[inset_0_2px_3px_rgba(255,255,255,0.03)] hover:bg-lime/15;
+    }
+    .btn-white {
+        @apply bg-white text-ink hover:bg-zinc-200;
     }
     .btn-ghost {
-        @apply border border-line bg-surface-2 text-zinc-200 hover:border-line-2 hover:bg-surface-3;
+        @apply bg-surface-2 text-fg hover:bg-surface-3;
     }
-    .btn-soft {
-        @apply bg-white/10 text-white hover:bg-white/15;
+    .btn-outline {
+        @apply border border-line-2 bg-transparent text-fg hover:bg-white/5;
+    }
+    .btn-generate {
+        @apply rounded-xl bg-lime px-6 py-3 text-xs font-bold tracking-wider text-ink uppercase shadow-[0_0_0_1px_rgba(255,255,255,0.25)_inset,0_8px_30px_rgba(209,254,23,0.28)] hover:brightness-105;
     }
     .btn-sm {
         @apply rounded-lg px-3 py-1.5 text-xs;
+    }
+
+    /* Composer chips (the pill controls under the prompt) */
+    .chip {
+        @apply inline-flex h-9 items-center gap-1.5 rounded-xl bg-surface-3 px-3 text-sm font-medium text-fg transition hover:bg-[#2a2a2a];
+    }
+    .chip-active {
+        @apply bg-lime text-ink hover:bg-lime;
+    }
+    .chip-sm {
+        @apply h-8 px-2.5 text-xs;
+    }
+
+    /* Badges */
+    .badge {
+        @apply inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] leading-4 font-bold tracking-[0.1px];
+    }
+    .badge-new {
+        @apply bg-lime/20 text-lime;
+    }
+    .badge-top {
+        @apply bg-pink text-white;
+    }
+    .badge-dark {
+        @apply bg-surface-3 text-fg;
+    }
+    .badge-muted {
+        @apply bg-white/10 text-zinc-300;
     }
 
     /* Surfaces */
     .panel {
         @apply rounded-2xl border border-line bg-surface p-4;
     }
-    .chip {
-        @apply inline-flex items-center gap-1 rounded-full border border-line bg-surface-2 px-3 py-1 text-xs text-zinc-300 transition hover:border-line-2 hover:text-white;
+    .feature-card {
+        @apply block rounded-2xl border border-line bg-surface p-4 transition hover:border-line-2 hover:bg-surface-2;
     }
-    .chip-active {
-        @apply border-white bg-white text-black hover:text-black;
-    }
-    .badge {
-        @apply rounded-md px-1.5 py-0.5 text-[10px] font-bold tracking-wide uppercase;
-    }
-    .badge-top {
-        @apply bg-lime-400/15 text-lime-300;
-    }
-    .badge-new {
-        @apply bg-violet-500/20 text-violet-300;
-    }
-    .badge-muted {
-        @apply bg-white/10 text-zinc-300;
-    }
-
-    /* Media cards (gallery / feed) */
     .media-card {
-        @apply relative overflow-hidden rounded-2xl bg-surface-2 ring-1 ring-white/5 transition hover:ring-white/20;
+        @apply relative overflow-hidden rounded-2xl bg-surface-2 ring-1 ring-white/5 transition hover:ring-white/15;
     }
     .media-overlay {
         @apply absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-3 pt-12 opacity-0 transition group-hover:opacity-100;
     }
 
+    /* Composer bar */
+    .composer {
+        @apply rounded-[20px] border border-white/10 bg-[#161616]/95 p-3 shadow-[0_20px_60px_rgba(0,0,0,0.6)] backdrop-blur;
+    }
+
     .spinner {
         @apply inline-block size-4 animate-spin rounded-full border-2 border-current/30 border-t-current;
     }
-
-    /* Thin scrollbars */
     .scroll-thin {
         scrollbar-width: thin;
-        scrollbar-color: #3f3f46 transparent;
+        scrollbar-color: #333 transparent;
     }
 }
 
 input[type='range'] {
-    accent-color: #fff;
+    accent-color: var(--color-lime);
 }

@@ -36,15 +36,15 @@ async function upload(event) {
         <div v-if="!compact" class="text-sm font-semibold">Арын зураг</div>
         <textarea v-model="prompt" :rows="compact ? 2 : 4" class="field resize-none text-xs" placeholder="Зургийн prompt (англиар)" />
         <div class="flex flex-wrap gap-1.5">
-            <button class="btn btn-ghost btn-sm flex-1" :disabled="busy || !prompt" @click="emit('regenerate')">
+            <button class="btn btn-outline btn-sm flex-1" :disabled="busy || !prompt" @click="emit('regenerate')">
                 <span v-if="busy" class="spinner size-3" /><Icon v-else name="refresh" size="12" />
                 {{ url ? 'Дахин үүсгэх' : 'Зураг үүсгэх' }}
             </button>
-            <label class="btn btn-ghost btn-sm cursor-pointer" :class="{ 'opacity-50': uploading }">
+            <label class="btn btn-outline btn-sm cursor-pointer" :class="{ 'opacity-50': uploading }">
                 <Icon name="upload" size="12" /> Өөрийн зураг
                 <input type="file" accept="image/png,image/jpeg,image/webp" class="hidden" @change="upload" />
             </label>
-            <button v-if="url" class="btn btn-ghost btn-sm px-2" title="Зураг арилгах" @click="url = null"><Icon name="x" size="12" /></button>
+            <button v-if="url" class="btn btn-outline btn-sm px-2" title="Зураг арилгах" @click="url = null"><Icon name="x" size="12" /></button>
         </div>
     </div>
 </template>
