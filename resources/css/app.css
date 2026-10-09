@@ -7,25 +7,99 @@
 @theme {
     --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
+    --color-bg: #09090b;
+    --color-surface: #111113;
+    --color-surface-2: #18181b;
+    --color-surface-3: #1f1f23;
+    --color-line: #27272a;
+    --color-line-2: #3f3f46;
+}
+
+html {
+    color-scheme: dark;
+}
+
+body {
+    background: var(--color-bg);
+    color: #f4f4f5;
+}
+
+::selection {
+    background: #fff;
+    color: #000;
 }
 
 @layer components {
+    /* Form controls */
     .field {
-        @apply w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 outline-none focus:border-fuchsia-500 focus:ring-1 focus:ring-fuchsia-500;
+        @apply w-full rounded-xl border border-line bg-surface-2 px-3.5 py-2.5 text-sm text-zinc-100 placeholder-zinc-500 outline-none transition focus:border-zinc-500 focus:bg-surface-3;
+    }
+    select.field {
+        @apply appearance-none bg-[url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20width%3D%2712%27%20height%3D%2712%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27%23a1a1aa%27%20stroke-width%3D%272.5%27%3E%3Cpath%20d%3D%27m6%209%206%206%206-6%27/%3E%3C/svg%3E")] bg-[length:12px] bg-[right_12px_center] bg-no-repeat pr-9;
     }
     .label {
-        @apply mb-1 block text-xs font-medium tracking-wide text-zinc-400 uppercase;
+        @apply mb-1.5 block text-[11px] font-semibold tracking-wider text-zinc-500 uppercase;
     }
+
+    /* Buttons */
     .btn {
-        @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50;
+        @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition select-none disabled:cursor-not-allowed disabled:opacity-40;
     }
     .btn-primary {
-        @apply bg-gradient-to-r from-fuchsia-600 to-orange-500 text-white hover:brightness-110;
+        @apply bg-white text-black hover:bg-zinc-200 active:bg-zinc-300;
     }
     .btn-ghost {
-        @apply border border-zinc-700 bg-zinc-900 text-zinc-200 hover:bg-zinc-800;
+        @apply border border-line bg-surface-2 text-zinc-200 hover:border-line-2 hover:bg-surface-3;
     }
+    .btn-soft {
+        @apply bg-white/10 text-white hover:bg-white/15;
+    }
+    .btn-sm {
+        @apply rounded-lg px-3 py-1.5 text-xs;
+    }
+
+    /* Surfaces */
     .panel {
-        @apply rounded-2xl border border-zinc-800 bg-zinc-900/60 p-4;
+        @apply rounded-2xl border border-line bg-surface p-4;
     }
+    .chip {
+        @apply inline-flex items-center gap-1 rounded-full border border-line bg-surface-2 px-3 py-1 text-xs text-zinc-300 transition hover:border-line-2 hover:text-white;
+    }
+    .chip-active {
+        @apply border-white bg-white text-black hover:text-black;
+    }
+    .badge {
+        @apply rounded-md px-1.5 py-0.5 text-[10px] font-bold tracking-wide uppercase;
+    }
+    .badge-top {
+        @apply bg-lime-400/15 text-lime-300;
+    }
+    .badge-new {
+        @apply bg-violet-500/20 text-violet-300;
+    }
+    .badge-muted {
+        @apply bg-white/10 text-zinc-300;
+    }
+
+    /* Media cards (gallery / feed) */
+    .media-card {
+        @apply relative overflow-hidden rounded-2xl bg-surface-2 ring-1 ring-white/5 transition hover:ring-white/20;
+    }
+    .media-overlay {
+        @apply absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-3 pt-12 opacity-0 transition group-hover:opacity-100;
+    }
+
+    .spinner {
+        @apply inline-block size-4 animate-spin rounded-full border-2 border-current/30 border-t-current;
+    }
+
+    /* Thin scrollbars */
+    .scroll-thin {
+        scrollbar-width: thin;
+        scrollbar-color: #3f3f46 transparent;
+    }
+}
+
+input[type='range'] {
+    accent-color: #fff;
 }

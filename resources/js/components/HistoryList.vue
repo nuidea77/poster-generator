@@ -1,11 +1,13 @@
 <script setup>
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { api } from '../lib/api';
+import Icon from './Icon.vue';
 
 const emit = defineEmits(['open']);
 const items = ref([]);
 const loading = ref(true);
 const error = ref('');
+const filter = ref('all');
 
 onMounted(async () => {
     try {
@@ -17,8 +19,10 @@ onMounted(async () => {
     }
 });
 
+const shown = computed(() => items.value.filter((g) => filter.value === 'all' || g.type === filter.value));
 const thumb = (g) => (g.type === 'reel' ? g.content.scenes?.find((s) => s.image_url)?.image_url : g.content.image_url);
 const title = (g) => (g.type === 'reel' ? g.content.title || g.content.hook : g.content.headline) || g.prompt;
+const aspect = (g) => (g.type === 'reel' ? 'aspect-[9/16]' : { '1:1': 'aspect-square', '9:16': 'aspect-[9/16]', '16:9': 'aspect-video' }[g.content.format] || 'aspect-[4/5]');
 
 async function remove(g) {
     if (!confirm('Устгах уу?')) return;
@@ -29,22 +33,33 @@ async function remove(g) {
 
 <template>
     <div>
-        <p v-if="error" class="rounded-lg bg-red-950 p-3 text-sm text-red-200">{{ error }}</p>
-        <div v-if="loading" class="py-20 text-center text-zinc-500">Ачаалж байна…</div>
-        <div v-else-if="!items.length" class="py-20 text-center text-zinc-500">Одоогоор юу ч үүсгээгүй байна.</div>
+        <div class="mb-5 flex flex-wrap items-center gap-3">
+            <h1 class="text-xl font-bold">Галерей</h1>
+            <div class="ml-auto flex gap-1.5">
+                <button v-for="f in [['all', 'Бүгд'], ['poster', 'Постер'], ['reel', 'Reels']]" :key="f[0]" class="chip" :class="{ 'chip-active': filter === f[0] }" @click="filter = f[0]">{{ f[1] }}</button>
+            </div>
+        </div>
 
-        <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-            <div v-for="g in items" :key="g.id" class="group relative cursor-pointer overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900" @click="emit('open', g)">
+        <p v-if="error" class="rounded-xl bg-red-950 p-3 text-sm text-red-200">{{ error }}</p>
+        <div v-if="loading" class="grid min-h-[40vh] place-items-center text-zinc-500"><span class="spinner" /></div>
+        <div v-else-if="!shown.length" class="panel grid min-h-[40vh] place-items-center text-center text-zinc-500">Одоогоор юу ч үүсгээгүй байна.</div>
+
+        <div class="columns-2 gap-3 sm:columns-3 xl:columns-4 2xl:columns-5">
+            <div v-for="g in shown" :key="g.id" class="group media-card mb-3 cursor-pointer break-inside-avoid" @click="emit('open', g)">
                 <div
-                    class="aspect-[4/5] bg-cover bg-center"
+                    class="w-full bg-cover bg-center"
+                    :class="aspect(g)"
                     :style="thumb(g) ? { backgroundImage: `url(${thumb(g)})` } : { background: `linear-gradient(135deg, ${g.content.palette?.primary}, ${g.content.palette?.background})` }"
                 />
-                <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 to-transparent p-3 pt-10">
-                    <span class="mb-1 inline-block rounded bg-white/15 px-1.5 py-0.5 text-[10px] uppercase">{{ g.type === 'reel' ? '🎬 Reels' : '🖼 Постер' }}</span>
+                <span class="badge badge-muted absolute top-2 left-2 backdrop-blur">{{ g.type === 'reel' ? 'Reels' : 'Poster' }}</span>
+                <div class="media-overlay">
                     <div class="line-clamp-2 text-sm font-semibold">{{ title(g) }}</div>
-                    <div class="text-[10px] text-zinc-400">{{ new Date(g.created_at).toLocaleString() }} · {{ g.text_provider }}</div>
+                    <div class="mt-0.5 text-[10px] text-zinc-400">{{ new Date(g.created_at).toLocaleDateString() }} · {{ g.text_provider }}</div>
+                    <div class="mt-2 flex gap-1.5">
+                        <span class="btn btn-primary btn-sm">Нээх <Icon name="arrow" size="12" /></span>
+                        <button class="btn btn-soft btn-sm" @click.stop="remove(g)"><Icon name="trash" size="12" /></button>
+                    </div>
                 </div>
-                <button class="absolute top-2 right-2 hidden rounded-full bg-black/70 px-2 py-0.5 text-xs group-hover:block" @click.stop="remove(g)">✕</button>
             </div>
         </div>
     </div>

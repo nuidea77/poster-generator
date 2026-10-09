@@ -1,9 +1,11 @@
 <script setup>
 import { onMounted, ref } from 'vue';
+import Icon from './Icon.vue';
 import { api } from '../lib/api';
 
+defineProps({ page: { type: Boolean, default: false } });
+
 const skills = ref([]);
-const open = ref(false);
 const viewing = ref(null); // { name, content }
 const editing = ref(null); // { id?, name, description, content, enabled }
 const error = ref('');
@@ -77,53 +79,58 @@ async function remove(s) {
 </script>
 
 <template>
-    <div class="panel space-y-3">
-        <button class="flex w-full items-center justify-between text-sm font-semibold" @click="open = !open">
-            <span>📚 Skills ({{ skills.length }})</span>
-            <span class="text-xs text-zinc-500">{{ open ? 'хаах' : 'нээх' }}</span>
-        </button>
-
-        <template v-if="open">
-            <p class="text-[11px] text-zinc-500">
+    <div class="grid gap-5 lg:grid-cols-[1fr_minmax(0,1.3fr)]">
+        <div class="space-y-4">
+            <div class="flex items-center gap-3">
+                <h1 class="text-xl font-bold">Skills</h1>
+                <span class="badge badge-muted">{{ skills.length }}</span>
+                <button class="btn btn-primary btn-sm ml-auto" @click="startNew"><Icon name="plus" size="14" /> Skill нэмэх</button>
+            </div>
+            <p class="text-sm text-zinc-500">
                 Агент ажиллахдаа хэрэгтэй skill-ээ өөрөө ачаалж уншина. Өөрийн брэнд, дүрэм, стилийн заавраа skill болгон нэмээрэй — тэдгээр нь ерөнхий зааврыг давамгайлна.
             </p>
 
-            <div class="space-y-1">
-                <div v-for="s in skills" :key="s.name" class="group rounded-lg px-2 py-1.5 text-xs hover:bg-zinc-800" :class="{ 'opacity-50': !s.enabled }">
-                    <div class="flex items-center gap-2">
-                        <button class="flex-1 truncate text-left font-medium text-zinc-200 hover:underline" @click="view(s)">{{ s.name }}</button>
-                        <span v-if="s.source === 'custom'" class="rounded bg-fuchsia-500/20 px-1 text-[10px] text-fuchsia-200">custom</span>
-                        <template v-if="s.source === 'custom'">
-                            <button class="hidden text-zinc-400 group-hover:inline" :title="s.enabled ? 'Идэвхгүй болгох' : 'Идэвхжүүлэх'" @click="toggle(s)">{{ s.enabled ? '⏸' : '▶' }}</button>
-                            <button class="hidden text-zinc-400 group-hover:inline" @click="edit(s)">✎</button>
-                            <button class="hidden text-red-400 group-hover:inline" @click="remove(s)">✕</button>
-                        </template>
-                    </div>
-                    <div class="line-clamp-2 text-zinc-500">{{ s.description }}</div>
+            <div class="space-y-2">
+                <div v-for="s in skills" :key="s.name" class="group panel flex cursor-pointer items-start gap-3 py-3 transition hover:border-line-2" :class="{ 'opacity-50': !s.enabled, 'border-white': viewing?.name === s.name }" @click="view(s)">
+                    <span class="grid size-9 shrink-0 place-items-center rounded-lg" :class="s.source === 'custom' ? 'bg-violet-500/20 text-violet-300' : 'bg-white/5 text-zinc-300'"><Icon name="book" size="16" /></span>
+                    <span class="min-w-0 flex-1">
+                        <span class="flex items-center gap-2">
+                            <span class="truncate text-sm font-semibold">{{ s.name }}</span>
+                            <span class="badge" :class="s.source === 'custom' ? 'badge-new' : 'badge-muted'">{{ s.source === 'custom' ? 'custom' : 'bundled' }}</span>
+                        </span>
+                        <span class="line-clamp-2 text-xs text-zinc-500">{{ s.description }}</span>
+                    </span>
+                    <span v-if="s.source === 'custom'" class="flex gap-1 opacity-0 transition group-hover:opacity-100">
+                        <button class="btn btn-soft btn-sm px-2" :title="s.enabled ? 'Идэвхгүй болгох' : 'Идэвхжүүлэх'" @click.stop="toggle(s)"><Icon :name="s.enabled ? 'pause' : 'play'" size="12" /></button>
+                        <button class="btn btn-soft btn-sm px-2" @click.stop="edit(s)"><Icon name="edit" size="12" /></button>
+                        <button class="btn btn-soft btn-sm px-2 text-red-300" @click.stop="remove(s)"><Icon name="trash" size="12" /></button>
+                    </span>
                 </div>
             </div>
+            <p v-if="error" class="rounded-xl bg-red-950/70 p-2 text-xs text-red-200">{{ error }}</p>
+        </div>
 
-            <button v-if="!editing" class="btn btn-ghost w-full text-xs" @click="startNew">+ Skill нэмэх</button>
-
-            <div v-if="editing" class="space-y-2 rounded-lg border border-zinc-700 p-3">
-                <input v-model="editing.name" class="field text-xs" placeholder="нэр (жиш. my-brand)" />
-                <input v-model="editing.description" class="field text-xs" placeholder="Хэзээ ашиглах вэ — агент үүнийг уншаад ачаалах эсэхээ шийднэ" />
-                <textarea v-model="editing.content" rows="10" class="field resize-y font-mono text-[11px]" />
+        <div class="lg:sticky lg:top-5 lg:self-start">
+            <div v-if="editing" class="panel space-y-3">
+                <div class="text-sm font-semibold">{{ editing.id ? 'Skill засах' : 'Шинэ skill' }}</div>
+                <div><label class="label">Нэр</label><input v-model="editing.name" class="field" placeholder="my-brand (жижиг үсэг, зураас)" /></div>
+                <div><label class="label">Хэзээ ашиглах</label><input v-model="editing.description" class="field" placeholder="Агент үүнийг уншаад ачаалах эсэхээ шийднэ" /></div>
+                <div><label class="label">Агуулга (Markdown)</label><textarea v-model="editing.content" rows="16" class="field resize-y font-mono text-xs" /></div>
                 <div class="flex gap-2">
-                    <button class="btn btn-primary flex-1 text-xs" :disabled="saving" @click="save">Хадгалах</button>
-                    <button class="btn btn-ghost text-xs" @click="editing = null">Болих</button>
+                    <button class="btn btn-primary flex-1" :disabled="saving" @click="save"><span v-if="saving" class="spinner" /> Хадгалах</button>
+                    <button class="btn btn-ghost" @click="editing = null">Болих</button>
                 </div>
             </div>
 
-            <div v-if="viewing" class="rounded-lg border border-zinc-800 bg-zinc-950/60 p-3">
-                <div class="mb-2 flex items-center justify-between text-xs">
-                    <b>{{ viewing.name }}</b>
-                    <button class="text-zinc-500" @click="viewing = null">✕</button>
+            <div v-else-if="viewing" class="panel">
+                <div class="mb-3 flex items-center justify-between">
+                    <b class="text-sm">{{ viewing.name }}</b>
+                    <button class="text-zinc-500 hover:text-white" @click="viewing = null"><Icon name="x" size="16" /></button>
                 </div>
-                <pre class="max-h-80 overflow-auto font-mono text-[11px] whitespace-pre-wrap text-zinc-400">{{ viewing.content }}</pre>
+                <pre class="max-h-[75vh] overflow-auto font-mono text-xs leading-relaxed whitespace-pre-wrap text-zinc-300 scroll-thin">{{ viewing.content }}</pre>
             </div>
 
-            <p v-if="error" class="rounded-lg bg-red-950/70 p-2 text-xs text-red-200">{{ error }}</p>
-        </template>
+            <div v-else class="panel grid min-h-[40vh] place-items-center text-center text-sm text-zinc-500">Skill сонгож агуулгыг нь харна, эсвэл шинээр нэмнэ.</div>
+        </div>
     </div>
 </template>

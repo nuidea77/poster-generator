@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue';
+import Icon from './Icon.vue';
 
 const props = defineProps({
     caption: { type: String, default: '' },
@@ -21,7 +22,7 @@ async function copy() {
     <div v-if="text" class="panel space-y-2">
         <div class="flex items-center justify-between">
             <span class="text-sm font-semibold">Пост бичвэр</span>
-            <button class="text-xs text-fuchsia-400 hover:text-fuchsia-300" @click="copy">{{ copied ? '✓ Хуулсан' : 'Хуулах' }}</button>
+            <button class="btn btn-soft btn-sm" @click="copy"><Icon :name="copied ? 'check' : 'copy'" size="12" /> {{ copied ? 'Хуулсан' : 'Хуулах' }}</button>
         </div>
         <p class="whitespace-pre-line text-sm text-zinc-300">{{ caption }}</p>
         <p class="text-xs text-sky-400">{{ hashtags.join(' ') }}</p>
