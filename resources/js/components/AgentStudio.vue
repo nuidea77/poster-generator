@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { api } from '../lib/api';
+import SkillsPanel from './SkillsPanel.vue';
 
 const props = defineProps({
     config: { type: Object, required: true },
@@ -116,6 +117,7 @@ const statusClass = {
     failed: 'bg-red-600/30 text-red-200',
 };
 const toolLabel = {
+    load_skill: '📚 Skill ачаалах',
     generate_image: '🖼 Зураг үүсгэх',
     generate_video: '🎥 Видео үүсгэх',
     create_poster: '📄 Постер бүтээх',
@@ -187,6 +189,8 @@ const short = (s, n = 160) => (s && s.length > n ? s.slice(0, n) + '…' : s);
                 </button>
                 <p v-if="error" class="rounded-lg bg-red-950/70 p-3 text-sm text-red-200">{{ error }}</p>
             </div>
+
+            <SkillsPanel />
 
             <div v-if="runs.length" class="panel space-y-1">
                 <div class="mb-2 text-sm font-semibold">Өмнөх даалгаврууд</div>
@@ -264,6 +268,7 @@ const short = (s, n = 160) => (s && s.length > n ? s.slice(0, n) + '…' : s);
                                 <div v-if="s.name === 'create_poster'" class="mt-1 text-zinc-300">„{{ s.input.headline }}“ — {{ s.input.layout }}, {{ s.input.format }}</div>
                                 <div v-if="s.name === 'create_reel'" class="mt-1 text-zinc-300">{{ s.input.scenes?.length }} үзэгдэл · {{ s.input.hook }}</div>
                                 <div v-if="s.name === 'finish'" class="mt-1 whitespace-pre-line text-zinc-300">{{ s.input.summary }}</div>
+                                <div v-if="s.name === 'load_skill'" class="mt-1 text-zinc-500">{{ s.input.name }}</div>
                             </template>
                         </li>
                     </ol>

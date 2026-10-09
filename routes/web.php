@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AgentController;
 use App\Http\Controllers\Api\GenerateController;
 use App\Http\Controllers\Api\GenerationController;
+use App\Http\Controllers\Api\SkillController;
 use App\Http\Controllers\Api\VideoController;
 use Illuminate\Support\Facades\Route;
 
@@ -16,6 +17,11 @@ Route::prefix('api')->group(function () {
 
     Route::apiResource('generations', GenerationController::class)->except('store');
     Route::apiResource('agent-runs', AgentController::class)->only(['index', 'store', 'show', 'destroy']);
+    Route::get('skills', [SkillController::class, 'index']);
+    Route::post('skills', [SkillController::class, 'store']);
+    Route::get('skills/{name}', [SkillController::class, 'show']);
+    Route::put('skills/{skill}', [SkillController::class, 'update']);
+    Route::delete('skills/{skill}', [SkillController::class, 'destroy']);
 });
 
 // Vue SPA

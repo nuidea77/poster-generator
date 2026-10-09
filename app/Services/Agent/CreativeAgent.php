@@ -24,6 +24,7 @@ class CreativeAgent
     public function __construct(
         private AiManager $ai,
         private ContentGenerator $generator,
+        private SkillLibrary $skills,
     ) {}
 
     public function run(AgentRun $run): void
@@ -149,7 +150,7 @@ class CreativeAgent
 
     private function skill(): string
     {
-        return file_get_contents(resource_path('ai/creative-director.md'));
+        return str_replace('{{SKILLS}}', $this->skills->prompt(), file_get_contents(resource_path('ai/creative-director.md')));
     }
 
     private function userContent(AgentRun $run): array
@@ -257,6 +258,12 @@ class CreativeAgent
                 ],
             ]);
 
+        $tools[] = $this->tool('load_skill',
+            'Read one skill from the library in full. Call before the work that skill covers.',
+            [
+                'name' => ['type' => 'string', 'enum' => array_column($this->skills->index(enabledOnly: true), 'name') ?: ['none']],
+            ]);
+
         $tools[] = $this->tool('finish',
             'Call once when all deliverables are created. Ends the job.',
             [
@@ -291,6 +298,7 @@ class CreativeAgent
             'generate_video' => $this->generateVideo($run, $input),
             'create_poster' => $this->createPoster($run, $input),
             'create_reel' => $this->createReel($run, $input),
+            'load_skill' => $this->loadSkill($input),
             'finish' => $this->finish($run, $input),
             default => throw new AiException("Unknown tool [{$name}]."),
         };
@@ -396,6 +404,14 @@ class CreativeAgent
         $run->update(['outputs' => [...$run->outputs, ['type' => 'reel', 'id' => $generation->id, 'title' => $content['title'] ?: $content['hook']]]]);
 
         return ['summary' => "reel #{$generation->id}", 'content' => "Reel created (id {$generation->id}) with ".count($content['scenes']).' scenes.'];
+    }
+
+    private function loadSkill(array $in): array
+    {
+        $name = (string) ($in['name'] ?? '');
+        $content = $this->skills->get($name) ?? throw new AiException("Unknown skill [{$name}].");
+
+        return ['summary' => $name, 'content' => "<skill name=\"{$name}\">\n{$content}\n</skill>"];
     }
 
     private function finish(AgentRun $run, array $in): array

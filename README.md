@@ -11,7 +11,8 @@ Laravel 13 + Vue 3 + Tailwind CSS 4 дээр бүтээсэн, **Claude Fable**,
   Gemini (reference зураг хадгалах, засах), GPT image (фото реалистик), Seedance (видео клип).
 - Зураг/видеогоо үүсгэж, үр дүнг нь шалгаад (vision) постер болон reels-ийг бүрэн бэлдээд тайлан бичнэ.
 - Алхам бүр нь UI дээр шууд харагдана; гарсан постер/reels засварлагчид нээгдэнэ.
-- Ажилладаг зарчим: `resources/ai/creative-director.md` файл дахь "skill" (system prompt) + tool use (`generate_image`, `generate_video`, `create_poster`, `create_reel`, `finish`).
+- Ажилладаг зарчим: `resources/ai/creative-director.md` (system prompt) + tool use (`load_skill`, `generate_image`, `generate_video`, `create_poster`, `create_reel`, `finish`).
+- **Skills** — Anthropic Agent Skills форматтай (`SKILL.md` + `name`/`description` frontmatter) заавруудын сан. Агент эхлээд зөвхөн нэр/тайлбарыг нь хараад, хэрэгтэйгээ `load_skill`-ээр бүтнээр нь уншина (progressive disclosure). Дагалдах skill-үүд: `poster-design`, `reels-storyboard`, `product-photography`, `brand-identity`, `mongolian-copywriting`, `video-prompting`. UI-аас өөрийн skill (брэндийн дүрэм, стиль) нэмж/засаж/унтраана — custom skill ерөнхий зааврыг давамгайлна.
 
 **Постер**
 - Санаагаа бичихэд AI гарчиг, дэд гарчиг, тайлбар, CTA, өнгөний палитр, фонт, зохиомжийг гаргана
@@ -82,7 +83,9 @@ app/Services/AI/
   Providers/DemoProvider        API-гүй туршилтын горим
 app/Services/Agent/CreativeAgent  Claude Fable tool-use loop (зураг/видео сонгох, постер/reels бүтээх)
 app/Jobs/RunCreativeAgent       агентыг queue дээр ажиллуулах
-resources/ai/creative-director.md агентын skill (system prompt)
+app/Services/Agent/SkillLibrary   дагалдах (resources/ai/skills/*/SKILL.md) + custom (DB) skill-үүд
+resources/ai/creative-director.md агентын system prompt
+resources/ai/skills/<name>/SKILL.md дагалдах skill-үүд (Agent Skills формат)
 app/Services/ContentGenerator   постер/reels prompt, JSON-ийг цэвэрлэх, зураг хадгалах
 app/Http/Controllers/Api/       generate, images, uploads, generations CRUD, videos/convert
 resources/js/
@@ -104,6 +107,8 @@ resources/js/
 | GET/PUT/DELETE | `/api/generations/{id}` | Түүх |
 | POST | `/api/agent-runs` | `prompt, language, images[], notes[]` → 202, дараа нь poll |
 | GET | `/api/agent-runs/{id}` | Агентын явц: `status, steps, assets, outputs, summary` |
+| GET/POST | `/api/skills`, `/api/skills/{name}` | Skill-ийн жагсаалт, агуулга, custom skill нэмэх |
+| PUT/DELETE | `/api/skills/{id}` | Custom skill засах / устгах |
 
 ## Тест
 
