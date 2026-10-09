@@ -1,0 +1,31 @@
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../js/**/*.vue';
+
+@theme {
+    --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+        'Segoe UI Symbol', 'Noto Color Emoji';
+}
+
+@layer components {
+    .field {
+        @apply w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 outline-none focus:border-fuchsia-500 focus:ring-1 focus:ring-fuchsia-500;
+    }
+    .label {
+        @apply mb-1 block text-xs font-medium tracking-wide text-zinc-400 uppercase;
+    }
+    .btn {
+        @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50;
+    }
+    .btn-primary {
+        @apply bg-gradient-to-r from-fuchsia-600 to-orange-500 text-white hover:brightness-110;
+    }
+    .btn-ghost {
+        @apply border border-zinc-700 bg-zinc-900 text-zinc-200 hover:bg-zinc-800;
+    }
+    .panel {
+        @apply rounded-2xl border border-zinc-800 bg-zinc-900/60 p-4;
+    }
+}
