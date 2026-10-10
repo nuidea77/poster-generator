@@ -18,6 +18,22 @@ Laravel 13 + Vue 3 + Tailwind 4.
    - **Reels**: клипүүдийг сервер дээр ffmpeg-ээр угсарч **яг 90.0 секунд**, 1080×1920, H.264 + AAC MP4 болгоно.
 5. Вэб дээр харуулж, татах товч гаргана. **Хэрэглэгч аль модель ашигласныг хаана ч харахгүй.** Модель, токен, алхмын лог зөвхөн админд харагдана.
 
+### Skills
+
+Агент ажил бүрийн өмнө хэрэгтэй skill-ээ (`load_skill`) уншина. Дагалдах skill-үүд (`resources/ai/skills/`):
+
+| Skill | Эх сурвалж |
+|---|---|
+| `poster-art-director` | Claude skill "poster-art-director" |
+| `motion-art-director` | Claude skill "motion-graphic-designer" |
+| `color-themes` | Claude skill "theme-factory" (Anthropic, Apache-2.0) |
+| `visual-concept` | Claude skill "canvas-design" (Anthropic, Apache-2.0) |
+| `mongolian-culture` | Claude skills "mining-pr-mongolia", "motion-graphic-designer" |
+| `poster-design`, `reels-storyboard`, `product-photography`, `brand-identity`, `video-prompting` | энэ төслийнх |
+
+Claude skill-үүдийг энэ системийн урсгалд тохируулсан: текст давхарлахгүй, ажлын хэрэгслүүд нь `generate_image`, `generate_videos`, `deliver_*`.
+Админ **Админ → Skills** хуудаснаас шинэ skill бичих, эсвэл Claude skill-ийн `SKILL.md` файлыг **импортлох** боломжтой. Custom skill нь ерөнхий зааврыг давамгайлна.
+
 Захиалга: **QPay** нэхэмжлэх (QR + банкны апп), callback ирэхэд `payment/check`-ээр баталгаажуулж багцыг идэвхжүүлнэ/сунгана. Багц хязгааргүй. Зардлыг fair-use хамгаална: зэрэг ажиллах бүтээл ≤2, өдрийн хязгаарыг тохиргоогоор асааж болно.
 
 ## Суулгах
@@ -101,6 +117,7 @@ resources/js/pages/                    Home, Create, Creation, Library, Pricing,
 | GET | `/api/v1/admin/creations` | admin |
 | GET/POST/PUT | `/api/v1/admin/plans` | admin |
 | CRUD | `/api/v1/admin/skills` | admin |
+| POST | `/api/v1/admin/skills/import` (SKILL.md) | admin |
 
 ## Тест
 

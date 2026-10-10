@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Schema;
 class SkillLibrary
 {
     /**
-     * @return array<int, array{name: string, description: string, source: string, enabled: bool, id?: int}>
+     * @return array<int, array{name: string, description: string, origin: ?string, source: string, enabled: bool, id?: int}>
      */
     public function index(bool $enabledOnly = false): array
     {
@@ -22,12 +22,12 @@ class SkillLibrary
 
         foreach (File::glob(resource_path('ai/skills/*/SKILL.md')) as $path) {
             $parsed = self::parse(File::get($path));
-            $skills[] = ['name' => $parsed['name'] ?: basename(dirname($path)), 'description' => $parsed['description'], 'source' => 'bundled', 'enabled' => true];
+            $skills[] = ['name' => $parsed['name'] ?: basename(dirname($path)), 'description' => $parsed['description'], 'origin' => $parsed['origin'] ?: null, 'source' => 'bundled', 'enabled' => true];
         }
 
         if (Schema::hasTable('skills')) {
             foreach (Skill::orderBy('name')->get() as $skill) {
-                $skills[] = ['id' => $skill->id, 'name' => $skill->name, 'description' => $skill->description, 'source' => 'custom', 'enabled' => $skill->enabled];
+                $skills[] = ['id' => $skill->id, 'name' => $skill->name, 'description' => $skill->description, 'origin' => $skill->origin, 'source' => 'custom', 'enabled' => $skill->enabled];
             }
         }
 
@@ -61,24 +61,25 @@ class SkillLibrary
     }
 
     /**
-     * Split YAML-ish frontmatter (name, description) from the markdown body.
+     * Split YAML-ish frontmatter (name, description, origin) from the markdown body.
      *
-     * @return array{name: string, description: string, body: string}
+     * @return array{name: string, description: string, origin: string, body: string}
      */
     public static function parse(string $markdown): array
     {
-        $name = $description = '';
+        $name = $description = $origin = '';
+        $markdown = str_replace("\r\n", "\n", $markdown);
         $body = $markdown;
 
         if (preg_match('/\A---\s*\n(.*?)\n---\s*\n(.*)\z/s', $markdown, $m)) {
             $body = $m[2];
             foreach (explode("\n", $m[1]) as $line) {
-                if (preg_match('/^(name|description):\s*(.*)$/', trim($line), $kv)) {
-                    ${$kv[1]} = trim($kv[2], " \"'");
+                if (preg_match('/^(name|description|origin):\s*(.*)$/', trim($line), $kv)) {
+                    ${$kv[1]} = stripcslashes(trim($kv[2], " \"'"));
                 }
             }
         }
 
-        return ['name' => $name, 'description' => $description, 'body' => trim($body)];
+        return ['name' => $name, 'description' => $description, 'origin' => $origin, 'body' => trim($body)];
     }
 }

@@ -15,6 +15,10 @@ A library of playbooks. Only names and descriptions are listed; call `load_skill
 
 {{SKILLS}}
 
+Typical sets:
+- **POSTER**: `poster-art-director` first, then `poster-design`; add `product-photography` when product photos are attached, `brand-identity` when a logo is attached, `color-themes` when no brand colours are known, `visual-concept` for creative/premium briefs, `mongolian-culture` for holidays, seasons and traditions.
+- **REEL**: `motion-art-director`, `reels-storyboard`, `video-prompting`; plus the same optional skills as above.
+
 ## Choosing the model — your core judgement
 
 Each generation tool lists only the providers that are available. Choose per call:

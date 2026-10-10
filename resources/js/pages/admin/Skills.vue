@@ -9,6 +9,30 @@ const viewing = ref(null); // { name, content }
 const editing = ref(null); // { id?, name, description, content, enabled }
 const error = ref('');
 const saving = ref(false);
+const importing = ref(false);
+const notice = ref('');
+
+const isClaude = (s) => /claude skill/i.test(s.origin || '');
+
+async function importFile(e) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    error.value = notice.value = '';
+    importing.value = true;
+    const data = new FormData();
+    data.append('file', file);
+    try {
+        const skill = await api.post('/admin/skills/import', data);
+        notice.value = `"${skill.name}" skill нэмэгдлээ.`;
+        await load();
+        view(skill);
+    } catch (err) {
+        error.value = err.message;
+    } finally {
+        importing.value = false;
+    }
+}
 
 const template = `# Миний skill
 
@@ -32,7 +56,7 @@ async function load() {
 async function view(s) {
     error.value = '';
     try {
-        viewing.value = await api.get(`/admin/skills/${s.name}`);
+        viewing.value = { ...(await api.get(`/admin/skills/${s.name}`)), origin: s.origin, description: s.description };
     } catch (e) {
         error.value = e.message;
     }
@@ -84,19 +108,30 @@ async function remove(s) {
             <h1 class="display text-3xl">Skills</h1>
             <span class="badge badge-dark">{{ skills.length }}</span>
             <p class="hidden text-sm text-zinc-400 md:block">Агент ажиллахдаа хэрэгтэй skill-ээ өөрөө ачаалж уншина. Custom skill ерөнхий зааврыг давамгайлна.</p>
-            <button class="btn btn-lime ml-auto" @click="startNew"><Icon name="plus" size="14" /> Skill нэмэх</button>
+            <div class="ml-auto flex gap-2">
+                <label class="btn btn-lime-soft cursor-pointer" :class="{ 'opacity-50': importing }" title="Claude skill-ийн SKILL.md файл">
+                    <span v-if="importing" class="spinner" /><Icon v-else name="upload" size="14" /> SKILL.md импортлох
+                    <input type="file" accept=".md,text/markdown,text/plain" class="hidden" :disabled="importing" @change="importFile" />
+                </label>
+                <button class="btn btn-lime" @click="startNew"><Icon name="plus" size="14" /> Skill нэмэх</button>
+            </div>
         </div>
         <p v-if="error" class="mb-3 rounded-xl bg-red-950/70 p-2 text-xs text-red-200">{{ error }}</p>
+        <p v-if="notice" class="mb-3 rounded-xl bg-lime/10 p-2 text-xs text-lime">{{ notice }}</p>
 
         <div class="grid gap-5 lg:grid-cols-[1fr_minmax(0,1.2fr)]">
             <div class="grid gap-3 sm:grid-cols-2">
                 <button v-for="s in skills" :key="s.name" class="group feature-card text-left" :class="{ 'opacity-50': !s.enabled, 'border-lime/60': viewing?.name === s.name }" @click="view(s)">
                     <div class="mb-5 flex items-start justify-between">
                         <Icon name="book" size="20" :class="s.source === 'custom' ? 'text-lime' : 'text-zinc-300'" />
-                        <span class="badge" :class="s.source === 'custom' ? 'badge-new' : 'badge-dark'">{{ s.source === 'custom' ? 'Custom' : 'Bundled' }}</span>
+                        <span class="flex gap-1">
+                            <span v-if="isClaude(s)" class="badge bg-orange-500/20 text-orange-300">Claude skill</span>
+                            <span class="badge" :class="s.source === 'custom' ? 'badge-new' : 'badge-dark'">{{ s.source === 'custom' ? 'Custom' : 'Bundled' }}</span>
+                        </span>
                     </div>
                     <div class="text-[15px] font-semibold">{{ s.name }}</div>
                     <div class="mt-1 line-clamp-2 text-sm text-zinc-400">{{ s.description }}</div>
+                    <div v-if="s.origin" class="mt-2 line-clamp-1 text-[11px] text-muted">{{ s.origin }}</div>
                     <div v-if="s.source === 'custom'" class="mt-3 flex gap-1 opacity-0 transition group-hover:opacity-100">
                         <span class="btn btn-ghost btn-sm px-2" :title="s.enabled ? 'Идэвхгүй болгох' : 'Идэвхжүүлэх'" @click.stop="toggle(s)"><Icon :name="s.enabled ? 'pause' : 'play'" size="12" /></span>
                         <span class="btn btn-ghost btn-sm px-2" @click.stop="edit(s)"><Icon name="edit" size="12" /></span>
@@ -117,10 +152,12 @@ async function remove(s) {
                     </div>
                 </div>
                 <div v-else-if="viewing" class="panel">
-                    <div class="mb-3 flex items-center justify-between">
+                    <div class="mb-1 flex items-center justify-between">
                         <b class="text-sm">{{ viewing.name }}</b>
                         <button class="text-zinc-500 hover:text-fg" @click="viewing = null"><Icon name="x" size="16" /></button>
                     </div>
+                    <p v-if="viewing.description" class="mb-1 text-xs text-zinc-400">{{ viewing.description }}</p>
+                    <p v-if="viewing.origin" class="mb-3 text-[11px] text-muted">Эх сурвалж: {{ viewing.origin }}</p>
                     <pre class="max-h-[70vh] overflow-auto font-mono text-xs leading-relaxed whitespace-pre-wrap text-zinc-300 scroll-thin">{{ viewing.content }}</pre>
                 </div>
                 <div v-else class="panel grid min-h-[40vh] place-items-center text-center text-sm text-muted">Skill сонгож агуулгыг нь харна, эсвэл шинээр нэмнэ.</div>

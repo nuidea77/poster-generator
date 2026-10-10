@@ -8,6 +8,7 @@ use App\Services\Agent\SkillLibrary;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class SkillController extends Controller
@@ -33,6 +34,27 @@ class SkillController extends Controller
         return response()->json(Skill::create($data), 201);
     }
 
+    /**
+     * Import a Claude skill (SKILL.md with name/description frontmatter).
+     */
+    public function import(Request $request): JsonResponse
+    {
+        $request->validate([
+            'file' => ['required', 'file', 'max:400', 'mimetypes:text/plain,text/markdown,text/x-markdown,application/octet-stream'],
+        ]);
+
+        $parsed = SkillLibrary::parse((string) file_get_contents($request->file('file')->getRealPath()));
+        $name = Str::slug($parsed['name'] ?: pathinfo($request->file('file')->getClientOriginalName(), PATHINFO_FILENAME));
+
+        $data = validator(
+            ['name' => $name, 'description' => $parsed['description'], 'content' => $parsed['body'], 'origin' => 'Imported Claude skill "'.$parsed['name'].'"'],
+            $this->rules() + ['origin' => ['nullable', 'string', 'max:255']],
+            ['description.required' => 'SKILL.md-д description frontmatter алга.', 'name.not_in' => 'Ийм нэртэй skill системд аль хэдийн байна.'],
+        )->validate();
+
+        return response()->json(Skill::create($data), 201);
+    }
+
     public function update(Request $request, Skill $skill): JsonResponse
     {
         $skill->update($request->validate($this->rules($skill)));
@@ -54,7 +76,7 @@ class SkillController extends Controller
         return [
             'name' => ['required', 'string', 'max:64', 'regex:/^[a-z0-9][a-z0-9-]*$/', Rule::notIn($bundled), Rule::unique('skills', 'name')->ignore($skill)],
             'description' => ['required', 'string', 'max:500'],
-            'content' => ['required', 'string', 'max:20000'],
+            'content' => ['required', 'string', 'max:200000'],
             'enabled' => ['sometimes', 'boolean'],
         ];
     }

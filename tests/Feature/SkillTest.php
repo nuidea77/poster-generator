@@ -9,6 +9,7 @@ use App\Services\Agent\CreativeAgent;
 use App\Services\Agent\SkillLibrary;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
@@ -26,6 +27,47 @@ class SkillTest extends TestCase
         $this->assertStringStartsWith('# Poster design', $library->get('poster-design'));
         $this->assertStringNotContainsString('---', substr($library->get('poster-design'), 0, 5));
         $this->assertNull($library->get('../creative-director'));
+    }
+
+    public function test_claude_skills_are_bundled_with_origin(): void
+    {
+        $skills = collect(app(SkillLibrary::class)->index())->keyBy('name');
+
+        foreach (['poster-art-director', 'motion-art-director', 'color-themes', 'visual-concept', 'mongolian-culture'] as $name) {
+            $this->assertTrue($skills->has($name), "missing {$name}");
+            $this->assertStringContainsString('Claude skill', $skills[$name]['origin']);
+            $this->assertNotEmpty($skills[$name]['description']);
+        }
+
+        // Poster art director must not ask for text overlays (this studio delivers images only).
+        $this->assertStringNotContainsString('compose_poster', app(SkillLibrary::class)->get('poster-art-director'));
+        $this->assertStringContainsString('`poster-art-director`', file_get_contents(resource_path('ai/creative-director.md')));
+    }
+
+    public function test_admin_can_import_a_claude_skill_file(): void
+    {
+        $admin = User::factory()->create();
+        $admin->forceFill(['is_admin' => true])->save();
+
+        $md = "---\nname: \"bakery-style\"\ndescription: \"Warm bakery visuals for \\\"Talkh\\\" shops.\"\n---\n\n# Bakery style\n\nGolden crust tones.\n";
+        $file = UploadedFile::fake()->createWithContent('SKILL.md', $md);
+
+        $this->actingAs($admin)->post('/api/v1/admin/skills/import', ['file' => $file], ['Accept' => 'application/json'])
+            ->assertCreated()
+            ->assertJsonPath('name', 'bakery-style')
+            ->assertJsonPath('description', 'Warm bakery visuals for "Talkh" shops.')
+            ->assertJsonPath('origin', 'Imported Claude skill "bakery-style"');
+
+        $this->assertSame("# Bakery style\n\nGolden crust tones.", app(SkillLibrary::class)->get('bakery-style'));
+        $this->assertStringContainsString('`bakery-style` *(custom)*', app(SkillLibrary::class)->prompt());
+
+        // Bundled names are reserved; files without description are rejected.
+        $clash = UploadedFile::fake()->createWithContent('SKILL.md', "---\nname: poster-design\ndescription: x\n---\nbody");
+        $this->actingAs($admin)->post('/api/v1/admin/skills/import', ['file' => $clash], ['Accept' => 'application/json'])->assertStatus(422);
+        $bare = UploadedFile::fake()->createWithContent('notes.md', 'just text');
+        $this->actingAs($admin)->post('/api/v1/admin/skills/import', ['file' => $bare], ['Accept' => 'application/json'])->assertStatus(422);
+
+        $this->actingAs(User::factory()->create())->post('/api/v1/admin/skills/import', ['file' => $file], ['Accept' => 'application/json'])->assertForbidden();
     }
 
     public function test_custom_skills_crud_and_precedence(): void

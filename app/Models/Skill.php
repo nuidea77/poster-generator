@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Skill extends Model
 {
-    protected $fillable = ['name', 'description', 'content', 'enabled'];
+    protected $fillable = ['name', 'description', 'origin', 'content', 'enabled'];
 
     protected function casts(): array
     {

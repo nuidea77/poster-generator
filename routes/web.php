@@ -49,6 +49,7 @@ Route::prefix('api/v1')->group(function () {
 
             Route::get('skills', [SkillController::class, 'index']);
             Route::post('skills', [SkillController::class, 'store']);
+            Route::post('skills/import', [SkillController::class, 'import']);
             Route::get('skills/{name}', [SkillController::class, 'show']);
             Route::put('skills/{skill}', [SkillController::class, 'update']);
             Route::delete('skills/{skill}', [SkillController::class, 'destroy']);
