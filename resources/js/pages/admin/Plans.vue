@@ -8,8 +8,8 @@ const plans = ref([]);
 const error = ref('');
 const saved = ref(null);
 const prices = session.meta.credit_prices;
-// Worst-case API cost per credit is ≈525₮ (most expensive models), so 2× margin needs ≥1,050₮ per credit.
-const floor = 1050;
+// Worst-case API cost per credit is ≈553₮ (most expensive models, no history cache), so 2× margin needs ≥1,110₮ per credit.
+const floor = 1110;
 
 async function load() {
     plans.value = (await api.get('/admin/plans')).data.map((p) => ({ ...p, featuresText: (p.features || []).join('\n') }));

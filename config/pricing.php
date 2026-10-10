@@ -43,9 +43,9 @@ return [
 
     // Credits charged when a job starts (refunded if it fails).
     'credits' => [
-        'poster' => (int) env('CREDITS_POSTER', 12),            // first format
-        'poster_extra_format' => (int) env('CREDITS_POSTER_EXTRA', 3),
-        'reel' => (int) env('CREDITS_REEL', 120),
+        'poster' => (int) env('CREDITS_POSTER', 14),            // first format
+        'poster_extra_format' => (int) env('CREDITS_POSTER_EXTRA', 4),
+        'reel' => (int) env('CREDITS_REEL', 130),
     ],
 
     // Hard cap on image + video spend per job (USD). The agent is told the

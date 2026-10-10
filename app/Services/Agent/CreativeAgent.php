@@ -112,7 +112,7 @@ class CreativeAgent
             'tools' => $tools,
             // Fable thinks adaptively by default; depth is set with effort.
             'output_config' => ['effort' => $agent['effort']],
-            'messages' => $this->withCacheBreakpoint($messages),
+            'messages' => $messages,
         ];
 
         if ($agent['fallbacks']) {
@@ -129,22 +129,6 @@ class CreativeAgent
         }
 
         return $response->json();
-    }
-
-    /**
-     * Cache the conversation up to the newest message so each turn re-reads
-     * the history at the cache price. The stored history is left untouched.
-     */
-    private function withCacheBreakpoint(array $messages): array
-    {
-        $last = count($messages) - 1;
-
-        if (is_array($messages[$last]['content'] ?? null) && $messages[$last]['content']) {
-            $block = array_key_last($messages[$last]['content']);
-            $messages[$last]['content'][$block]['cache_control'] = ['type' => 'ephemeral'];
-        }
-
-        return $messages;
     }
 
     private function systemPrompt(): string
