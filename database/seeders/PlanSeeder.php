@@ -8,25 +8,31 @@ use Illuminate\Database\Seeder;
 class PlanSeeder extends Seeder
 {
     /**
-     * Three plans: a free trial and two unlimited paid plans.
-     * Example prices — set real ones from the admin panel.
+     * Three credit plans. A poster costs 12 credits (+3 per extra size), a reel 55.
+     * Prices keep ≥2× margin on the worst-case API cost (docs/PRICING.md).
      */
     public function run(): void
     {
-        $unlimited = ['Хязгааргүй постер', 'Хязгааргүй reels видео', 'Instagram · Facebook бүх хэмжээ', 'Лого, бүтээгдэхүүний зураг ашиглана'];
+        $common = ['Instagram · Facebook бүх хэмжээ', 'Лого, бүтээгдэхүүний зураг ашиглана'];
 
         foreach ([
             [
-                'slug' => 'free', 'name' => 'Үнэгүй', 'price' => 0, 'period_days' => 1, 'poster_limit' => 1, 'reel_limit' => 1, 'sort' => 0,
-                'features' => ['1 постер', '1 reels видео', 'Instagram · Facebook бүх хэмжээ', 'Картгүй, шууд эхэлнэ'],
+                'slug' => 'free', 'name' => 'Үнэгүй', 'price' => 0, 'period_days' => 1, 'credits' => 67, 'sort' => 0,
+                'features' => ['67 кредит, нэг удаа', '= 1 постер + 1 reels', ...$common],
             ],
-            ['slug' => 'monthly', 'name' => '1 сар', 'price' => 49000, 'period_days' => 30, 'poster_limit' => null, 'reel_limit' => null, 'sort' => 1, 'features' => $unlimited],
-            ['slug' => 'yearly', 'name' => '1 жил', 'price' => 449000, 'period_days' => 365, 'poster_limit' => null, 'reel_limit' => null, 'sort' => 2, 'features' => [...$unlimited, '2 сар үнэгүй (сарын үнээр тооцвол)']],
+            [
+                'slug' => 'standard', 'name' => 'Стандарт', 'price' => 99000, 'period_days' => 30, 'credits' => 80, 'sort' => 1,
+                'features' => ['Сард 80 кредит', '≈ 1 reels + 2 постер, эсвэл 6 постер', ...$common],
+            ],
+            [
+                'slug' => 'pro', 'name' => 'Про', 'price' => 249000, 'period_days' => 30, 'credits' => 220, 'sort' => 2,
+                'features' => ['Сард 220 кредит', '≈ 3 reels + 4 постер, эсвэл 18 постер', ...$common, 'Кредитийн үнэ хамгийн хямд'],
+            ],
         ] as $plan) {
             Plan::updateOrCreate(['slug' => $plan['slug']], $plan + ['is_active' => true]);
         }
 
-        // Earlier 3-month plan: keep for existing payments, hide from sale.
-        Plan::where('slug', 'quarterly')->update(['is_active' => false]);
+        // Earlier unlimited plans: keep for existing payments, hide from sale.
+        Plan::whereIn('slug', ['monthly', 'quarterly', 'yearly'])->update(['is_active' => false]);
     }
 }

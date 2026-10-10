@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\Creation;
 use App\Services\Agent\CreativeAgent;
+use App\Services\Billing\Credits;
 use App\Services\Media\MediaStore;
 use App\Services\Media\ReelAssembler;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -58,6 +59,8 @@ class RunCreation implements ShouldQueue
             'error_detail' => $e->getMessage(),
             'finished_at' => now(),
         ]);
+
+        app(Credits::class)->refund($this->creation);
     }
 
     private function completePoster(Creation $creation): void

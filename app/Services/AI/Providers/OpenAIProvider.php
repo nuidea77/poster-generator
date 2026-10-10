@@ -23,6 +23,7 @@ class OpenAIProvider implements ImageProvider
             'model' => $this->config['image_model'],
             'prompt' => $prompt,
             'size' => self::SIZES[$aspect] ?? '1024x1024',
+            'quality' => $this->config['image_quality'],
             'n' => 1,
         ];
 

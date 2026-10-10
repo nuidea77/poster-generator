@@ -3,6 +3,7 @@
 use App\Models\Creation;
 use App\Models\Payment;
 use App\Models\User;
+use App\Services\Billing\Credits;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
 
@@ -23,7 +24,10 @@ Artisan::command('app:make-admin {email}', function (string $email) {
 Schedule::call(function () {
     Creation::whereIn('status', Creation::ACTIVE)
         ->where('updated_at', '<', now()->subSeconds(config('creations.job_timeout') + 600))
-        ->update(['status' => Creation::FAILED, 'error_detail' => 'Stale: worker did not finish.', 'finished_at' => now()]);
+        ->each(function (Creation $creation) {
+            $creation->update(['status' => Creation::FAILED, 'error_detail' => 'Stale: worker did not finish.', 'finished_at' => now()]);
+            app(Credits::class)->refund($creation);
+        });
 
     Payment::where('status', Payment::PENDING)
         ->where('created_at', '<', now()->subHours(config('qpay.invoice_ttl_hours')))

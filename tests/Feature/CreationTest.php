@@ -4,9 +4,11 @@ namespace Tests\Feature;
 
 use App\Jobs\RunCreation;
 use App\Models\Creation;
+use App\Models\Payment;
 use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\User;
+use App\Services\Billing\BillingService;
 use Database\Seeders\PlanSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
@@ -41,7 +43,7 @@ class CreationTest extends TestCase
         ]);
 
         $this->user = User::factory()->create();
-        Subscription::create(['user_id' => $this->user->id, 'plan_id' => Plan::where('slug', 'monthly')->first()->id, 'starts_at' => now(), 'ends_at' => now()->addMonth()]);
+        Subscription::create(['user_id' => $this->user->id, 'plan_id' => Plan::where('slug', 'standard')->first()->id, 'starts_at' => now(), 'ends_at' => now()->addMonth(), 'credits' => 1000]);
     }
 
     private static function png(int $w = 64, int $h = 64): string
@@ -64,47 +66,51 @@ class CreationTest extends TestCase
         return ['model' => 'claude-fable-5-1', 'stop_reason' => $stop, 'content' => $content, 'usage' => ['input_tokens' => 100, 'output_tokens' => 20]];
     }
 
-    public function test_free_plan_allows_one_poster_and_one_reel(): void
+    public function test_credits_are_charged_up_front_and_refunded_on_failure(): void
     {
         Queue::fake();
         config(['creations.max_active_per_user' => 10]); // queued jobs never finish here
-        $free = User::factory()->create();
+        $user = User::factory()->create();
         $poster = ['type' => 'poster', 'formats' => ['feed_square'], 'prompt' => 'Кофены постер'];
-        $reel = ['type' => 'reel', 'prompt' => 'Кофены reels'];
 
-        $this->actingAs($free)->getJson('/api/v1/me')
+        // A new account starts with the free plan's credits: one poster (12) + one reel (55).
+        $this->actingAs($user)->getJson('/api/v1/me')
+            ->assertJsonPath('data.credits', 67)
             ->assertJsonPath('data.plan', ['name' => 'Үнэгүй', 'free' => true])
-            ->assertJsonPath('data.allowance.poster', ['used' => 0, 'limit' => 1, 'remaining' => 1])
             ->assertJsonPath('data.subscribed', false);
 
-        $first = $this->actingAs($free)->postJson('/api/v1/creations', $poster)->assertStatus(202)->json('data.id');
-        $this->actingAs($free)->postJson('/api/v1/creations', $poster)
+        $first = $this->actingAs($user)->postJson('/api/v1/creations', $poster)->assertStatus(202)->json('data.id');
+        $this->assertSame(12, Creation::where('public_id', $first)->value('credits'));
+        $this->actingAs($user)->postJson('/api/v1/creations', ['type' => 'reel', 'prompt' => 'Кофены reels'])->assertStatus(202);
+        $this->actingAs($user)->getJson('/api/v1/me')->assertJsonPath('data.credits', 0);
+
+        $this->actingAs($user)->postJson('/api/v1/creations', $poster)
             ->assertStatus(402)
-            ->assertJsonPath('code', 'subscription_required');
-        $this->actingAs($free)->postJson('/api/v1/creations', $reel)->assertStatus(202);
-        $this->actingAs($free)->postJson('/api/v1/creations', $reel)->assertStatus(402);
+            ->assertJsonPath('code', 'subscription_required')
+            ->assertJsonPath('needed', 12);
+        $this->assertSame(2, Creation::count()); // nothing is kept for a refused job
 
-        $this->actingAs($free)->getJson('/api/v1/me')
-            ->assertJsonPath('data.allowance.poster.remaining', 0)
-            ->assertJsonPath('data.allowance.reel.remaining', 0);
-
-        // Deleting a finished creation does not give the credit back...
+        // Deleting a finished creation does not give credits back; a failed run does.
         $creation = Creation::where('public_id', $first)->first();
         $creation->update(['status' => Creation::DONE]);
-        $this->actingAs($free)->deleteJson("/api/v1/creations/{$first}")->assertNoContent();
-        $this->actingAs($free)->postJson('/api/v1/creations', $poster)->assertStatus(402);
+        $this->actingAs($user)->deleteJson("/api/v1/creations/{$first}")->assertNoContent();
+        $this->actingAs($user)->getJson('/api/v1/me')->assertJsonPath('data.credits', 0);
 
-        // ...but a failed run does.
-        Creation::withTrashed()->whereKey($creation->id)->update(['status' => Creation::FAILED]);
-        $this->actingAs($free)->postJson('/api/v1/creations', $poster)->assertStatus(202);
+        (new RunCreation($creation))->failed(new \RuntimeException('boom'));
+        (new RunCreation($creation))->failed(new \RuntimeException('again')); // idempotent
+        $this->actingAs($user)->getJson('/api/v1/me')->assertJsonPath('data.credits', 12);
 
-        // Paid plans are unlimited, and usage restarts against the subscription.
-        Subscription::create(['user_id' => $free->id, 'plan_id' => Plan::where('slug', 'monthly')->first()->id, 'starts_at' => now(), 'ends_at' => now()->addMonth()]);
-        $this->actingAs($free)->postJson('/api/v1/creations', $reel)->assertStatus(202);
-        $this->actingAs($free)->getJson('/api/v1/me')->assertJsonPath('data.allowance.reel', ['used' => 0, 'limit' => null, 'remaining' => null]);
+        // A paid period adds its credits, which are spent before the never-expiring free ones.
+        $standard = Plan::where('slug', 'standard')->first();
+        app(BillingService::class)->markPaid(Payment::create(['user_id' => $user->id, 'plan_id' => $standard->id, 'amount' => $standard->price, 'status' => Payment::PENDING, 'sender_invoice_no' => 'T1', 'callback_token' => 'tok-t1']));
+        $this->actingAs($user)->getJson('/api/v1/me')->assertJsonPath('data.credits', 92)->assertJsonPath('data.plan.name', 'Стандарт');
+
+        $id = $this->actingAs($user)->postJson('/api/v1/creations', ['formats' => ['feed_square', 'story']] + $poster)->assertStatus(202)->json('data.id');
+        $paid = Subscription::where('user_id', $user->id)->paid()->first();
+        $this->assertSame([['subscription_id' => $paid->id, 'credits' => 15]], Creation::where('public_id', $id)->value('charges'));
 
         // The free plan cannot be bought.
-        $this->actingAs($free)->postJson('/api/v1/payments', ['plan_id' => Plan::where('slug', 'free')->first()->id])->assertStatus(422);
+        $this->actingAs($user)->postJson('/api/v1/payments', ['plan_id' => Plan::where('slug', 'free')->first()->id])->assertStatus(422);
     }
 
     public function test_validation_and_queueing_with_uploads(): void
@@ -182,6 +188,9 @@ class CreationTest extends TestCase
         $this->assertSame([1080, 1920], [$w, $h]);
         $this->assertStringContainsString('was not requested', collect($creation->steps)->firstWhere('input.format', 'feed_square')['error']);
         $this->assertSame(400, $creation->input_tokens);
+        // 4 Claude turns (100 in / 20 out each) + one Gemini and one GPT image.
+        $this->assertEqualsWithDelta(4 * 0.002 + 0.039 + 0.25, $creation->cost_usd, 0.0001);
+        $this->assertSame(0.25, collect($creation->assets)->firstWhere('provider', 'openai')['cost']);
 
         // Customer API never mentions models or agent internals.
         $json = $this->actingAs($this->user)->getJson("/api/v1/creations/{$creation->public_id}")
@@ -208,8 +217,37 @@ class CreationTest extends TestCase
                 && $tools === ['load_skill', 'generate_image', 'deliver_poster', 'finish']
                 && collect($r['tools'])->firstWhere('name', 'deliver_poster')['input_schema']['properties']['format']['enum'] === ['feed_portrait', 'story']
                 && str_contains($r['system'][0]['text'], '`poster-design`')
+                && last(last($r['messages'])['content'])['cache_control'] === ['type' => 'ephemeral']
+                && str_contains(last($r['messages'][0]['content'])['text'], 'Media budget for this job: $0.75')
                 && collect($r['messages'][0]['content'])->contains(fn ($b) => $b['type'] === 'image');
         });
+    }
+
+    public function test_media_budget_caps_generation_cost(): void
+    {
+        $image = ['provider' => 'openai', 'prompt' => 'hero', 'aspect' => '4:5', 'reference_image_ids' => [], 'purpose' => 'try'];
+        Http::fake([
+            'api.anthropic.com/*' => Http::sequence()
+                ->push($this->turn([['generate_image', $image], ['generate_image', $image], ['generate_image', $image]]))
+                ->push($this->turn([['deliver_poster', ['format' => 'feed_portrait', 'image_id' => 'img_2']]]))
+                ->push($this->turn([['finish', ['summary' => 'ok']]])),
+            'api.openai.com/v1/images/generations' => Http::response(['data' => [['b64_json' => base64_encode(self::png(800, 1000))]]]),
+        ]);
+
+        $creation = Creation::create(['user_id' => $this->user->id, 'type' => 'poster', 'formats' => ['feed_portrait'], 'prompt' => 'x', 'status' => 'queued']);
+        RunCreation::dispatchSync($creation);
+        $creation->refresh();
+
+        // $0.50 budget for one format = two high-quality GPT images; the third is refused.
+        $this->assertSame('done', $creation->status, (string) $creation->error_detail);
+        $this->assertCount(2, $creation->assets);
+        $this->assertStringContainsString('Over the media budget', $creation->steps[2]['error']);
+        Http::assertSentCount(5);
+
+        $this->user->forceFill(['is_admin' => true])->save();
+        $this->actingAs($this->user)->getJson("/api/v1/admin/creations/{$creation->public_id}")
+            ->assertJsonPath('data.cost.media_usd', 0.5)
+            ->assertJsonPath('data.cost.budget_usd', 0.5);
     }
 
     public function test_agent_without_deliverables_fails_with_generic_message(): void
@@ -246,8 +284,8 @@ class CreationTest extends TestCase
                 ]]]]))
                 ->push($this->turn([['deliver_reel', ['clip_ids' => ['vid_4', 'vid_2']]]]))
                 ->push($this->turn([['finish', ['summary' => 'ok']]])),
-            "{$veo}/models/veo-3.1-generate-preview:predictLongRunning" => Http::response(['name' => 'models/veo-3.1-generate-preview/operations/op1']),
-            "{$veo}/models/veo-3.1-generate-preview/operations/op1" => Http::sequence()
+            "{$veo}/models/veo-3.1-fast-generate-preview:predictLongRunning" => Http::response(['name' => 'models/veo-3.1-fast-generate-preview/operations/op1']),
+            "{$veo}/models/veo-3.1-fast-generate-preview/operations/op1" => Http::sequence()
                 ->push(['name' => 'op1', 'done' => false])
                 ->push(['name' => 'op1', 'done' => true, 'response' => ['generateVideoResponse' => ['generatedSamples' => [['video' => ['uri' => "{$veo}/files/v1:download?alt=media"]]]]]]),
             "{$veo}/files/*" => Http::response($clipBytes),

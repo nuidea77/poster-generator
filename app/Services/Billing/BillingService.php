@@ -119,7 +119,7 @@ class BillingService
             }
 
             $plan = $payment->plan;
-            $currentEnd = Subscription::where('user_id', $payment->user_id)->max('ends_at');
+            $currentEnd = Subscription::where('user_id', $payment->user_id)->paid()->max('ends_at');
             $startsAt = $currentEnd && now()->lt($currentEnd) ? Carbon::parse($currentEnd) : now();
 
             $payment->update([
@@ -134,6 +134,7 @@ class BillingService
                 'payment_id' => $payment->id,
                 'starts_at' => $startsAt,
                 'ends_at' => $startsAt->copy()->addDays($plan->period_days),
+                'credits' => $plan->credits,
             ]);
         });
     }

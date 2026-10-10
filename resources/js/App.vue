@@ -49,7 +49,7 @@ async function signOut() {
 
                 <div class="ml-auto flex items-center gap-2">
                     <template v-if="session.user">
-                        <RouterLink v-if="!session.user.subscribed" to="/pricing" class="btn btn-lime-soft hidden sm:inline-flex">Багц авах</RouterLink>
+                        <RouterLink v-if="session.user.credits !== null" to="/pricing" class="btn btn-lime-soft hidden sm:inline-flex" title="Кредит нэмэх"><Icon name="sparkles" size="14" /> {{ session.user.credits }} кредит</RouterLink>
                         <div class="relative">
                             <button class="flex items-center gap-2 rounded-[10px] bg-surface-2 py-1.5 pr-2.5 pl-1.5 text-sm hover:bg-surface-3" @click="menu = !menu">
                                 <span class="grid size-6 place-items-center rounded-md bg-lime text-xs font-bold text-ink">{{ session.user.name.slice(0, 1).toUpperCase() }}</span>

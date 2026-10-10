@@ -61,12 +61,12 @@ class BillingTest extends TestCase
     {
         $this->fakeQpay();
         $user = User::factory()->create();
-        $plan = Plan::where('slug', 'monthly')->first();
+        $plan = Plan::where('slug', 'standard')->first();
 
         $id = $this->actingAs($user)->postJson('/api/v1/payments', ['plan_id' => $plan->id])
             ->assertCreated()
             ->assertJsonPath('data.status', 'pending')
-            ->assertJsonPath('data.amount', 49000)
+            ->assertJsonPath('data.amount', 99000)
             ->assertJsonPath('data.urls.0.name', 'Khan bank')
             ->json('data.id');
 
@@ -76,7 +76,7 @@ class BillingTest extends TestCase
         Http::assertSent(fn (Request $r) => str_ends_with($r->url(), '/v2/auth/token') && $r->hasHeader('Authorization', 'Basic '.base64_encode('cid:secret')));
         Http::assertSent(fn (Request $r) => str_ends_with($r->url(), '/v2/invoice')
             && $r['invoice_code'] === 'TEST_INVOICE'
-            && $r['amount'] === 49000
+            && $r['amount'] === 99000
             && $r['sender_invoice_no'] === $payment->sender_invoice_no
             && $r['callback_url'] === 'https://poster.test/api/v1/payments/qpay/callback/'.$payment->callback_token);
         Http::assertSentCount(2); // token cached, second checkout reused the invoice
@@ -84,9 +84,9 @@ class BillingTest extends TestCase
 
     public function test_callback_verifies_with_qpay_and_activates_once(): void
     {
-        $this->fakeQpay([['payment_id' => 'p1', 'payment_status' => 'PAID', 'payment_amount' => 49000]]);
+        $this->fakeQpay([['payment_id' => 'p1', 'payment_status' => 'PAID', 'payment_amount' => 99000]]);
         $user = User::factory()->create();
-        $payment = app(BillingService::class)->startCheckout($user, Plan::where('slug', 'monthly')->first());
+        $payment = app(BillingService::class)->startCheckout($user, Plan::where('slug', 'standard')->first());
 
         $this->postJson('/api/v1/payments/qpay/callback/'.$payment->callback_token)->assertOk();
         $this->getJson('/api/v1/payments/qpay/callback/'.$payment->callback_token)->assertOk();
@@ -102,7 +102,7 @@ class BillingTest extends TestCase
     {
         $this->fakeQpay([['payment_id' => 'p1', 'payment_status' => 'PAID', 'payment_amount' => 1000]]);
         $user = User::factory()->create();
-        $payment = app(BillingService::class)->startCheckout($user, Plan::where('slug', 'monthly')->first());
+        $payment = app(BillingService::class)->startCheckout($user, Plan::where('slug', 'standard')->first());
 
         $this->postJson('/api/v1/payments/qpay/callback/'.$payment->callback_token)->assertOk();
         $this->postJson('/api/v1/payments/qpay/callback/not-a-token')->assertOk();
@@ -114,7 +114,7 @@ class BillingTest extends TestCase
     public function test_renewal_extends_from_current_end(): void
     {
         $user = User::factory()->create();
-        $plan = Plan::where('slug', 'monthly')->first();
+        $plan = Plan::where('slug', 'standard')->first();
         Subscription::create(['user_id' => $user->id, 'plan_id' => $plan->id, 'starts_at' => now()->subDays(10), 'ends_at' => now()->addDays(20)]);
 
         $payment = Payment::create(['user_id' => $user->id, 'plan_id' => $plan->id, 'sender_invoice_no' => 'X1', 'callback_token' => 't', 'amount' => $plan->price, 'status' => 'pending']);
@@ -127,7 +127,7 @@ class BillingTest extends TestCase
     {
         $this->fakeQpay();
         $user = User::factory()->create();
-        $payment = app(BillingService::class)->startCheckout($user, Plan::where('slug', 'monthly')->first());
+        $payment = app(BillingService::class)->startCheckout($user, Plan::where('slug', 'standard')->first());
 
         $this->actingAs($user)->getJson("/api/v1/payments/{$payment->id}")->assertJsonPath('data.status', 'pending');
         $this->actingAs($user)->getJson("/api/v1/payments/{$payment->id}")->assertOk();
@@ -142,7 +142,7 @@ class BillingTest extends TestCase
         Http::fake();
         $user = User::factory()->create();
 
-        $id = $this->actingAs($user)->postJson('/api/v1/payments', ['plan_id' => Plan::where('slug', 'monthly')->first()->id])->assertCreated()->json('data.id');
+        $id = $this->actingAs($user)->postJson('/api/v1/payments', ['plan_id' => Plan::where('slug', 'standard')->first()->id])->assertCreated()->json('data.id');
         $this->actingAs($user)->postJson("/api/v1/payments/{$id}/simulate")->assertJsonPath('data.status', 'paid');
 
         $this->assertTrue($user->fresh()->isSubscribed());

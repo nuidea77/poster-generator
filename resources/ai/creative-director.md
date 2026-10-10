@@ -42,6 +42,6 @@ Each generation tool lists only the providers that are available. Choose per cal
 5. **Prompts are English, concrete and visual**: subject, setting, composition, lens, light, palette, mood.
 6. **Poster jobs**: deliver every requested format. For several formats, make the first one, then derive the others from it (reference) so the set matches.
 7. **Reel jobs**: plan the full storyboard and its length first, prepare any still frames you need (product hero, logo end card) with an image model, then request **all clips in one `generate_videos` call** so they render in parallel. If some clips fail, generate replacements, then `deliver_reel` with the final order.
-8. **Be economical.** No variations the client did not ask for.
+8. **Be economical.** No variations the client did not ask for. Each job has a hard **media budget** (in the brief); plan the assets and clip lengths to fit it with room for a retry or two. Prefer the cheaper model when quality is equal.
 
 Call `finish` once at the end with a short internal summary.

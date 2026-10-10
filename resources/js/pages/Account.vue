@@ -45,15 +45,16 @@ async function signOut() {
 
         <div class="panel">
             <div class="mb-3 text-sm font-semibold">Багц</div>
+            <div v-if="session.user.credits !== null" class="mb-3 text-sm">Кредитийн үлдэгдэл: <b class="text-lime">{{ session.user.credits }}</b></div>
             <div v-if="session.user.subscription" class="flex flex-wrap items-center gap-3">
                 <span class="badge badge-new">Идэвхтэй</span>
-                <span class="text-sm">{{ session.user.subscription.plan }} · {{ date(session.user.subscription.ends_at) }} хүртэл</span>
+                <span class="text-sm">{{ session.user.subscription.plan }} · {{ date(session.user.subscription.ends_at) }} хүртэл. Ашиглаагүй кредит энэ хугацаанд дуусна.</span>
                 <RouterLink to="/pricing" class="btn btn-ghost btn-sm ml-auto">Сунгах</RouterLink>
             </div>
             <div v-else-if="session.user.plan?.free" class="flex flex-wrap items-center gap-3">
                 <span class="badge badge-muted">Үнэгүй</span>
-                <span class="text-sm">Постер {{ session.user.allowance.poster.remaining }}/{{ session.user.allowance.poster.limit }}, reels {{ session.user.allowance.reel.remaining }}/{{ session.user.allowance.reel.limit }} үлдсэн</span>
-                <RouterLink to="/pricing" class="btn btn-lime btn-sm ml-auto">Хязгааргүй болгох</RouterLink>
+                <span class="text-sm">Эхлэлийн кредит (1 постер + 1 reels)</span>
+                <RouterLink to="/pricing" class="btn btn-lime btn-sm ml-auto">Багц сонгох</RouterLink>
             </div>
             <div v-else class="flex flex-wrap items-center gap-3">
                 <span class="badge badge-muted">Багцгүй</span>

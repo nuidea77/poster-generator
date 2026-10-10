@@ -1,6 +1,6 @@
 <script setup>
 import { onMounted, ref, watch } from 'vue';
-import { api, date } from '../../lib/api';
+import { api, date, money } from '../../lib/api';
 import AdminNav from '../../components/AdminNav.vue';
 
 const items = ref([]);
@@ -43,7 +43,7 @@ const usage = (c) =>
                 <thead class="bg-surface text-xs text-muted uppercase">
                     <tr>
                         <th class="px-3 py-2">Огноо</th><th class="px-3 py-2">Хэрэглэгч</th><th class="px-3 py-2">Төрөл</th><th class="px-3 py-2">Төлөв</th>
-                        <th class="px-3 py-2">Модель хэрэглээ</th><th class="px-3 py-2">Видео сек</th><th class="px-3 py-2">Claude токен</th>
+                        <th class="px-3 py-2">Модель хэрэглээ</th><th class="px-3 py-2">Видео сек</th><th class="px-3 py-2">Claude токен</th><th class="px-3 py-2">Зардал</th><th class="px-3 py-2">Кредит</th><th class="px-3 py-2">Ашиг</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -56,6 +56,9 @@ const usage = (c) =>
                             <td class="px-3 py-2 text-xs">{{ usage(c) }}</td>
                             <td class="px-3 py-2 tabular-nums">{{ c.usage.video_seconds }}</td>
                             <td class="px-3 py-2 tabular-nums">{{ tokens(c) }}</td>
+                            <td class="px-3 py-2 tabular-nums" :title="`$${c.cost.usd} (Claude $${c.cost.claude_usd}, медиа $${c.cost.media_usd} / $${c.cost.budget_usd})`">{{ money(c.cost.mnt) }}</td>
+                            <td class="px-3 py-2 tabular-nums">{{ c.cost.credits }}</td>
+                            <td class="px-3 py-2 tabular-nums" :class="c.cost.margin === null ? 'text-muted' : c.cost.margin < 2 ? 'text-red-300' : 'text-lime'">{{ c.cost.margin === null ? '—' : `×${c.cost.margin}` }}</td>
                         </tr>
                         <tr v-if="open === c.id" class="border-t border-line bg-surface">
                             <td colspan="7" class="space-y-3 px-3 py-4 text-xs">

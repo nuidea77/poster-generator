@@ -5,13 +5,16 @@ namespace App\Services;
 use App\Jobs\RunCreation;
 use App\Models\Creation;
 use App\Models\User;
-use Illuminate\Http\Exceptions\HttpResponseException;
+use App\Services\Billing\Credits;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 class CreationService
 {
+    public function __construct(private Credits $credits) {}
+
     /**
      * Validate fair-use limits, store uploads and queue the job.
      *
@@ -19,17 +22,13 @@ class CreationService
      */
     public function start(User $user, array $data, ?UploadedFile $logo, array $images): Creation
     {
-        $subscriptionId = $this->guardAllowance($user, $data['type']);
+        $this->guardFairUse($user, $data['type']);
 
-        $creation = Creation::create([
-            'user_id' => $user->id,
-            'subscription_id' => $subscriptionId,
+        $creation = $this->createCharged($user, [
             'type' => $data['type'],
             'formats' => $data['type'] === Creation::POSTER ? array_values(array_unique($data['formats'])) : null,
             'prompt' => $data['prompt'],
             'product' => array_filter($data['product'] ?? [], 'filled') ?: null,
-            'status' => Creation::QUEUED,
-            'stage' => 'queued',
         ]);
 
         $dir = "creations/{$creation->public_id}/inputs";
@@ -68,17 +67,13 @@ class CreationService
      */
     public function retry(Creation $source): Creation
     {
-        $subscriptionId = $this->guardAllowance($source->user, $source->type);
+        $this->guardFairUse($source->user, $source->type);
 
-        $creation = Creation::create([
-            'user_id' => $source->user_id,
-            'subscription_id' => $subscriptionId,
+        $creation = $this->createCharged($source->user, [
             'type' => $source->type,
             'formats' => $source->formats,
             'prompt' => $source->prompt,
             'product' => $source->product,
-            'status' => Creation::QUEUED,
-            'stage' => 'queued',
         ]);
 
         $inputs = [];
@@ -98,26 +93,16 @@ class CreationService
     }
 
     /**
-     * Plan limits first (free tier: 1 poster + 1 reel), then fair use.
-     *
-     * @return int|null The subscription the creation counts against (null = free tier).
+     * Create the job and take its price in credits; nothing is kept if the wallet is short.
      */
-    private function guardAllowance(User $user, string $type): ?int
+    private function createCharged(User $user, array $attributes): Creation
     {
-        $allowance = $user->allowance($type);
+        return DB::transaction(function () use ($user, $attributes) {
+            $creation = Creation::create($attributes + ['user_id' => $user->id, 'status' => Creation::QUEUED, 'stage' => 'queued']);
+            $this->credits->charge($user, $creation, $this->credits->price($creation->type, count($creation->formats ?? [])));
 
-        if ($allowance['remaining'] === 0) {
-            throw new HttpResponseException(response()->json([
-                'message' => $allowance['plan']?->isFree()
-                    ? 'Үнэгүй эрхээ ашиглачихлаа. Үргэлжлүүлэхийн тулд багц авна уу.'
-                    : 'Багцын хязгаарт хүрлээ. Багцаа сунгах эсвэл ахиулна уу.',
-                'code' => 'subscription_required',
-            ], 402));
-        }
-
-        $this->guardFairUse($user, $type);
-
-        return $allowance['subscription_id'];
+            return $creation;
+        });
     }
 
     private function guardFairUse(User $user, string $type): void

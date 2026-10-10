@@ -5,6 +5,8 @@ namespace App\Services\Agent;
 use App\Models\Creation;
 use App\Services\AI\AiManager;
 use App\Services\AI\Exceptions\AiException;
+use App\Services\Billing\CostMeter;
+use App\Services\Billing\Credits;
 use App\Services\Media\MediaStore;
 use App\Services\Media\PosterFormatter;
 use Illuminate\Http\Client\ConnectionException;
@@ -24,6 +26,8 @@ class CreativeAgent
         private AiManager $ai,
         private SkillLibrary $skills,
         private PosterFormatter $formatter,
+        private Credits $credits,
+        private CostMeter $cost,
     ) {}
 
     public function run(Creation $creation): void
@@ -37,8 +41,14 @@ class CreativeAgent
         for ($step = 0; $step < config('ai.agent.max_steps'); $step++) {
             $response = $this->claude($tools, $messages);
 
-            $creation->increment('input_tokens', (int) ($response['usage']['input_tokens'] ?? 0));
-            $creation->increment('output_tokens', (int) ($response['usage']['output_tokens'] ?? 0));
+            $usage = $response['usage'] ?? [];
+            $creation->incrementEach([
+                'input_tokens' => (int) ($usage['input_tokens'] ?? 0),
+                'output_tokens' => (int) ($usage['output_tokens'] ?? 0),
+                'cache_read_tokens' => (int) ($usage['cache_read_input_tokens'] ?? 0),
+                'cache_write_tokens' => (int) ($usage['cache_creation_input_tokens'] ?? 0),
+                'cost_usd' => $this->cost->claude($usage),
+            ]);
 
             if (($response['stop_reason'] ?? null) === 'refusal') {
                 throw new AiException('Claude declined: '.($response['stop_details']['explanation'] ?? 'safety filter'));
@@ -102,7 +112,7 @@ class CreativeAgent
             'tools' => $tools,
             // Fable thinks adaptively by default; depth is set with effort.
             'output_config' => ['effort' => $agent['effort']],
-            'messages' => $messages,
+            'messages' => $this->withCacheBreakpoint($messages),
         ];
 
         if ($agent['fallbacks']) {
@@ -119,6 +129,22 @@ class CreativeAgent
         }
 
         return $response->json();
+    }
+
+    /**
+     * Cache the conversation up to the newest message so each turn re-reads
+     * the history at the cache price. The stored history is left untouched.
+     */
+    private function withCacheBreakpoint(array $messages): array
+    {
+        $last = count($messages) - 1;
+
+        if (is_array($messages[$last]['content'] ?? null) && $messages[$last]['content']) {
+            $block = array_key_last($messages[$last]['content']);
+            $messages[$last]['content'][$block]['cache_control'] = ['type' => 'ephemeral'];
+        }
+
+        return $messages;
     }
 
     private function systemPrompt(): string
@@ -166,6 +192,10 @@ class CreativeAgent
         $lines[] = '';
         $lines[] = '## Client brief';
         $lines[] = $creation->prompt;
+
+        $lines[] = '';
+        $lines[] = '## Budget';
+        $lines[] = sprintf('Media budget for this job: $%.2f in total for images and video. %s Generation tools refuse requests beyond it, so plan within it.', $this->credits->mediaBudget($creation), $this->priceList($creation));
 
         $content[] = ['type' => 'text', 'text' => implode("\n", $lines)];
 
@@ -282,6 +312,9 @@ class CreativeAgent
 
     private function generateImage(Creation $creation, array $in): array
     {
+        $cost = $this->cost->image($in['provider']);
+        $this->guardBudget($creation, $cost);
+
         $aspect = in_array($in['aspect'] ?? null, self::ASPECTS, true) ? $in['aspect'] : '1:1';
         $references = array_map(fn ($id) => $this->readAsset($creation, $id, 'image'), $in['reference_image_ids'] ?? []);
 
@@ -290,8 +323,9 @@ class CreativeAgent
 
         $id = $creation->addAsset([
             'kind' => 'image', 'source' => 'generated', 'provider' => $in['provider'],
-            'path' => $file['path'], 'prompt' => $in['prompt'], 'aspect' => $aspect, 'note' => $in['purpose'] ?? '',
+            'path' => $file['path'], 'prompt' => $in['prompt'], 'aspect' => $aspect, 'note' => $in['purpose'] ?? '', 'cost' => $cost,
         ]);
+        $creation->increment('cost_usd', $cost);
 
         $this->bumpProgress($creation);
 
@@ -323,7 +357,9 @@ class CreativeAgent
                 $frame = filled($clip['first_frame_image_id'] ?? null) ? $this->readAsset($creation, $clip['first_frame_image_id'], 'image') : null;
                 $provider = $this->ai->video($clip['provider']);
                 $clip['duration'] = $this->nearest($provider->durations(), (int) $clip['duration']);
-                $tasks[$i] = ['provider' => $provider, 'name' => $clip['provider'], 'id' => $provider->submit($clip['prompt'], '9:16', $clip['duration'], $frame), 'clip' => $clip];
+                $cost = $this->cost->video($clip['provider'], $clip['duration']);
+                $this->guardBudget($creation, $cost + array_sum(array_column($tasks, 'cost')));
+                $tasks[$i] = ['provider' => $provider, 'name' => $clip['provider'], 'id' => $provider->submit($clip['prompt'], '9:16', $clip['duration'], $frame), 'clip' => $clip, 'cost' => $cost];
             } catch (AiException|ConnectionException $e) {
                 $report[$i] = 'clip #'.($i + 1).": FAILED to start — {$e->getMessage()}";
             }
@@ -361,8 +397,9 @@ class CreativeAgent
                     $id = $creation->addAsset([
                         'kind' => 'video', 'source' => 'generated', 'provider' => $task['name'],
                         'path' => $file['path'], 'prompt' => $task['clip']['prompt'],
-                        'duration' => (int) $task['clip']['duration'], 'note' => $task['clip']['purpose'] ?? '',
+                        'duration' => (int) $task['clip']['duration'], 'note' => $task['clip']['purpose'] ?? '', 'cost' => $task['cost'],
                     ]);
+                    $creation->increment('cost_usd', $task['cost']);
                     $report[$i] = 'clip #'.($i + 1).": `{$id}` ({$task['clip']['duration']} s) — {$task['clip']['purpose']}";
                     $done++;
                 } catch (AiException|ConnectionException $e) {
@@ -381,7 +418,8 @@ class CreativeAgent
 
         return [
             'summary' => "{$done}/".count($clips).' clips',
-            'content' => "Clips (cannot be previewed here; assume each followed its prompt):\n".implode("\n", $report),
+            'content' => "Clips (cannot be previewed here; assume each followed its prompt):\n".implode("\n", $report)
+                ."\n".sprintf('Media budget left: $%.2f.', $this->budgetLeft($creation->refresh())),
         ];
     }
 
@@ -454,6 +492,33 @@ class CreativeAgent
     }
 
     // --------------------------------------------------------------- helpers
+
+    private function budgetLeft(Creation $creation): float
+    {
+        return $this->credits->mediaBudget($creation) - array_sum(array_column($creation->assets, 'cost'));
+    }
+
+    private function guardBudget(Creation $creation, float $cost): void
+    {
+        $left = $this->budgetLeft($creation);
+
+        if ($cost > $left + 0.0001) {
+            throw new AiException(sprintf('Over the media budget: this needs $%.2f but only $%.2f is left. %s Use fewer or shorter clips, a cheaper model, or deliver with what you have.', $cost, max(0, $left), $this->priceList($creation)));
+        }
+    }
+
+    private function priceList(Creation $creation): string
+    {
+        $prices = array_map(fn ($p) => "{$p} image \$".number_format($this->cost->image($p), 3), $this->ai->available('image'));
+
+        if ($creation->type === Creation::REEL) {
+            foreach ($this->ai->available('video') as $p) {
+                $prices[] = "{$p} video \$".number_format($this->cost->video($p, 1), 3).'/s';
+            }
+        }
+
+        return 'Prices: '.implode(', ', $prices).'.';
+    }
 
     /**
      * @param  list<int>  $options

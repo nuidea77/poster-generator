@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\MeResource;
 use App\Models\User;
+use App\Services\Billing\Credits;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -23,6 +24,7 @@ class AuthController extends Controller
         ]);
 
         $user = User::create($data);
+        app(Credits::class)->grantFree($user);
 
         Auth::login($user, remember: true);
         $request->session()->regenerate();

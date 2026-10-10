@@ -36,7 +36,7 @@ Laravel 13 + Vue 3 + Tailwind 4.
 Claude skill-үүдийг энэ системийн урсгалд тохируулсан: текст давхарлахгүй, ажлын хэрэгслүүд нь `generate_image`, `generate_videos`, `deliver_*`.
 Админ **Админ → Skills** хуудаснаас шинэ skill бичих, эсвэл Claude skill-ийн `SKILL.md` файлыг **импортлох** боломжтой. Custom skill нь ерөнхий зааврыг давамгайлна.
 
-Захиалга: **QPay** нэхэмжлэх (QR + банкны апп), callback ирэхэд `payment/check`-ээр баталгаажуулж багцыг идэвхжүүлнэ/сунгана. 3 багц: **Үнэгүй** (1 постер + 1 reels, бүртгүүлмэгц), **1 сар** ба **1 жил** (хязгааргүй). Багц бүрийн постер/reels хязгаарыг админ тохируулна. Зардлыг fair-use хамгаална: зэрэг ажиллах бүтээл ≤2, өдрийн хязгаарыг тохиргоогоор асааж болно.
+Захиалга: **QPay** нэхэмжлэх (QR + банкны апп), callback ирэхэд `payment/check`-ээр баталгаажуулж багцыг идэвхжүүлнэ/сунгана. Багц **кредитээр**: постер 12 кр (+3/хэмжээ), reels 55 кр. **Үнэгүй** 67 кр (1 постер + 1 reels), **Стандарт** 99,000₮ → 80 кр/сар, **Про** 249,000₮ → 220 кр/сар. Ажил бүрт медиа төсөв тавьж, ашиг муу тохиолдолд ч ×2-оос дээш байхаар тооцсон. Тооцоо: [`docs/PRICING.md`](docs/PRICING.md). Зардлыг fair-use хамгаална: зэрэг ажиллах бүтээл ≤2, өдрийн хязгаарыг тохиргоогоор асааж болно.
 
 ## Суулгах
 
@@ -95,10 +95,12 @@ app/Services/AI/Providers/             OpenAI, Gemini (зураг), Seedance, Ve
 app/Services/Media/PosterFormatter.php яг пикселийн хэмжээгээр crop
 app/Services/Media/ReelAssembler.php   ffmpeg: normalize → concat → AAC (урт = клипүүдийн нийлбэр)
 app/Jobs/RunCreation.php               queue job: агент → угсралт → done/failed
-app/Services/Billing/                  QPayClient (v2), BillingService (invoice, check, сунгалт)
+app/Services/Billing/                  QPayClient (v2), BillingService (invoice, check, сунгалт),
+                                       Credits (хэтэвч, хасах/буцаах), CostMeter (API өртөг)
 app/Http/Resources/CreationResource    хэрэглэгчид харагдах (модельгүй)
 app/Http/Resources/AdminCreationResource  админд: алхам, модель, токен, видео сек
 config/creations.php                   постерын хэмжээ, reels тохиргоо, fair-use
+config/pricing.php                     нэгж өртөг, кредитийн үнэ, медиа төсөв
 config/qpay.php, config/ai.php
 resources/js/pages/                    Home, Create, Creation, Library, Pricing, Account, admin/*
 ```
@@ -113,9 +115,9 @@ resources/js/pages/                    Home, Create, Creation, Library, Pricing,
 | POST | `/api/v1/payments` → QR | auth |
 | GET | `/api/v1/payments/{id}` | эзэн |
 | GET/POST | `/api/v1/payments/qpay/callback/{token}` | QPay |
-| GET/POST | `/api/v1/creations` | auth (POST: багцын үлдэгдэл) |
+| GET/POST | `/api/v1/creations` | auth (POST: кредит) |
 | GET/DELETE | `/api/v1/creations/{id}` | эзэн |
-| POST | `/api/v1/creations/{id}/retry` | эзэн, багцын үлдэгдэл |
+| POST | `/api/v1/creations/{id}/retry` | эзэн, кредит |
 | GET | `/api/v1/admin/creations` | admin |
 | GET/POST/PUT | `/api/v1/admin/plans` | admin |
 | CRUD | `/api/v1/admin/skills` | admin |

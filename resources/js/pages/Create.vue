@@ -23,10 +23,11 @@ const images = ref([]); // [{ file, url }]
 const rememberLogo = ref(true);
 const busy = ref(false);
 
-// remaining null = unlimited
-const left = (type) => session.user.allowance?.[type]?.remaining;
-const blocked = computed(() => left(form.type) === 0);
-const onFree = computed(() => session.user.plan?.free);
+// Price in credits, charged when the job starts (refunded if it fails). credits null = unlimited (admin).
+const prices = meta.credit_prices;
+const cost = computed(() => (form.type === 'reel' ? prices.reel : prices.poster + Math.max(0, form.formats.length - 1) * prices.poster_extra_format));
+const balance = computed(() => session.user.credits);
+const blocked = computed(() => balance.value !== null && balance.value < cost.value);
 const error = ref('');
 
 if (session.user?.logo_url) {
@@ -176,13 +177,12 @@ async function submit() {
             </div>
 
             <p v-if="blocked" class="mt-6 rounded-xl bg-lime/10 px-4 py-2 text-sm text-lime">
-                <template v-if="onFree">Үнэгүй {{ form.type === 'reel' ? 'reels-ээ' : 'постероо' }} ашиглачихлаа.</template>
-                <template v-else>Багцын хязгаарт хүрлээ.</template>{{ ' ' }}
-                <RouterLink to="/pricing" class="font-semibold underline">Хязгааргүй багц авах</RouterLink>
+                Энэ бүтээлд <b>{{ cost }}</b> кредит хэрэгтэй, танд <b>{{ balance }}</b> байна.
+                <RouterLink to="/pricing" class="font-semibold underline">Кредит нэмэх</RouterLink>
             </p>
-            <p v-else-if="onFree" class="mt-6 rounded-xl bg-surface-2 px-4 py-2 text-sm text-zinc-300">
-                Үнэгүй эрх: постер <b class="text-fg">{{ left('poster') }}</b>, reels <b class="text-fg">{{ left('reel') }}</b> үлдсэн.
-                <RouterLink to="/pricing" class="text-lime underline">Хязгааргүй болгох</RouterLink>
+            <p v-else-if="balance !== null" class="mt-6 rounded-xl bg-surface-2 px-4 py-2 text-sm text-zinc-300">
+                Энэ бүтээл <b class="text-fg">{{ cost }}</b> кредит · Үлдэгдэл <b class="text-fg">{{ balance }}</b> кредит
+                <span class="text-muted">· Амжилтгүй болбол кредит буцна</span>
             </p>
         </section>
 
@@ -191,7 +191,7 @@ async function submit() {
             :placeholder="form.type === 'poster' ? 'Юу сурталчлах вэ? Үйл явдал, бүтээгдэхүүн, мэдрэмж…' : 'Reels-ээр юуг, хэнд, ямар мэдрэмжээр харуулах вэ?'"
             :busy="busy"
             busy-label="Илгээж байна"
-            label="Generate"
+            :label="balance === null ? 'Generate' : `Generate · ${cost}`"
             @generate="submit"
         >
             <template #top>

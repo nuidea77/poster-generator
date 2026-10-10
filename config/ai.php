@@ -39,6 +39,7 @@ return [
             'key' => env('OPENAI_API_KEY'),
             'base_url' => env('OPENAI_BASE_URL', 'https://api.openai.com/v1'),
             'image_model' => env('OPENAI_IMAGE_MODEL', 'gpt-image-1'),
+            'image_quality' => env('OPENAI_IMAGE_QUALITY', 'high'), // low | medium | high — keep COST_OPENAI_IMAGE in step
         ],
 
         'gemini' => [
@@ -63,7 +64,8 @@ return [
             'kind' => 'video',
             'key' => env('VEO_API_KEY', env('GEMINI_API_KEY')),
             'base_url' => env('VEO_BASE_URL', env('GEMINI_BASE_URL', 'https://generativelanguage.googleapis.com/v1beta')),
-            'video_model' => env('VEO_MODEL', 'veo-3.1-generate-preview'),
+            // Fast: about a third of the standard model's price per second. Keep COST_VEO_SECOND in step.
+            'video_model' => env('VEO_MODEL', 'veo-3.1-fast-generate-preview'),
             'resolution' => env('VEO_RESOLUTION', '1080p'), // 720p | 1080p (1080p only for 8 s clips)
             'poll_interval' => (int) env('VEO_POLL_INTERVAL', 10),
             'poll_timeout' => (int) env('VEO_POLL_TIMEOUT', 1500),

@@ -1,12 +1,15 @@
 <script setup>
 import { onMounted, ref } from 'vue';
 import { api, money } from '../../lib/api';
-import { loadSession } from '../../lib/session';
+import { loadSession, session } from '../../lib/session';
 import AdminNav from '../../components/AdminNav.vue';
 
 const plans = ref([]);
 const error = ref('');
 const saved = ref(null);
+const prices = session.meta.credit_prices;
+// Worst-case API cost per credit is ≈500₮, so 2× margin needs ≥1,000₮ per credit.
+const floor = 1000;
 
 async function load() {
     plans.value = (await api.get('/admin/plans')).data.map((p) => ({ ...p, featuresText: (p.features || []).join('\n') }));
@@ -15,13 +18,12 @@ async function load() {
 onMounted(load);
 
 function add() {
-    plans.value.push({ id: null, slug: '', name: '', price: 0, period_days: 30, poster_limit: null, reel_limit: null, is_active: true, sort: plans.value.length + 1, featuresText: '' });
+    plans.value.push({ id: null, slug: '', name: '', price: 0, period_days: 30, credits: 0, is_active: true, sort: plans.value.length + 1, featuresText: '' });
 }
 
 async function save(p) {
     error.value = '';
-    const limit = (v) => (v === '' || v === null || v === undefined ? null : Number(v)); // empty = unlimited
-    const body = { ...p, poster_limit: limit(p.poster_limit), reel_limit: limit(p.reel_limit), features: p.featuresText.split('\n').map((s) => s.trim()).filter(Boolean) };
+    const body = { ...p, features: p.featuresText.split('\n').map((s) => s.trim()).filter(Boolean) };
     try {
         const { data } = p.id ? await api.put(`/admin/plans/${p.id}`, body) : await api.post('/admin/plans', body);
         Object.assign(p, data);
@@ -41,7 +43,7 @@ async function save(p) {
             <h1 class="display text-3xl">Багц, үнэ</h1>
             <button class="btn btn-lime ml-auto" @click="add">+ Багц</button>
         </div>
-        <p class="mb-4 text-sm text-muted">Үнэ 0 бол үнэгүй багц: бүх шинэ хэрэглэгч түүн дээр эхэлж, хязгаар нь нэг удаагийнх. Төлбөртэй багцын хязгаар нэг хугацааных; хоосон бол хязгааргүй. Үнийг тогтоохдоо reels-ийн AI зардлыг (Бүтээлүүд хэсгийн видео сек) тооцоорой.</p>
+        <p class="mb-4 text-sm text-muted">Үнэ 0 бол үнэгүй багц: шинэ хэрэглэгч бүр кредитийг нь нэг удаа авна, хугацаагүй. Төлбөртэй багцын кредит тухайн хугацаанд хүчинтэй. Бүтээлийн үнэ: постер {{ prices.poster }} (+{{ prices.poster_extra_format }}/хэмжээ), reels {{ prices.reel }} кредит. 1 кредитийн үнэ ≥ {{ money(floor) }} байвал хамгийн муу тохиолдолд ч ашиг 2 дахин байна (docs/PRICING.md).</p>
         <p v-if="error" class="mb-3 rounded-xl bg-red-950 p-3 text-sm text-red-200">{{ error }}</p>
 
         <div class="grid gap-4 md:grid-cols-3">
@@ -51,8 +53,8 @@ async function save(p) {
                     <div><label class="label">Slug</label><input v-model="p.slug" class="field" /></div>
                     <div><label class="label">Үнэ (₮)</label><input v-model.number="p.price" type="number" class="field" /></div>
                     <div><label class="label">Хоног</label><input v-model.number="p.period_days" type="number" class="field" /></div>
-                    <div><label class="label">Постер</label><input v-model="p.poster_limit" type="number" min="0" class="field" placeholder="∞" /></div>
-                    <div><label class="label">Reels</label><input v-model="p.reel_limit" type="number" min="0" class="field" placeholder="∞" /></div>
+                    <div><label class="label">Кредит</label><input v-model.number="p.credits" type="number" min="0" class="field" /></div>
+                    <div><label class="label">1 кредит</label><div class="field tabular-nums" :class="p.price && p.credits && p.price / p.credits < floor ? 'text-red-300' : 'text-muted'">{{ p.price && p.credits ? money(Math.round(p.price / p.credits)) : '—' }}</div></div>
                 </div>
                 <div><label class="label">Онцлог (мөр бүрт нэг)</label><textarea v-model="p.featuresText" rows="4" class="field resize-none text-xs" /></div>
                 <div class="flex items-center gap-3">

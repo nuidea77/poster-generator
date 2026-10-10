@@ -28,9 +28,9 @@ class Creation extends Model
     public const ACTIVE = [self::QUEUED, self::RUNNING, self::ASSEMBLING];
 
     protected $fillable = [
-        'user_id', 'subscription_id', 'type', 'formats', 'prompt', 'product', 'status', 'stage', 'progress',
+        'user_id', 'type', 'credits', 'charges', 'formats', 'prompt', 'product', 'status', 'stage', 'progress',
         'inputs', 'assets', 'steps', 'outputs', 'reel_clips', 'summary', 'error_detail',
-        'model', 'input_tokens', 'output_tokens', 'started_at', 'finished_at',
+        'model', 'input_tokens', 'output_tokens', 'cache_read_tokens', 'cache_write_tokens', 'cost_usd', 'started_at', 'finished_at',
     ];
 
     protected $attributes = [
@@ -50,6 +50,9 @@ class Creation extends Model
             'steps' => 'array',
             'outputs' => 'array',
             'reel_clips' => 'array',
+            'charges' => 'array',
+            'credits' => 'integer',
+            'cost_usd' => 'float',
             'progress' => 'integer',
             'started_at' => 'datetime',
             'finished_at' => 'datetime',
