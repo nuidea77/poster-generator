@@ -6,18 +6,18 @@ description: Extracting a brand's colours, tone and visual language from a logo,
 # Brand identity
 
 ## Read the brand from what you were given
-1. **Logo** — note its 1–2 main colours (as hex), whether it is wordmark or symbol, light or dark. The palette `primary` is usually the logo's main colour; `accent` a lighter/contrasting brand colour.
-2. **Existing posts / website** — note typography feel (geometric bold → `bold`/`modern`; serif → `elegant`; rounded → `playful`), photo style (bright & airy, dark & moody, flat illustration) and recurring motifs.
-3. **Brief wording** — "premium", "luxury" → elegant + dark/gold; "friendly", "family" → playful + warm; "professional", "B2B" → modern + navy/white; "young", "energetic" → bold + saturated.
+1. **Logo** — note its 1–2 main colours, whether it is a wordmark or symbol, light or dark. These become the dominant colours of the scene.
+2. **Existing posts / website** — note the photo style (bright & airy, dark & moody, flat illustration) and recurring motifs.
+3. **Brief wording** — "premium", "luxury" → dark, gold, rim light; "friendly", "family" → warm, soft daylight; "professional", "B2B" → clean navy/white; "young", "energetic" → saturated, high contrast.
 
 ## Apply it
-- Reuse the same `palette` and `font` across every poster and reel in the job.
+- Keep the same palette, lighting and style across every image and clip in the job.
 - Put brand colours into image prompts as mood ("deep navy and gold palette") rather than as painted objects.
-- If a logo is attached, do **not** regenerate it; posters do not currently place logos automatically, so mention in the summary that the logo file is attached as an asset for manual placement.
+- If a logo is attached, never redraw it: pass it as a reference and ask for it to be placed unaltered (small, clean area). Verify the result; a distorted logo is worse than none.
 - Mongolian brands often mix Cyrillic and Latin wordmarks; keep the exact spelling from the brief.
 
 ## Default palettes when nothing is known
-| Mood | background | primary | accent | text |
+| Mood | background | main | accent | highlight |
 |---|---|---|---|---|
 | Premium dark | #0b0b0f | #c9a227 | #f5e6b8 | #ffffff |
 | Fresh | #0f3d2e | #22c55e | #fde047 | #ffffff |

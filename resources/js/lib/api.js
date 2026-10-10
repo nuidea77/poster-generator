@@ -1,13 +1,31 @@
-const token = () => document.querySelector('meta[name="csrf-token"]')?.content;
+const BASE = '/api/v1';
 
-async function request(method, url, body) {
+// Laravel refreshes the XSRF-TOKEN cookie on every response, so reading it per
+// request keeps working after login/logout rotates the session token.
+function xsrf() {
+    const match = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]+)/);
+    return match ? decodeURIComponent(match[1]) : '';
+}
+
+export class ApiError extends Error {
+    constructor(message, status, data = {}) {
+        super(message);
+        this.status = status;
+        this.code = data.code ?? null;
+        this.errors = data.errors ?? {};
+    }
+}
+
+async function request(method, path, body) {
     const isForm = body instanceof FormData;
 
-    const res = await fetch(url, {
+    const res = await fetch(BASE + path, {
         method,
+        credentials: 'same-origin',
         headers: {
             Accept: 'application/json',
-            'X-CSRF-TOKEN': token(),
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-XSRF-TOKEN': xsrf(),
             ...(body && !isForm ? { 'Content-Type': 'application/json' } : {}),
         },
         body: body ? (isForm ? body : JSON.stringify(body)) : undefined,
@@ -18,44 +36,26 @@ async function request(method, url, body) {
     const data = await res.json().catch(() => ({}));
 
     if (!res.ok) {
-        const errors = data.errors ? Object.values(data.errors).flat().join(' ') : '';
-        throw new Error(errors || data.message || `Алдаа гарлаа (${res.status})`);
+        const first = data.errors ? Object.values(data.errors).flat()[0] : null;
+        const fallback = { 401: 'Нэвтэрнэ үү.', 403: 'Эрх хүрэхгүй байна.', 404: 'Олдсонгүй.', 419: 'Хуудсаа шинэчлээд дахин оролдоно уу.', 429: 'Түр хүлээгээд дахин оролдоно уу.' }[res.status];
+        throw new ApiError(first || data.message || fallback || `Алдаа гарлаа (${res.status})`, res.status, data);
     }
 
     return data;
 }
 
 export const api = {
-    get: (url) => request('GET', url),
-    post: (url, body) => request('POST', url, body),
-    put: (url, body) => request('PUT', url, body),
-    delete: (url) => request('DELETE', url),
+    get: (path) => request('GET', path),
+    post: (path, body) => request('POST', path, body),
+    put: (path, body) => request('PUT', path, body),
+    delete: (path) => request('DELETE', path),
 };
 
-export async function mapLimit(items, limit, fn) {
-    const queue = items.map((item, i) => [item, i]);
-    const workers = Array.from({ length: Math.min(limit, queue.length) }, async () => {
-        while (queue.length) {
-            const [item, i] = queue.shift();
-            await fn(item, i);
-        }
-    });
-    await Promise.all(workers);
-}
+export const money = (n) => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ',') + '₮';
 
-export function debounce(fn, ms) {
-    let t;
-    return (...args) => {
-        clearTimeout(t);
-        t = setTimeout(() => fn(...args), ms);
-    };
-}
-
-export function downloadBlob(blob, filename) {
-    const url = URL.createObjectURL(blob);
-    const a = Object.assign(document.createElement('a'), { href: url, download: filename });
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
+// Formatted by hand: many browsers ship without Mongolian locale data.
+export const date = (d) => {
+    if (!d) return '';
+    const t = new Date(d);
+    return `${t.getFullYear()}.${String(t.getMonth() + 1).padStart(2, '0')}.${String(t.getDate()).padStart(2, '0')}`;
+};

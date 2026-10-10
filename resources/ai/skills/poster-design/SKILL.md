@@ -1,47 +1,39 @@
 ---
 name: poster-design
-description: Layout, typography, colour and composition rules for static social posters (Instagram feed/story, Facebook, YouTube thumbnails). Load before calling create_poster.
+description: How to make a finished, text-free advertising poster image for Instagram / Facebook formats — composition, product hero shots, logo use, colour, and deriving a matching set across sizes. Load for every POSTER job.
 ---
 
-# Poster design
+# Poster design (image-only)
 
-## Pick the format from the channel
-| Channel | format | Notes |
-|---|---|---|
-| Instagram feed, Facebook feed | `4:5` | Tallest feed format = most screen space |
-| Instagram story, TikTok cover | `9:16` | Keep text inside the middle 60% — UI covers top/bottom |
-| Marketplace, profile grid, print preview | `1:1` | |
-| Facebook cover, YouTube thumbnail, web banner | `16:9` | Headline ≤ 4 words, very large |
+The delivered image is the whole poster. No headline or button is added later, so the picture must sell on its own: one clear subject, a strong idea, brand colours, and the logo when one is given.
 
-## Choose a layout for the image you have
-- `bottom` — image has its subject in the upper 2/3, empty or calm lower third. Default for photos.
-- `top` — subject sits low (food on a table, product on a surface). Text goes above.
-- `center` — abstract / pattern / gradient backgrounds, big announcements, quotes. Image gets a dark overlay, so avoid detailed product shots here.
-- `split` — the image is cropped into its own panel and text gets a solid colour panel. Use when the image has no negative space, when a product photo must stay uncropped, or for a clean "catalogue" look.
+## Formats and safe areas
+| Format | Aspect generated | Final | Keep the subject in |
+|---|---|---|---|
+| `feed_portrait` | 4:5 | 1080×1350 | the middle 80% |
+| `feed_square` | 1:1 | 1080×1080 | the middle 80% |
+| `story` | 9:16 | 1080×1920 | the middle 60% vertically (top/bottom are covered by app UI) |
+| `fb_landscape` | 16:9 | 1200×628 (cropped from 16:9 → 1.91:1, a thin band is cut top & bottom) | the middle band |
 
-Always generate the image *for* the layout: tell the image model where the negative space must be ("subject in upper half, soft out-of-focus floor in the lower third").
+## Composition patterns
+- **Product hero** — the product large, sharp, centred or on a third; clean surface; soft shadow; brand-coloured background or a scene that tells the use.
+- **Lifestyle** — the product in use by a person or in its real setting (café table, gym, kitchen); product still clearly readable.
+- **Flat lay** — overhead arrangement of the product with props that suggest the story (ingredients, accessories).
+- **Event / opening** — the venue or atmosphere (lights, crowd, ribbon, balloons, confetti) with the product or brand colours dominant.
+- **Offer** — make abundance or value visible (stacked products, gift wrapping, bundle) instead of writing "-30%".
 
-## Typography
-- `bold` (Montserrat 900) — promotions, sport, events, sales, youth.
-- `modern` (Inter 800) — tech, services, corporate, apps.
-- `elegant` (Playfair) — beauty, luxury, restaurants, weddings, premium.
-- `playful` (Comfortaa) — kids, cafés, bakeries, pets, fun brands.
+## Logo
+- If a logo is attached, include it via `reference_image_ids` and ask for it **small, clean and unaltered**, e.g. "place the provided logo exactly as given, small, in the top-left corner on a calm area". Check the result: a warped or redrawn logo means regenerate (or leave the logo out rather than ship a broken one).
+- Never invent a logo when none is given.
 
-Headline ≤ 7 words (≤ 4 on 16:9). One idea. Numbers beat adjectives ("-30%", "10.20", "3 өдөр") — put them in the headline or tagline, not the body.
+## Colour and mood
+- Take the palette from the logo / brand / product packaging. State it in the prompt ("deep navy and warm gold palette").
+- Match mood to the business: premium → dark, moody, rim light; fresh/food → bright daylight; youth/sport → saturated, high contrast; family → warm, soft.
 
-## Colour
-- Palette = `background` (fallback behind image / split panel), `primary` (CTA button), `accent` (tagline pill + subheadline), `text`.
-- Take `primary`/`accent` from the brand or the dominant colours of the reference photo; keep `text` white on photos unless the image is very light.
-- Accent must contrast with the image area where the tagline sits. Never put yellow accent on a yellow image — change the accent, not the image.
+## Text
+Default: no words in the image. Only when the client explicitly asks for specific words (e.g. a price) put them in, short and exact, and verify spelling on the result. Cyrillic is often rendered poorly — if it comes out wrong, deliver without it.
 
-## Content slots
-- `tagline` — ≤ 3 words label: "ШИНЭ", "ХЯМДРАЛ", "НЭЭЛТ", "ЗӨВХӨН ӨНӨӨДӨР". May be empty.
-- `subheadline` — the offer or benefit in one line.
-- `body` — logistics only: date, time, place, price, phone. Max 2 short sentences. Empty is fine.
-- `cta` — imperative, 1–3 words: "Захиалах", "Бүртгүүлэх", "Дэлгэрэнгүй", "Ирээрэй".
-
-## Checklist before create_poster
-1. Does the image leave room where the text will sit? If not → regenerate or switch to `split`.
-2. Is the real product/logo intact (when a reference was given)?
-3. Is every concrete fact from the brief (date/price/place) somewhere on the poster?
-4. Caption: 1–3 sentences + CTA + 5–10 hashtags.
+## A matching set
+1. Generate the most important format first (usually `feed_portrait`).
+2. Review it. Then for each other format call `generate_image` with the same model, aspect of that format, and the first image (plus logo/product) as references: "same scene and style, recomposed for a vertical 9:16 story".
+3. `deliver_poster` each format with its own image.

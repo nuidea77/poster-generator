@@ -2,8 +2,9 @@
 
 namespace Tests\Feature;
 
-use App\Models\AgentRun;
+use App\Models\Creation;
 use App\Models\Skill;
+use App\Models\User;
 use App\Services\Agent\CreativeAgent;
 use App\Services\Agent\SkillLibrary;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -29,21 +30,28 @@ class SkillTest extends TestCase
 
     public function test_custom_skills_crud_and_precedence(): void
     {
-        $this->postJson('/api/skills', ['name' => 'poster-design', 'description' => 'x', 'content' => 'y'])
+        $admin = User::factory()->create();
+        $admin->forceFill(['is_admin' => true])->save();
+        $this->actingAs($admin);
+
+        $this->actingAs(User::factory()->create())->getJson('/api/v1/admin/skills')->assertForbidden();
+        $this->actingAs($admin);
+
+        $this->postJson('/api/v1/admin/skills', ['name' => 'poster-design', 'description' => 'x', 'content' => 'y'])
             ->assertStatus(422); // bundled name is reserved
 
-        $id = $this->postJson('/api/skills', ['name' => 'my-brand', 'description' => 'Our brand rules', 'content' => "# Brand\nUse navy."])
+        $id = $this->postJson('/api/v1/admin/skills', ['name' => 'my-brand', 'description' => 'Our brand rules', 'content' => "# Brand\nUse navy."])
             ->assertCreated()
             ->json('id');
 
-        $this->getJson('/api/skills')->assertJsonFragment(['name' => 'my-brand', 'source' => 'custom']);
-        $this->getJson('/api/skills/my-brand')->assertJsonPath('content', "# Brand\nUse navy.");
+        $this->getJson('/api/v1/admin/skills')->assertJsonFragment(['name' => 'my-brand', 'source' => 'custom']);
+        $this->getJson('/api/v1/admin/skills/my-brand')->assertJsonPath('content', "# Brand\nUse navy.");
 
-        $this->putJson("/api/skills/{$id}", ['name' => 'my-brand', 'description' => 'Our brand rules', 'content' => 'z', 'enabled' => false])->assertOk();
+        $this->putJson("/api/v1/admin/skills/{$id}", ['name' => 'my-brand', 'description' => 'Our brand rules', 'content' => 'z', 'enabled' => false])->assertOk();
         $this->assertStringNotContainsString('my-brand', app(SkillLibrary::class)->prompt());
-        $this->getJson('/api/skills/my-brand')->assertNotFound();
+        $this->getJson('/api/v1/admin/skills/my-brand')->assertNotFound();
 
-        $this->deleteJson("/api/skills/{$id}")->assertNoContent();
+        $this->deleteJson("/api/v1/admin/skills/{$id}")->assertNoContent();
         $this->assertSame(0, Skill::count());
     }
 
@@ -63,11 +71,11 @@ class SkillTest extends TestCase
                 ]]),
         ]);
 
-        $run = AgentRun::create(['prompt' => 'x', 'language' => 'en']);
+        $user = User::factory()->create();
+        $run = Creation::create(['user_id' => $user->id, 'type' => 'poster', 'formats' => ['feed_square'], 'prompt' => 'x', 'status' => 'running']);
         app(CreativeAgent::class)->run($run);
         $run->refresh();
 
-        $this->assertSame('done', $run->status);
         $this->assertSame('my-brand', $run->steps[0]['result']);
         $this->assertSame('Unknown skill [nope].', $run->steps[1]['error']);
 

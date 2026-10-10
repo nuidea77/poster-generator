@@ -1,11 +1,12 @@
-# Poster Generator
+# Poster Studio
 
-Laravel 13 + Vue 3 (SPA via Vite) + Tailwind 4. AI poster & reels generator using Claude (Anthropic), OpenAI and Gemini.
+Laravel 13 + Vue 3 SPA (vue-router, served by Laravel) + Tailwind 4. Subscription service that makes Instagram/Facebook posters and exactly-90-second reels. Requirements: `docs/SRS.md`.
 
-- AI providers live in `app/Services/AI/Providers`; register new ones in `AiManager` and `config/ai.php`.
-- Prompts and response normalization are in `app/Services/ContentGenerator.php`. Keep the JSON schema there in sync with `resources/js/lib/render.js` and the Vue editors.
-- Rendering (posters, reel frames) happens client-side on `<canvas>`; video export uses `MediaRecorder`, optional ffmpeg conversion in `VideoController`.
-- The creative agent (`app/Services/Agent/CreativeAgent.php`) calls Claude Fable with tools and a skill file (`resources/ai/creative-director.md`); it runs as a queued job and the UI polls `/api/agent-runs/{id}`. Fable rules: no `thinking` param, no forced `tool_choice`, effort via `output_config`, `fallbacks: "default"` with the `server-side-fallback-2026-07-01` beta header.
-- Skills: bundled ones are `resources/ai/skills/<name>/SKILL.md` (frontmatter `name`, `description`); add a folder and it is listed automatically. Custom skills are DB rows (`skills` table). `SkillLibrary` builds the index for the system prompt and serves `load_skill`.
-- Tests: `php artisan test` (AI calls are faked with `Http::fake`). Build: `npm run build`.
-- UI copy is in Mongolian.
+- Flow: `POST /api/v1/creations` → `RunCreation` job → `CreativeAgent` (Claude Fable + tools) → posters cropped by `PosterFormatter` / reel assembled by `ReelAssembler` (ffmpeg) → `outputs`.
+- Fable picks the image/video provider per call. Never expose provider/model names to customers: customer responses go through `CreationResource`; internals (`assets`, `steps`, `summary`, `error_detail`) only via `AdminCreationResource`. A feature test checks for leaks.
+- No text is overlaid on posters; the generated image is the deliverable.
+- Fable API rules: no `thinking` param, no forced `tool_choice`, effort via `output_config`, `fallbacks: "default"` with the `server-side-fallback-2026-07-01` beta header. Pass assistant content (incl. thinking blocks) back unchanged.
+- Skills: bundled in `resources/ai/skills/<name>/SKILL.md` (frontmatter `name`, `description`), custom ones in the `skills` table (admin). `SkillLibrary` builds the index and serves `load_skill`.
+- Billing: QPay v2 (`QPayClient`); never trust callback payloads, always verify with `payment/check`. `BillingService::markPaid` is idempotent and extends from the current end date. `QPAY_FAKE=true` for local only.
+- API is under `/api/v1` with the session guard + CSRF (`X-XSRF-TOKEN` from cookie). Middleware aliases: `subscribed`, `admin`.
+- Tests: `php artisan test` (all external HTTP faked with `Http::fake`). Build: `npm run build`. UI copy is Mongolian.

@@ -3,12 +3,10 @@
 namespace App\Services\AI\Providers;
 
 use App\Services\AI\Contracts\ImageProvider;
-use App\Services\AI\Contracts\TextProvider;
 use App\Services\AI\Exceptions\AiException;
-use App\Services\AI\JsonExtractor;
 use Illuminate\Support\Facades\Http;
 
-class OpenAIProvider implements ImageProvider, TextProvider
+class OpenAIProvider implements ImageProvider
 {
     private const SIZES = [
         '1:1' => '1024x1024',
@@ -19,25 +17,7 @@ class OpenAIProvider implements ImageProvider, TextProvider
 
     public function __construct(private array $config, private int $timeout) {}
 
-    public function generateJson(string $system, string $prompt): array
-    {
-        $response = $this->client()->post('/chat/completions', [
-            'model' => $this->config['text_model'],
-            'response_format' => ['type' => 'json_object'],
-            'messages' => [
-                ['role' => 'system', 'content' => $system."\n\nRespond with a single valid JSON object only."],
-                ['role' => 'user', 'content' => $prompt],
-            ],
-        ]);
-
-        if ($response->failed()) {
-            throw new AiException('OpenAI: '.($response->json('error.message') ?? $response->body()));
-        }
-
-        return JsonExtractor::decode((string) $response->json('choices.0.message.content'));
-    }
-
-    public function generateImage(string $prompt, string $aspect, array $references = []): ?array
+    public function generateImage(string $prompt, string $aspect, array $references = []): array
     {
         $params = [
             'model' => $this->config['image_model'],

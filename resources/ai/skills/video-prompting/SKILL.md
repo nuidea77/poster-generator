@@ -22,8 +22,8 @@ Example: "A barista pours steamed milk into a latte, close-up, slow dolly-in on 
 Steam rising, liquid pouring, fabric moving in wind, hair in slow motion, sparks, confetti falling, lights turning on, door opening, hands unboxing, neon flicker, snow/rain, bokeh drifting.
 
 ## Duration
-- 5 s is the default and enough for one beat (hook, reveal, CTA background).
-- 10 s only for a continuous action the brief asks for (walkthrough, full pour).
+- 5 s: one quick beat.
+- 10 s for most reel beats (a 90 s reel = 9 × 10 s); 5 s for quick cuts.
 
 ## Image-to-video
 - Generate and review the still first (product fidelity!), then pass it as `first_frame_image_id`. The clip's aspect follows the frame, so make the still 9:16 for reels.
@@ -31,7 +31,7 @@ Steam rising, liquid pouring, fabric moving in wind, hair in slow motion, sparks
 - This is the safest way to get a real product moving — Seedance from text alone will invent a product.
 
 ## Limits
-- No on-screen text, logos or readable labels — they will be garbled; text is overlaid later.
+- No on-screen text, logos or readable labels from text prompts — they come out garbled. Show a logo only by animating a still that already contains it.
 - Faces of real people from references are not reliable; use product/venue shots instead.
-- Generation takes 1–4 minutes; batch independent clips in one turn when you need more than one.
-- Aspect: `9:16` for reels/TikTok, `16:9` for YouTube/Facebook, `1:1` for feed.
+- Generation takes 1–4 minutes per clip; always request all clips of a reel in a single `generate_videos` call so they render in parallel.
+- Reels are 9:16. Still frames used as `first_frame_image_id` must be 9:16 too, or the clip is cropped.

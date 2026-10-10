@@ -1,0 +1,299 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Jobs\RunCreation;
+use App\Models\Creation;
+use App\Models\Plan;
+use App\Models\Subscription;
+use App\Models\User;
+use Database\Seeders\PlanSeeder;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\Request;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Process;
+use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Storage;
+use Tests\TestCase;
+
+class CreationTest extends TestCase
+{
+    use RefreshDatabase;
+
+    private User $user;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        Storage::fake('public');
+        $this->seed(PlanSeeder::class);
+        config([
+            'ai.providers.anthropic.key' => 'k-anthropic',
+            'ai.providers.anthropic.base_url' => 'https://api.anthropic.com',
+            'ai.providers.openai.key' => 'k-openai',
+            'ai.providers.gemini.key' => 'k-gemini',
+            'ai.providers.seedance.key' => 'k-seedance',
+            'ai.providers.seedance.poll_interval' => 0,
+        ]);
+
+        $this->user = User::factory()->create();
+        Subscription::create(['user_id' => $this->user->id, 'plan_id' => Plan::first()->id, 'starts_at' => now(), 'ends_at' => now()->addMonth()]);
+    }
+
+    private static function png(int $w = 64, int $h = 64): string
+    {
+        $img = imagecreatetruecolor($w, $h);
+        imagefill($img, 0, 0, imagecolorallocate($img, 200, 80, 20));
+        ob_start();
+        imagepng($img);
+
+        return ob_get_clean();
+    }
+
+    private function turn(array $calls, string $stop = 'tool_use'): array
+    {
+        $content = [['type' => 'thinking', 'thinking' => '', 'signature' => 'sig']];
+        foreach ($calls as $i => [$name, $input]) {
+            $content[] = ['type' => 'tool_use', 'id' => "toolu_{$i}_{$name}", 'name' => $name, 'input' => $input];
+        }
+
+        return ['model' => 'claude-fable-5-1', 'stop_reason' => $stop, 'content' => $content, 'usage' => ['input_tokens' => 100, 'output_tokens' => 20]];
+    }
+
+    public function test_requires_subscription(): void
+    {
+        $other = User::factory()->create();
+
+        $this->actingAs($other)->postJson('/api/v1/creations', ['type' => 'poster', 'formats' => ['feed_square'], 'prompt' => 'Кофены постер'])
+            ->assertStatus(402)
+            ->assertJsonPath('code', 'subscription_required');
+    }
+
+    public function test_validation_and_queueing_with_uploads(): void
+    {
+        Queue::fake();
+
+        $this->actingAs($this->user)->postJson('/api/v1/creations', ['type' => 'poster', 'prompt' => 'Кофены постер'])
+            ->assertStatus(422)->assertJsonValidationErrors('formats');
+
+        $id = $this->actingAs($this->user)->post('/api/v1/creations', [
+            'type' => 'poster',
+            'formats' => ['feed_portrait', 'story'],
+            'prompt' => 'Шинэ кофе шопын нээлт',
+            'product' => ['name' => 'Латте', 'price' => '8,500₮'],
+            'logo' => UploadedFile::fake()->image('logo.png', 200, 200),
+            'remember_logo' => '1',
+            'images' => [UploadedFile::fake()->image('p1.jpg', 400, 400)],
+        ], ['Accept' => 'application/json'])
+            ->assertStatus(202)
+            ->assertJsonPath('data.status', 'queued')
+            ->json('data.id');
+
+        Queue::assertPushed(RunCreation::class);
+        $creation = Creation::where('public_id', $id)->first();
+        $this->assertSame(['logo', 'product_1'], array_column($creation->inputs, 'id'));
+        $this->assertNotNull($this->user->fresh()->logo_path);
+    }
+
+    public function test_fair_use_limits_active_jobs(): void
+    {
+        Queue::fake();
+        config(['creations.max_active_per_user' => 1]);
+        Creation::create(['user_id' => $this->user->id, 'type' => 'poster', 'formats' => ['feed_square'], 'prompt' => 'x', 'status' => 'running']);
+
+        $this->actingAs($this->user)->postJson('/api/v1/creations', ['type' => 'reel', 'prompt' => 'Фитнес клубын reels'])
+            ->assertStatus(429);
+    }
+
+    public function test_poster_pipeline_delivers_exact_sizes_and_hides_models(): void
+    {
+        Http::fake([
+            'api.anthropic.com/*' => Http::sequence()
+                ->push($this->turn([
+                    ['load_skill', ['name' => 'poster-design']],
+                    ['generate_image', ['provider' => 'gemini', 'prompt' => 'latte hero shot', 'aspect' => '4:5', 'reference_image_ids' => ['logo'], 'purpose' => 'feed']],
+                ]))
+                ->push($this->turn([
+                    ['generate_image', ['provider' => 'openai', 'prompt' => 'same, vertical', 'aspect' => '9:16', 'reference_image_ids' => ['img_1'], 'purpose' => 'story']],
+                ]))
+                ->push($this->turn([
+                    ['deliver_poster', ['format' => 'feed_portrait', 'image_id' => 'img_1']],
+                    ['deliver_poster', ['format' => 'story', 'image_id' => 'img_2']],
+                    ['deliver_poster', ['format' => 'feed_square', 'image_id' => 'img_1']], // not requested → error back to Claude
+                ]))
+                ->push($this->turn([['finish', ['summary' => 'Gemini for the logo, GPT for the story.']]])),
+            'generativelanguage.googleapis.com/*' => Http::response(['candidates' => [['content' => ['parts' => [['inlineData' => ['mimeType' => 'image/png', 'data' => base64_encode(self::png(800, 1000))]]]]]]]),
+            'api.openai.com/v1/images/edits' => Http::response(['data' => [['b64_json' => base64_encode(self::png(1024, 1536))]]]),
+        ]);
+
+        $creation = Creation::create([
+            'user_id' => $this->user->id, 'type' => 'poster', 'formats' => ['feed_portrait', 'story'],
+            'prompt' => 'Кофе шопын нээлт', 'status' => 'queued',
+        ]);
+        Storage::disk('public')->put('in/logo.png', self::png());
+        $creation->update(['inputs' => [['id' => 'logo', 'kind' => 'image', 'role' => 'logo', 'source' => 'upload', 'path' => 'in/logo.png']]]);
+
+        RunCreation::dispatchSync($creation);
+        $creation->refresh();
+
+        $this->assertSame('done', $creation->status, (string) $creation->error_detail);
+        $this->assertSame(['feed_portrait', 'story'], array_column($creation->outputs, 'format'));
+        [$w, $h] = getimagesizefromstring(Storage::disk('public')->get($creation->outputs[0]['path']));
+        $this->assertSame([1080, 1350], [$w, $h]);
+        [$w, $h] = getimagesizefromstring(Storage::disk('public')->get($creation->outputs[1]['path']));
+        $this->assertSame([1080, 1920], [$w, $h]);
+        $this->assertStringContainsString('was not requested', collect($creation->steps)->firstWhere('input.format', 'feed_square')['error']);
+        $this->assertSame(400, $creation->input_tokens);
+
+        // Customer API never mentions models or agent internals.
+        $json = $this->actingAs($this->user)->getJson("/api/v1/creations/{$creation->public_id}")
+            ->assertOk()
+            ->assertJsonPath('data.progress', 100)
+            ->assertJsonCount(2, 'data.outputs')
+            ->getContent();
+        foreach (['gemini', 'openai', 'seedance', 'claude', 'fable', 'provider', 'steps', 'summary'] as $word) {
+            $this->assertStringNotContainsStringIgnoringCase($word, $json);
+        }
+
+        // Claude request shape.
+        Http::assertSent(function (Request $r) {
+            if (! str_contains($r->url(), 'anthropic.com')) {
+                return false;
+            }
+            $tools = collect($r['tools'])->pluck('name')->all();
+
+            return $r['model'] === 'claude-fable-5-1'
+                && ! array_key_exists('thinking', $r->data())
+                && ! array_key_exists('tool_choice', $r->data())
+                && $r['fallbacks'] === 'default'
+                && $r->hasHeader('anthropic-beta', 'server-side-fallback-2026-07-01')
+                && $tools === ['load_skill', 'generate_image', 'deliver_poster', 'finish']
+                && collect($r['tools'])->firstWhere('name', 'deliver_poster')['input_schema']['properties']['format']['enum'] === ['feed_portrait', 'story']
+                && str_contains($r['system'][0]['text'], '`poster-design`')
+                && collect($r['messages'][0]['content'])->contains(fn ($b) => $b['type'] === 'image');
+        });
+    }
+
+    public function test_agent_without_deliverables_fails_with_generic_message(): void
+    {
+        Http::fake(['api.anthropic.com/*' => Http::response($this->turn([['finish', ['summary' => 'oops']]]))]);
+
+        $creation = Creation::create(['user_id' => $this->user->id, 'type' => 'poster', 'formats' => ['feed_square'], 'prompt' => 'x', 'status' => 'queued']);
+        RunCreation::dispatchSync($creation);
+
+        $this->assertSame('failed', $creation->fresh()->status);
+        $this->actingAs($this->user)->getJson("/api/v1/creations/{$creation->public_id}")
+            ->assertJsonPath('data.stage', 'failed')
+            ->assertJsonPath('data.error', 'Бүтээх явцад алдаа гарлаа. Дахин оролдоно уу.');
+    }
+
+    public function test_reel_pipeline_generates_clips_in_parallel_and_assembles_exact_duration(): void
+    {
+        if (! Process::run(['ffmpeg', '-version'])->successful()) {
+            $this->markTestSkipped('ffmpeg not installed');
+        }
+
+        // Short reel for the test; the production value is 90 s.
+        config(['creations.reel.duration' => 4]);
+
+        $clip = tempnam(sys_get_temp_dir(), 'clip').'.mp4';
+        Process::run(['ffmpeg', '-y', '-f', 'lavfi', '-i', 'testsrc=size=320x568:rate=24', '-t', '1.5', '-pix_fmt', 'yuv420p', $clip])->throw();
+        $clipBytes = file_get_contents($clip);
+
+        Http::fake([
+            'api.anthropic.com/*' => Http::sequence()
+                ->push($this->turn([['generate_image', ['provider' => 'gemini', 'prompt' => 'product still 9:16', 'aspect' => '9:16', 'reference_image_ids' => ['product_1'], 'purpose' => 'hero frame']]]))
+                ->push($this->turn([['generate_videos', ['clips' => [
+                    ['provider' => 'seedance', 'prompt' => 'slow orbit', 'duration' => 5, 'first_frame_image_id' => 'img_1', 'purpose' => 'hero'],
+                    ['provider' => 'seedance', 'prompt' => 'city at night', 'duration' => 5, 'first_frame_image_id' => '', 'purpose' => 'world'],
+                ]]]]))
+                ->push($this->turn([['deliver_reel', ['clip_ids' => ['vid_2']]]])) // 5 s ≥ 4 s
+                ->push($this->turn([['finish', ['summary' => 'ok']]])),
+            'generativelanguage.googleapis.com/*' => Http::response(['candidates' => [['content' => ['parts' => [['inlineData' => ['mimeType' => 'image/png', 'data' => base64_encode(self::png(90, 160))]]]]]]]),
+            'ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks' => Http::sequence()->push(['id' => 't1'])->push(['id' => 't2']),
+            'ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks/t1' => Http::sequence()
+                ->push(['status' => 'running'])
+                ->push(['status' => 'succeeded', 'content' => ['video_url' => 'https://cdn.test/t1.mp4']]),
+            'ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks/t2' => Http::response(['status' => 'succeeded', 'content' => ['video_url' => 'https://cdn.test/t2.mp4']]),
+            'cdn.test/*' => Http::response($clipBytes),
+        ]);
+
+        $creation = Creation::create(['user_id' => $this->user->id, 'type' => 'reel', 'prompt' => 'Бүтээгдэхүүний reels', 'status' => 'queued']);
+        Storage::disk('public')->put('in/p.png', self::png());
+        $creation->update(['inputs' => [['id' => 'product_1', 'kind' => 'image', 'role' => 'product', 'source' => 'upload', 'path' => 'in/p.png']]]);
+
+        RunCreation::dispatchSync($creation);
+        $creation->refresh();
+
+        $this->assertSame('done', $creation->status, (string) $creation->error_detail);
+        $this->assertSame(['vid_2'], $creation->reel_clips);
+        $this->assertSame('video', $creation->outputs[0]['kind']);
+
+        $out = Storage::disk('public')->path($creation->outputs[0]['path']);
+        $probe = Process::run(['ffprobe', '-v', 'error', '-show_entries', 'stream=codec_type,codec_name,width,height:format=duration', '-of', 'json', $out])->throw();
+        $info = json_decode($probe->output(), true);
+        $video = collect($info['streams'])->firstWhere('codec_type', 'video');
+        $this->assertSame(['h264', 1080, 1920], [$video['codec_name'], $video['width'], $video['height']]);
+        $this->assertNotNull(collect($info['streams'])->firstWhere('codec_type', 'audio'));
+        $this->assertEqualsWithDelta(4.0, (float) $info['format']['duration'], 0.15);
+
+        // Both clips were submitted before polling; the first one used the still as first frame.
+        $posts = collect(Http::recorded())->filter(fn ($p) => $p[0]->method() === 'POST' && str_ends_with($p[0]->url(), '/contents/generations/tasks'));
+        $this->assertCount(2, $posts);
+        $this->assertSame('first_frame', $posts->first()[0]['content'][1]['role']);
+        $this->assertStringContainsString('--ratio 9:16', $posts->last()[0]['content'][0]['text']);
+
+        @unlink($clip);
+    }
+
+    public function test_reel_rejects_too_short_delivery(): void
+    {
+        Http::fake([
+            'api.anthropic.com/*' => Http::sequence()
+                ->push($this->turn([['deliver_reel', ['clip_ids' => []]]]))
+                ->push($this->turn([['finish', ['summary' => 'x']]])),
+        ]);
+
+        $creation = Creation::create(['user_id' => $this->user->id, 'type' => 'reel', 'prompt' => 'x', 'status' => 'queued']);
+        RunCreation::dispatchSync($creation);
+        $creation->refresh();
+
+        $this->assertStringContainsString('at least 90 s', $creation->steps[0]['error']);
+        $this->assertSame('failed', $creation->status);
+    }
+
+    public function test_owner_only_access_list_retry_and_delete(): void
+    {
+        Queue::fake();
+        $creation = Creation::create(['user_id' => $this->user->id, 'type' => 'poster', 'formats' => ['feed_square'], 'prompt' => 'Хуучин бриф', 'status' => 'done']);
+
+        $this->actingAs(User::factory()->create())->getJson("/api/v1/creations/{$creation->public_id}")->assertNotFound();
+        $this->actingAs($this->user)->getJson('/api/v1/creations')->assertJsonPath('data.0.id', $creation->public_id);
+
+        $newId = $this->actingAs($this->user)->postJson("/api/v1/creations/{$creation->public_id}/retry")->assertStatus(202)->json('data.id');
+        $this->assertNotSame($creation->public_id, $newId);
+        $this->assertSame('Хуучин бриф', Creation::where('public_id', $newId)->value('prompt'));
+
+        $this->actingAs($this->user)->deleteJson("/api/v1/creations/{$creation->public_id}")->assertNoContent();
+    }
+
+    public function test_admin_sees_internal_log(): void
+    {
+        $creation = Creation::create([
+            'user_id' => $this->user->id, 'type' => 'poster', 'formats' => ['feed_square'], 'prompt' => 'x', 'status' => 'done',
+            'assets' => [['id' => 'img_1', 'kind' => 'image', 'source' => 'generated', 'provider' => 'gemini', 'path' => 'a.png', 'prompt' => 'p']],
+            'steps' => [['type' => 'tool', 'name' => 'generate_image']],
+        ]);
+
+        $this->actingAs($this->user)->getJson('/api/v1/admin/creations')->assertForbidden();
+
+        $admin = User::factory()->create();
+        $admin->forceFill(['is_admin' => true])->save();
+        $this->actingAs($admin)->getJson('/api/v1/admin/creations')
+            ->assertOk()
+            ->assertJsonPath('data.0.usage.images.gemini', 1)
+            ->assertJsonPath('data.0.steps.0.name', 'generate_image');
+    }
+}

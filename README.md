@@ -1,120 +1,106 @@
-# AI Poster & Reels Generator
+# Poster Studio — AI постер ба 1:30 reels
 
-Laravel 13 + Vue 3 + Tailwind CSS 4 дээр бүтээсэн, **Claude Fable**, **OpenAI GPT** болон **Google Gemini** API ашиглан
-сошиал медиа **постер** болон **Reels/TikTok видео** үүсгэдэг AI хэрэгсэл.
+Instagram, Facebook-д тавих **постер** болон **90 секундын reels видео**-г захиалгаар (subscription) бүтээдэг вэб үйлчилгээ.
+Laravel 13 + Vue 3 + Tailwind 4.
 
-## Боломжууд
+Шаардлагын бүрэн тодорхойлолт: [`docs/SRS.md`](docs/SRS.md)
 
-**🤖 Агент (Claude Fable)**
-- Даалгавраа бичээд зургаа (бүтээгдэхүүн, лого, орчин…) хавсаргана.
-- Claude Fable 5.1 даалгавар, зургийг уншаад **аль загварыг ашиглахаа өөрөө шийднэ**:
-  Gemini (reference зураг хадгалах, засах), GPT image (фото реалистик), Seedance (видео клип).
-- Зураг/видеогоо үүсгэж, үр дүнг нь шалгаад (vision) постер болон reels-ийг бүрэн бэлдээд тайлан бичнэ.
-- Алхам бүр нь UI дээр шууд харагдана; гарсан постер/reels засварлагчид нээгдэнэ.
-- Ажилладаг зарчим: `resources/ai/creative-director.md` (system prompt) + tool use (`load_skill`, `generate_image`, `generate_video`, `create_poster`, `create_reel`, `finish`).
-- **Skills** — Anthropic Agent Skills форматтай (`SKILL.md` + `name`/`description` frontmatter) заавруудын сан. Агент эхлээд зөвхөн нэр/тайлбарыг нь хараад, хэрэгтэйгээ `load_skill`-ээр бүтнээр нь уншина (progressive disclosure). Дагалдах skill-үүд: `poster-design`, `reels-storyboard`, `product-photography`, `brand-identity`, `mongolian-copywriting`, `video-prompting`. UI-аас өөрийн skill (брэндийн дүрэм, стиль) нэмж/засаж/унтраана — custom skill ерөнхий зааврыг давамгайлна.
+## Ажиллах зарчим
 
-**Постер**
-- Санаагаа бичихэд AI гарчиг, дэд гарчиг, тайлбар, CTA, өнгөний палитр, фонт, зохиомжийг гаргана
-- OpenAI `gpt-image-1` эсвэл Gemini (`gemini-2.5-flash-image`) арын зураг зурна
-- 4:5, 1:1, 9:16, 16:9 хэмжээ; 4 төрлийн зохиомж (доор / голд / дээр / хуваасан)
-- Бүх текст, өнгө, фонтыг шууд засна, өөрийн зургийг оруулж болно
-- 1080px өндөр нягтралтай PNG татна; пост бичвэр + hashtag-ийг хуулна
+1. Хэрэглэгч prompt бичиж, **лого** болон **бүтээгдэхүүний зураг, мэдээлэл** оруулна. Постерын хувьд Instagram/Facebook хэмжээгээ сонгоно.
+2. **Claude Fable 5.1** брифийг **skills**-тэй хамт боловсруулна. Ажил бүрт аль AI-г дуудахыг **өөрөө шийднэ**:
+   - **Gemini**: бодит бүтээгдэхүүн, логог хэвээр хадгалж засах (reference)
+   - **GPT Image**: фото реалистик, бүтээгдэхүүний зурагт хамаарахгүй дүрслэл
+   - **Seedance**: видео клипүүд (бүгдийг зэрэг илгээнэ)
+3. Fable үүсгэсэн зураг бүрийг (vision-оор) шалгаж, муу бол дахин үүсгэнэ.
+4. Үр дүн:
+   - **Постер**: сонгосон хэмжээ бүрт яг пикселийн хэмжээтэй JPEG. Дээр нь текст давхарлахгүй.
+   - **Reels**: клипүүдийг сервер дээр ffmpeg-ээр угсарч **яг 90.0 секунд**, 1080×1920, H.264 + AAC MP4 болгоно.
+5. Вэб дээр харуулж, татах товч гаргана. **Хэрэглэгч аль модель ашигласныг хаана ч харахгүй.** Модель, токен, алхмын лог зөвхөн админд харагдана.
 
-**Reels видео**
-- AI сценари бичнэ: hook, үзэгдэл тус бүрийн текст, voiceover, хөдөлгөөн (zoom / pan)
-- Үзэгдэл бүрт 9:16 зураг үүсгэнэ (зэрэг 3-аар)
-- Хөдөлгөөнт текст, шилжилт, story маягийн progress bar бүхий preview
-- Үзэгдэл нэмэх/устгах/эрэмбэлэх, хугацаа засах, өөрийн хөгжим нэмэх
-- 1080×1920 видео татна (сервер дээр ffmpeg байвал Instagram-д тохирох H.264 MP4 болгоно)
-
-**Бусад**
-- Монгол (кирилл) болон англи хэл
-- Бүх ажил хадгалагдаж, “Түүх” хэсгээс дахин нээж засна
-- API түлхүүргүй үед **Demo** горимоор UI-г туршиж болно
-
-## UI
-
-higgsfield.ai-ийн загвараар: дээд цэс (`Top`/`New` badge), #0b0b0b дэвсгэр, Inter + Space Grotesk uppercase гарчиг,
-лайм (#d1fe17) accent, хуудас бүрийн доор тогтмол prompt composer (chip цэсүүд: стиль, хэл, текст/зураг модель, хэмжээ)
-ба гэрэлтдэг GENERATE товч. Галерей masonry grid, Skills feature-card хэлбэртэй.
+Захиалга: **QPay** нэхэмжлэх (QR + банкны апп), callback ирэхэд `payment/check`-ээр баталгаажуулж багцыг идэвхжүүлнэ/сунгана. Багц хязгааргүй. Зардлыг fair-use хамгаална: зэрэг ажиллах бүтээл ≤2, өдрийн хязгаарыг тохиргоогоор асааж болно.
 
 ## Суулгах
 
-Шаардлага: PHP 8.3+ (GD өргөтгөлтэй), Composer, Node 20+, (сонголтоор) ffmpeg.
+Шаардлага: PHP 8.3+ (GD), Composer, Node 20+, **ffmpeg + ffprobe** (reels-д заавал).
 
 ```bash
 git clone https://github.com/nuidea77/poster-generator.git
 cd poster-generator
-composer setup          # install, .env, key, migrate, storage:link, npm build
+composer setup        # install, .env, key, migrate, seed (багцууд), storage:link, build
 ```
 
-`.env` файлд API түлхүүрээ оруулна (дор хаяж нэг нь хангалттай):
+`.env`:
 
 ```dotenv
-ANTHROPIC_API_KEY=sk-ant-...     # Claude Fable — текст
-OPENAI_API_KEY=sk-...            # GPT — текст + зураг
-GEMINI_API_KEY=...               # Gemini — текст + зураг
-SEEDANCE_API_KEY=...             # Seedance (BytePlus ModelArk) — видео, агентад
+ANTHROPIC_API_KEY=...          # заавал. Claude Fable бүх ажлыг удирдана
+GEMINI_API_KEY=...             # зураг (дор хаяж нэг зураг модель)
+OPENAI_API_KEY=...             # зураг
+SEEDANCE_API_KEY=...           # видео (reels-д заавал), BytePlus ModelArk
 
-AI_DEFAULT_TEXT_PROVIDER=anthropic   # anthropic | openai | gemini | demo
-AI_DEFAULT_IMAGE_PROVIDER=openai     # openai | gemini | demo
+QPAY_CLIENT_ID=...
+QPAY_CLIENT_SECRET=...
+QPAY_INVOICE_CODE=...
+QPAY_BASE_URL=https://merchant.qpay.mn     # тест: https://merchant-sandbox.qpay.mn
+QPAY_CALLBACK_BASE=https://your-domain.mn  # QPay хүрч чадах нийтийн хаяг
+
+DB_QUEUE_RETRY_AFTER=3700      # job timeout (3600)-аас их
 ```
 
-Моделиудыг `ANTHROPIC_MODEL`, `OPENAI_MODEL`, `OPENAI_IMAGE_MODEL`, `GEMINI_MODEL`, `GEMINI_IMAGE_MODEL`, `SEEDANCE_MODEL`-оор солино.
-Агентын модель/гүн: `AI_AGENT_MODEL` (default `claude-fable-5-1`), `AI_AGENT_EFFORT` (`low`…`max`).
+Local дээр QPay-гүй туршихдаа `QPAY_FAKE=true` тавина. Төлбөрийн цонхонд "Туршилт: төлсөнд тооцох" товч гарна. Production-д хэзээ ч асаахгүй.
+
+Админ эрх олгох (эхлээд вэбээр бүртгүүлнэ):
+
+```bash
+php artisan app:make-admin you@example.com
+```
 
 ## Ажиллуулах
 
 ```bash
-composer serve     # http://127.0.0.1:8000 — вэб сервер + queue worker (агент queue дээр ажилладаг)
-npm run dev        # фронтенд засаж байгаа бол (өөр терминалд)
+composer serve   # http://127.0.0.1:8000 — вэб + queue worker (--timeout=3600)
 ```
 
-Агентын даалгавар нэг минутаас хэдэн минут үргэлжилдэг тул `database` queue дээр ажиллана.
-`composer serve` нь worker-ийг хамт асаана; өөрөөр асаах бол `php artisan queue:work --timeout=1800`.
-
-> `php artisan serve` нь PHP-ийн default 2MB upload хязгаартай тул видеог MP4 болгох үед
-> алдаа өгч WebM-ээр татна. Production дээр php-fpm-д `public/.user.ini` (200MB) уншигдана.
+Production:
+- `php artisan queue:work --timeout=3600 --tries=1` (Supervisor). Reels нэг job-д 15–25 минут болно.
+- `php artisan schedule:run` cron-оор минут бүр. Гацсан бүтээл, хугацаа дууссан нэхэмжлэхийг цэвэрлэнэ.
+- php-fpm: `public/.user.ini` upload 200MB.
 
 ## Бүтэц
 
 ```
-app/Services/AI/
-  AiManager.php                 провайдер сонгох, тохиргоо
-  Providers/AnthropicProvider   Claude Messages API (текст)
-  Providers/OpenAIProvider      Chat Completions + Images API
-  Providers/GeminiProvider      generateContent (текст + зураг)
-  Providers/SeedanceProvider    BytePlus ModelArk видео task (үүсгэх + poll)
-  Providers/DemoProvider        API-гүй туршилтын горим
-app/Services/Agent/CreativeAgent  Claude Fable tool-use loop (зураг/видео сонгох, постер/reels бүтээх)
-app/Jobs/RunCreativeAgent       агентыг queue дээр ажиллуулах
-app/Services/Agent/SkillLibrary   дагалдах (resources/ai/skills/*/SKILL.md) + custom (DB) skill-үүд
-resources/ai/creative-director.md агентын system prompt
-resources/ai/skills/<name>/SKILL.md дагалдах skill-үүд (Agent Skills формат)
-app/Services/ContentGenerator   постер/reels prompt, JSON-ийг цэвэрлэх, зураг хадгалах
-app/Http/Controllers/Api/       generate, images, uploads, generations CRUD, videos/convert
-resources/js/
-  lib/render.js                 canvas дээр постер, reels frame зурах
-  components/PosterStudio.vue   постер засварлагч
-  components/ReelStudio.vue     reels засварлагч + MediaRecorder экспорт
+app/Services/Agent/CreativeAgent.php   Claude Fable tool-use loop: load_skill, generate_image,
+                                       generate_videos (зэрэг), deliver_poster, deliver_reel, finish
+app/Services/Agent/SkillLibrary.php    skills: resources/ai/skills/*/SKILL.md + admin-ийн custom (DB)
+resources/ai/creative-director.md      system prompt (модель сонгох дүрэм)
+app/Services/AI/Providers/             OpenAI, Gemini (зураг), Seedance (видео: submit + poll)
+app/Services/Media/PosterFormatter.php яг пикселийн хэмжээгээр crop
+app/Services/Media/ReelAssembler.php   ffmpeg: normalize → concat → pad/trim 90 сек → AAC
+app/Jobs/RunCreation.php               queue job: агент → угсралт → done/failed
+app/Services/Billing/                  QPayClient (v2), BillingService (invoice, check, сунгалт)
+app/Http/Resources/CreationResource    хэрэглэгчид харагдах (модельгүй)
+app/Http/Resources/AdminCreationResource  админд: алхам, модель, токен, видео сек
+config/creations.php                   постерын хэмжээ, reels тохиргоо, fair-use
+config/qpay.php, config/ai.php
+resources/js/pages/                    Home, Create, Creation, Library, Pricing, Account, admin/*
 ```
 
-## API
+## API (v1)
 
-| Method | Path | Тайлбар |
-| --- | --- | --- |
-| GET | `/api/config` | Провайдерууд (түлхүүргүйгээр) |
-| POST | `/api/generate/poster` | `prompt, language, style, format, text_provider, image_provider` |
-| POST | `/api/generate/reel` | `prompt, language, style, duration, scenes, text_provider, image_provider` |
-| POST | `/api/images` | `prompt, aspect, provider` → `{ url }` |
-| POST | `/api/uploads` | Өөрийн зураг |
-| POST | `/api/videos/convert` | WebM → H.264 MP4 (ffmpeg) |
-| GET/PUT/DELETE | `/api/generations/{id}` | Түүх |
-| POST | `/api/agent-runs` | `prompt, language, images[], notes[]` → 202, дараа нь poll |
-| GET | `/api/agent-runs/{id}` | Агентын явц: `status, steps, assets, outputs, summary` |
-| GET/POST | `/api/skills`, `/api/skills/{name}` | Skill-ийн жагсаалт, агуулга, custom skill нэмэх |
-| PUT/DELETE | `/api/skills/{id}` | Custom skill засах / устгах |
+| Method | Path | Эрх |
+|---|---|---|
+| POST | `/api/v1/auth/register`, `/auth/login`, `/auth/logout` | |
+| GET | `/api/v1/me`, `/api/v1/meta` | |
+| POST | `/api/v1/me/brand` | auth |
+| POST | `/api/v1/payments` → QR | auth |
+| GET | `/api/v1/payments/{id}` | эзэн |
+| GET/POST | `/api/v1/payments/qpay/callback/{token}` | QPay |
+| GET/POST | `/api/v1/creations` | auth / subscribed |
+| GET/DELETE | `/api/v1/creations/{id}` | эзэн |
+| POST | `/api/v1/creations/{id}/retry` | subscribed |
+| GET | `/api/v1/admin/creations` | admin |
+| GET/POST/PUT | `/api/v1/admin/plans` | admin |
+| CRUD | `/api/v1/admin/skills` | admin |
 
 ## Тест
 
@@ -122,4 +108,4 @@ resources/js/
 composer test
 ```
 
-AI API-уудыг `Http::fake()`-ээр дуурайлгаж шалгадаг тул түлхүүр шаардлагагүй.
+Claude, Gemini, OpenAI, Seedance, QPay-г `Http::fake()`-ээр дуурайлгана. Reels-ийн тест бодит ffmpeg-ээр угсралтыг шалгана (ffmpeg байхгүй бол алгасна).

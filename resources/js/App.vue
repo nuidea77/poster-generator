@@ -1,92 +1,82 @@
 <script setup>
-import { onMounted, ref } from 'vue';
-import { api } from './lib/api';
+import { computed, ref, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { logout, session } from './lib/session';
 import Icon from './components/Icon.vue';
-import AgentStudio from './components/AgentStudio.vue';
-import PosterStudio from './components/PosterStudio.vue';
-import ReelStudio from './components/ReelStudio.vue';
-import HistoryList from './components/HistoryList.vue';
-import SkillsPanel from './components/SkillsPanel.vue';
 
-const nav = [
-    { id: 'agent', label: 'Агент', badge: 'Top' },
-    { id: 'poster', label: 'Постер' },
-    { id: 'reel', label: 'Reels', badge: 'New' },
-    { id: 'history', label: 'Галерей' },
-    { id: 'skills', label: 'Skills' },
-];
+const route = useRoute();
+const router = useRouter();
+const menu = ref(false);
 
-const tab = ref(location.hash.replace('#', '') || 'agent');
-const config = ref(null);
-const configError = ref('');
-const opened = ref({ poster: null, reel: null });
-const openKey = ref(0);
+const nav = computed(() => [
+    { to: '/create', label: 'Бүтээх', auth: true },
+    { to: '/library', label: 'Миний бүтээлүүд', auth: true },
+    { to: '/pricing', label: 'Багц' },
+    ...(session.user?.is_admin ? [{ to: '/admin', label: 'Админ', badge: 'Admin' }] : []),
+].filter((n) => !n.auth || session.user));
 
-onMounted(async () => {
-    window.addEventListener('hashchange', () => (tab.value = location.hash.replace('#', '') || 'agent'));
-    try {
-        config.value = await api.get('/api/config');
-    } catch (e) {
-        configError.value = e.message;
-    }
-});
+const active = (to) => route.path === to || (to !== '/' && route.path.startsWith(to));
 
-function go(id) {
-    tab.value = id;
-    history.replaceState(null, '', '#' + id);
-    window.scrollTo({ top: 0 });
-}
+watch(() => route.fullPath, () => (menu.value = false));
 
-function open(generation) {
-    opened.value[generation.type] = generation;
-    openKey.value++;
-    go(generation.type);
+async function signOut() {
+    await logout();
+    router.push('/');
 }
 </script>
 
 <template>
     <div class="min-h-full">
-        <!-- Top navigation, higgsfield.ai style -->
         <header class="sticky top-0 z-30 border-b border-line bg-bg/90 backdrop-blur">
             <div class="flex h-14 items-center gap-1 px-4">
-                <button class="mr-3 grid size-8 place-items-center rounded-lg bg-white text-sm font-black text-ink" @click="go('agent')">P</button>
+                <RouterLink to="/" class="mr-3 flex items-center gap-2">
+                    <span class="grid size-8 place-items-center rounded-lg bg-white text-sm font-black text-ink">P</span>
+                    <span class="hidden font-display text-sm font-bold tracking-tight uppercase sm:inline">Poster Studio</span>
+                </RouterLink>
 
                 <nav class="flex items-center gap-0.5 overflow-x-auto scroll-thin">
-                    <button
+                    <RouterLink
                         v-for="n in nav"
-                        :key="n.id"
+                        :key="n.to"
+                        :to="n.to"
                         class="flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium tracking-[0.1px] transition"
-                        :class="tab === n.id ? 'text-lime' : 'text-zinc-400 hover:text-fg'"
-                        @click="go(n.id)"
+                        :class="active(n.to) ? 'text-lime' : 'text-zinc-400 hover:text-fg'"
                     >
                         {{ n.label }}
-                        <span v-if="n.badge" class="badge" :class="n.badge === 'Top' ? 'badge-dark' : 'badge-new'">{{ n.badge }}</span>
-                    </button>
+                        <span v-if="n.badge" class="badge badge-dark">{{ n.badge }}</span>
+                    </RouterLink>
                 </nav>
 
                 <div class="ml-auto flex items-center gap-2">
-                    <div v-if="config" class="hidden items-center gap-2 rounded-[10px] bg-surface-2 px-3 py-1.5 text-sm md:flex">
-                        <Icon name="layers" size="14" class="text-zinc-400" />
-                        <span v-for="p in config.providers.filter((p) => p.id !== 'demo')" :key="p.id" class="size-2 rounded-full" :class="p.configured ? 'bg-lime' : 'bg-zinc-700'" :title="p.label + (p.configured ? ' — холбогдсон' : ' — түлхүүргүй')" />
-                        <span class="text-zinc-400">Моделиуд</span>
-                    </div>
-                    <button class="btn btn-lime-soft hidden sm:inline-flex" @click="go('skills')">Skills</button>
-                    <button class="btn btn-lime" @click="go('agent')">Үүсгэх</button>
+                    <template v-if="session.user">
+                        <RouterLink v-if="!session.user.subscribed" to="/pricing" class="btn btn-lime-soft hidden sm:inline-flex">Багц авах</RouterLink>
+                        <div class="relative">
+                            <button class="flex items-center gap-2 rounded-[10px] bg-surface-2 py-1.5 pr-2.5 pl-1.5 text-sm hover:bg-surface-3" @click="menu = !menu">
+                                <span class="grid size-6 place-items-center rounded-md bg-lime text-xs font-bold text-ink">{{ session.user.name.slice(0, 1).toUpperCase() }}</span>
+                                <span class="hidden max-w-28 truncate sm:inline">{{ session.user.name }}</span>
+                                <Icon name="chevron" size="12" class="opacity-60" />
+                            </button>
+                            <div v-if="menu" class="absolute right-0 mt-2 w-56 rounded-2xl border border-white/10 bg-[#161616] p-2 shadow-2xl">
+                                <div class="px-2 py-1.5 text-xs text-muted">
+                                    <template v-if="session.user.subscription">{{ session.user.subscription.plan }} багц</template>
+                                    <template v-else>Багцгүй</template>
+                                </div>
+                                <RouterLink to="/account" class="block rounded-lg px-2 py-2 text-sm hover:bg-white/5">Миний бүртгэл</RouterLink>
+                                <button class="block w-full rounded-lg px-2 py-2 text-left text-sm text-red-300 hover:bg-white/5" @click="signOut">Гарах</button>
+                            </div>
+                        </div>
+                    </template>
+                    <template v-else>
+                        <RouterLink to="/login" class="btn btn-lime-soft">Нэвтрэх</RouterLink>
+                        <RouterLink to="/register" class="btn btn-lime">Бүртгүүлэх</RouterLink>
+                    </template>
                 </div>
             </div>
         </header>
 
-        <main class="px-4 pt-4 pb-56">
-            <p v-if="configError" class="mb-4 rounded-xl bg-red-950 p-3 text-sm text-red-200">{{ configError }}</p>
-
-            <template v-if="config">
-                <AgentStudio v-show="tab === 'agent'" :config="config" @open="open" />
-                <PosterStudio v-show="tab === 'poster'" :key="'p' + openKey" :config="config" :initial="opened.poster" :active="tab === 'poster'" />
-                <ReelStudio v-show="tab === 'reel'" :key="'r' + openKey" :config="config" :initial="opened.reel" :active="tab === 'reel'" />
-                <HistoryList v-if="tab === 'history'" @open="open" />
-                <SkillsPanel v-if="tab === 'skills'" page />
-            </template>
-            <div v-else-if="!configError" class="grid min-h-[60vh] place-items-center text-zinc-500"><span class="spinner text-lime" /></div>
+        <main v-if="session.ready" class="px-4 pt-4 pb-16">
+            <RouterView />
         </main>
+        <div v-else class="grid min-h-[70vh] place-items-center"><span class="spinner text-lime" /></div>
     </div>
 </template>

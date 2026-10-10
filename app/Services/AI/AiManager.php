@@ -3,121 +3,54 @@
 namespace App\Services\AI;
 
 use App\Services\AI\Contracts\ImageProvider;
-use App\Services\AI\Contracts\TextProvider;
 use App\Services\AI\Contracts\VideoProvider;
 use App\Services\AI\Exceptions\AiException;
-use App\Services\AI\Providers\AnthropicProvider;
-use App\Services\AI\Providers\DemoProvider;
 use App\Services\AI\Providers\GeminiProvider;
 use App\Services\AI\Providers\OpenAIProvider;
 use App\Services\AI\Providers\SeedanceProvider;
 
 class AiManager
 {
-    public const TEXT_PROVIDERS = ['anthropic', 'openai', 'gemini', 'demo'];
-
-    public const IMAGE_PROVIDERS = ['openai', 'gemini', 'demo'];
-
-    public const VIDEO_PROVIDERS = ['seedance'];
-
-    public function text(?string $name = null): TextProvider
+    public function image(string $name): ImageProvider
     {
-        $name ??= config('ai.default_text');
-
-        if (! in_array($name, self::TEXT_PROVIDERS, true)) {
-            throw new AiException("Unknown text provider [{$name}].");
-        }
-
-        return $this->make($name);
-    }
-
-    public function image(?string $name = null): ImageProvider
-    {
-        $name ??= config('ai.default_image');
-
-        if (! in_array($name, self::IMAGE_PROVIDERS, true)) {
-            throw new AiException("Unknown image provider [{$name}].");
-        }
-
-        return $this->make($name);
+        return match ($this->configured($name, 'image')) {
+            'openai' => new OpenAIProvider(config('ai.providers.openai'), config('ai.timeout')),
+            'gemini' => new GeminiProvider(config('ai.providers.gemini'), config('ai.timeout')),
+        };
     }
 
     public function video(string $name): VideoProvider
     {
-        if (! in_array($name, self::VIDEO_PROVIDERS, true)) {
-            throw new AiException("Unknown video provider [{$name}].");
-        }
-
-        return $this->make($name);
-    }
-
-    public function isConfigured(string $name): bool
-    {
-        return $name === 'demo' || filled(config("ai.providers.{$name}.key"));
+        return match ($this->configured($name, 'video')) {
+            'seedance' => new SeedanceProvider(config('ai.providers.seedance'), config('ai.timeout')),
+        };
     }
 
     /**
-     * Provider list for the frontend (never exposes keys).
+     * Configured provider names of a kind ("image" | "video").
+     *
+     * @return list<string>
      */
-    public function describe(): array
+    public function available(string $kind): array
     {
-        $providers = collect(config('ai.providers'))
-            ->map(fn (array $p, string $name) => [
-                'id' => $name,
-                'label' => $p['label'],
-                'configured' => $this->isConfigured($name),
-                'text' => in_array($name, self::TEXT_PROVIDERS, true),
-                'image' => in_array($name, self::IMAGE_PROVIDERS, true),
-                'video' => in_array($name, self::VIDEO_PROVIDERS, true),
-                'text_model' => $p['text_model'] ?? null,
-                'image_model' => $p['image_model'] ?? null,
-            ])
+        return collect(config('ai.providers'))
+            ->filter(fn ($p) => ($p['kind'] ?? null) === $kind && filled($p['key'] ?? null))
+            ->keys()
             ->values()
-            ->push([
-                'id' => 'demo', 'label' => 'Demo', 'configured' => true,
-                'text' => true, 'image' => true, 'video' => false, 'text_model' => null, 'image_model' => null,
-            ]);
-
-        return [
-            'providers' => $providers,
-            'default_text' => $this->firstConfigured(config('ai.default_text'), self::TEXT_PROVIDERS),
-            'default_image' => $this->firstConfigured(config('ai.default_image'), self::IMAGE_PROVIDERS),
-        ];
+            ->all();
     }
 
-    private function firstConfigured(string $preferred, array $candidates): string
+    public function claudeReady(): bool
     {
-        if ($this->isConfigured($preferred)) {
-            return $preferred;
-        }
-
-        foreach ($candidates as $name) {
-            if ($this->isConfigured($name)) {
-                return $name;
-            }
-        }
-
-        return 'demo';
+        return filled(config('ai.providers.anthropic.key'));
     }
 
-    private function make(string $name): TextProvider|ImageProvider|VideoProvider
+    private function configured(string $name, string $kind): string
     {
-        if ($name === 'demo') {
-            return new DemoProvider;
+        if (! in_array($name, $this->available($kind), true)) {
+            throw new AiException("Provider [{$name}] is not a configured {$kind} model.");
         }
 
-        if (! $this->isConfigured($name)) {
-            throw new AiException("Provider [{$name}] has no API key. Set it in .env.");
-        }
-
-        $config = config("ai.providers.{$name}");
-        $timeout = config('ai.timeout');
-
-        return match ($name) {
-            'anthropic' => new AnthropicProvider($config, $timeout),
-            'openai' => new OpenAIProvider($config, $timeout),
-            'gemini' => new GeminiProvider($config, $timeout),
-            'seedance' => new SeedanceProvider($config, $timeout),
-        };
+        return $name;
     }
 }

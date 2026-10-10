@@ -2,14 +2,25 @@
 
 namespace App\Services\AI\Contracts;
 
+/**
+ * Video models are asynchronous: submit tasks, then poll. The agent submits
+ * all clips of a reel at once and polls them together.
+ */
 interface VideoProvider
 {
     /**
-     * Generate a short video clip and return its raw binary contents.
-     *
-     * @param  string  $aspect  One of "9:16", "16:9", "1:1".
-     * @param  array{data: string, mime: string}|null  $firstFrame  Optional image to animate (image-to-video).
+     * @param  array{data: string, mime: string}|null  $firstFrame  Image to animate (image-to-video).
+     * @return string Provider task id.
+     */
+    public function submit(string $prompt, string $aspect, int $duration, ?array $firstFrame = null): string;
+
+    /**
+     * @return array{state: 'pending'|'done'|'failed', url?: string, error?: string}
+     */
+    public function status(string $taskId): array;
+
+    /**
      * @return array{data: string, mime: string}
      */
-    public function generateVideo(string $prompt, string $aspect, int $duration, ?array $firstFrame = null): array;
+    public function download(string $url): array;
 }

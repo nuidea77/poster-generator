@@ -2,20 +2,19 @@
 
 namespace App\Services\Agent;
 
-use App\Models\AgentRun;
-use App\Models\Generation;
+use App\Models\Creation;
 use App\Services\AI\AiManager;
 use App\Services\AI\Exceptions\AiException;
-use App\Services\ContentGenerator;
+use App\Services\Media\MediaStore;
+use App\Services\Media\PosterFormatter;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Storage;
-use Throwable;
 
 /**
- * Claude Fable drives an agentic loop: it reads the brief and attached
- * images, chooses which image / video model to call for each asset, checks
- * the results, and assembles posters and reels through tools.
+ * Claude Fable runs the creative job: it reads the brief and the client's
+ * logo / product photos, loads skills, decides per asset which image or
+ * video model to call, reviews each image, and delivers the finished
+ * posters or the ordered clips for the 90-second reel.
  */
 class CreativeAgent
 {
@@ -23,39 +22,29 @@ class CreativeAgent
 
     public function __construct(
         private AiManager $ai,
-        private ContentGenerator $generator,
         private SkillLibrary $skills,
+        private PosterFormatter $formatter,
     ) {}
 
-    public function run(AgentRun $run): void
+    public function run(Creation $creation): void
     {
-        $run->update(['status' => 'running', 'error' => null, 'model' => config('ai.agent.model')]);
+        $creation->update(['model' => config('ai.agent.model')]);
+        $creation->setStage('planning', 5);
 
-        try {
-            $this->loop($run);
-        } catch (Throwable $e) {
-            $run->update(['status' => 'failed', 'error' => $e->getMessage()]);
-            throw $e;
-        }
-    }
-
-    private function loop(AgentRun $run): void
-    {
-        $tools = $this->tools();
-        $messages = [['role' => 'user', 'content' => $this->userContent($run)]];
+        $tools = $this->tools($creation);
+        $messages = [['role' => 'user', 'content' => $this->brief($creation)]];
 
         for ($step = 0; $step < config('ai.agent.max_steps'); $step++) {
             $response = $this->claude($tools, $messages);
 
-            $run->increment('input_tokens', (int) ($response['usage']['input_tokens'] ?? 0));
-            $run->increment('output_tokens', (int) ($response['usage']['output_tokens'] ?? 0));
+            $creation->increment('input_tokens', (int) ($response['usage']['input_tokens'] ?? 0));
+            $creation->increment('output_tokens', (int) ($response['usage']['output_tokens'] ?? 0));
 
             if (($response['stop_reason'] ?? null) === 'refusal') {
-                $why = $response['stop_details']['explanation'] ?? 'The request was declined by safety filters.';
-                throw new AiException('Claude declined this brief: '.$why);
+                throw new AiException('Claude declined: '.($response['stop_details']['explanation'] ?? 'safety filter'));
             }
 
-            // Pass the full content (incl. thinking blocks) back unchanged.
+            // Thinking blocks must be passed back unchanged.
             $messages[] = ['role' => 'assistant', 'content' => $response['content']];
 
             $results = [];
@@ -63,46 +52,35 @@ class CreativeAgent
 
             foreach ($response['content'] as $block) {
                 if ($block['type'] === 'text' && trim($block['text']) !== '') {
-                    $run->addStep(['type' => 'note', 'text' => $block['text']]);
+                    $creation->addStep(['type' => 'note', 'text' => $block['text']]);
                 }
 
                 if ($block['type'] !== 'tool_use') {
                     continue;
                 }
 
-                $input = is_array($block['input']) ? $block['input'] : [];
+                $input = is_array($block['input'] ?? null) ? $block['input'] : [];
 
                 try {
-                    $result = $this->call($run, $block['name'], $input);
+                    $result = $this->call($creation, $block['name'], $input);
                     $results[] = ['type' => 'tool_result', 'tool_use_id' => $block['id'], 'content' => $result['content']];
-                    $run->addStep(['type' => 'tool', 'name' => $block['name'], 'input' => $input, 'result' => $result['summary']]);
+                    $creation->addStep(['type' => 'tool', 'name' => $block['name'], 'input' => $input, 'result' => $result['summary']]);
                 } catch (AiException|ConnectionException $e) {
                     $results[] = ['type' => 'tool_result', 'tool_use_id' => $block['id'], 'is_error' => true, 'content' => $e->getMessage()];
-                    $run->addStep(['type' => 'tool', 'name' => $block['name'], 'input' => $input, 'error' => $e->getMessage()]);
+                    $creation->addStep(['type' => 'tool', 'name' => $block['name'], 'input' => $input, 'error' => $e->getMessage()]);
                 }
 
-                if ($block['name'] === 'finish') {
-                    $finished = true;
-                }
+                $finished = $finished || $block['name'] === 'finish';
             }
 
-            if ($finished) {
-                $run->update(['status' => 'done']);
-
-                return;
-            }
-
-            if (($response['stop_reason'] ?? null) !== 'tool_use') {
-                // Model ended its turn without calling finish; treat as done.
-                $run->update(['status' => 'done', 'summary' => $run->summary ?: $this->lastText($response)]);
-
+            if ($finished || ($response['stop_reason'] ?? null) !== 'tool_use') {
                 return;
             }
 
             $messages[] = ['role' => 'user', 'content' => $results];
         }
 
-        throw new AiException('Agent stopped: too many steps without finishing.');
+        throw new AiException('Agent stopped: too many steps.');
     }
 
     // ---------------------------------------------------------------- Claude
@@ -112,26 +90,21 @@ class CreativeAgent
         $cfg = config('ai.providers.anthropic');
         $agent = config('ai.agent');
 
-        if (blank($cfg['key'])) {
-            throw new AiException('ANTHROPIC_API_KEY is not set — the agent needs Claude.');
-        }
-
         $headers = ['x-api-key' => $cfg['key'], 'anthropic-version' => '2023-06-01'];
         $body = [
             'model' => $agent['model'],
             'max_tokens' => 16000,
             'system' => [[
                 'type' => 'text',
-                'text' => $this->skill(),
+                'text' => $this->systemPrompt(),
                 'cache_control' => ['type' => 'ephemeral'],
             ]],
             'tools' => $tools,
+            // Fable thinks adaptively by default; depth is set with effort.
             'output_config' => ['effort' => $agent['effort']],
             'messages' => $messages,
         ];
 
-        // Fable's thinking is always on; depth is controlled with effort above.
-        // Server-side fallback re-runs a declined request on another model.
         if ($agent['fallbacks']) {
             $headers['anthropic-beta'] = 'server-side-fallback-2026-07-01';
             $body['fallbacks'] = 'default';
@@ -148,127 +121,119 @@ class CreativeAgent
         return $response->json();
     }
 
-    private function skill(): string
+    private function systemPrompt(): string
     {
         return str_replace('{{SKILLS}}', $this->skills->prompt(), file_get_contents(resource_path('ai/creative-director.md')));
     }
 
-    private function userContent(AgentRun $run): array
+    private function brief(Creation $creation): array
     {
         $content = [];
 
-        foreach ($run->assets as $asset) {
-            if ($asset['kind'] !== 'image') {
-                continue;
-            }
-            $content[] = ['type' => 'text', 'text' => "Attached reference image `{$asset['id']}`".(filled($asset['note'] ?? null) ? " ({$asset['note']})" : '').':'];
-            $content[] = $this->imageBlock($asset);
+        foreach ($creation->inputs as $input) {
+            $label = $input['role'] === 'logo' ? 'Brand logo' : 'Product photo';
+            $content[] = ['type' => 'text', 'text' => "{$label} — asset id `{$input['id']}`:"];
+            $content[] = $this->imageBlock($input['path']);
         }
 
-        $language = ContentGenerator::LANGUAGES[$run->language] ?? 'Mongolian (Cyrillic script)';
-        $content[] = ['type' => 'text', 'text' => "Brief:\n{$run->prompt}\n\nClient-facing language: {$language}."];
+        $lines = ['# Job', ''];
+
+        if ($creation->type === Creation::POSTER) {
+            $lines[] = 'Deliverable: POSTER — one finished image per format below.';
+            foreach ($creation->formats as $key) {
+                $f = config("creations.poster_formats.{$key}");
+                $lines[] = "- `{$key}`: {$f['label']} ({$f['platforms']}), final size {$f['width']}×{$f['height']}, generate at aspect {$f['aspect']}";
+            }
+        } else {
+            $reel = config('creations.reel');
+            $lines[] = "Deliverable: REEL — vertical 9:16 video, exactly {$reel['duration']} seconds, assembled from AI video clips (5 or 10 s each) in the order you give.";
+        }
+
+        if (array_filter($creation->product ?? [])) {
+            $lines[] = '';
+            $lines[] = '## Product';
+            foreach (['name' => 'Name', 'price' => 'Price', 'description' => 'Description'] as $key => $label) {
+                if (filled($creation->product[$key] ?? null)) {
+                    $lines[] = "- {$label}: {$creation->product[$key]}";
+                }
+            }
+        }
+
+        if ($brand = $creation->user?->brand_name) {
+            $lines[] = "- Brand: {$brand}";
+        }
+
+        $lines[] = '';
+        $lines[] = '## Client brief';
+        $lines[] = $creation->prompt;
+
+        $content[] = ['type' => 'text', 'text' => implode("\n", $lines)];
 
         return $content;
     }
 
     // ----------------------------------------------------------------- tools
 
-    private function tools(): array
+    private function tools(Creation $creation): array
     {
-        $imageProviders = array_values(array_filter(['gemini', 'openai'], fn ($p) => $this->ai->isConfigured($p)));
-        $videoProviders = array_values(array_filter(AiManager::VIDEO_PROVIDERS, fn ($p) => $this->ai->isConfigured($p)));
-
-        $palette = [
-            'type' => 'object',
-            'properties' => array_fill_keys(['background', 'primary', 'accent', 'text'], ['type' => 'string', 'description' => 'Hex colour, e.g. #0f172a']),
-            'required' => ['background', 'primary', 'accent', 'text'],
-            'additionalProperties' => false,
-        ];
-
+        $images = $this->ai->available('image');
+        $videos = $this->ai->available('video');
         $tools = [];
-
-        if ($imageProviders) {
-            $tools[] = $this->tool('generate_image',
-                'Generate one image with the chosen image model. Returns the image (look at it) and its asset id. Use reference_image_ids to keep real products/people/logos faithful.',
-                [
-                    'provider' => ['type' => 'string', 'enum' => $imageProviders],
-                    'prompt' => ['type' => 'string', 'description' => 'English visual prompt. No text/letters/logos in the image.'],
-                    'aspect' => ['type' => 'string', 'enum' => self::ASPECTS],
-                    'reference_image_ids' => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'Asset ids of images to use as references (may be empty).'],
-                    'purpose' => ['type' => 'string', 'description' => 'Short note on what this image is for (shown to the client).'],
-                ]);
-        }
-
-        if ($videoProviders) {
-            $tools[] = $this->tool('generate_video',
-                'Generate a short video clip (5 or 10 seconds). Pass first_frame_image_id to animate an existing image; empty string for text-to-video. Takes a few minutes.',
-                [
-                    'provider' => ['type' => 'string', 'enum' => $videoProviders],
-                    'prompt' => ['type' => 'string', 'description' => 'English prompt describing subject and camera motion.'],
-                    'aspect' => ['type' => 'string', 'enum' => ['9:16', '16:9', '1:1']],
-                    'duration' => ['type' => 'integer', 'enum' => [5, 10]],
-                    'first_frame_image_id' => ['type' => 'string', 'description' => 'Asset id of the image to animate, or "".'],
-                    'purpose' => ['type' => 'string'],
-                ]);
-        }
-
-        $tools[] = $this->tool('create_poster',
-            'Create a finished poster from an image asset plus copy. Opens in the client\'s poster editor.',
-            [
-                'image_id' => ['type' => 'string', 'description' => 'Asset id of the background image.'],
-                'format' => ['type' => 'string', 'enum' => self::ASPECTS],
-                'layout' => ['type' => 'string', 'enum' => ContentGenerator::LAYOUTS],
-                'font' => ['type' => 'string', 'enum' => ContentGenerator::FONTS],
-                'tagline' => ['type' => 'string', 'description' => 'Max 3 words, may be empty.'],
-                'headline' => ['type' => 'string', 'description' => 'Max 7 words.'],
-                'subheadline' => ['type' => 'string'],
-                'body' => ['type' => 'string', 'description' => 'One or two short sentences, may be empty.'],
-                'cta' => ['type' => 'string'],
-                'palette' => $palette,
-                'caption' => ['type' => 'string', 'description' => 'Social media caption.'],
-                'hashtags' => ['type' => 'array', 'items' => ['type' => 'string']],
-            ]);
-
-        $tools[] = $this->tool('create_reel',
-            'Create a finished 9:16 reel storyboard. Each scene references an image or video asset id.',
-            [
-                'title' => ['type' => 'string'],
-                'hook' => ['type' => 'string'],
-                'caption' => ['type' => 'string'],
-                'hashtags' => ['type' => 'array', 'items' => ['type' => 'string']],
-                'music_mood' => ['type' => 'string'],
-                'font' => ['type' => 'string', 'enum' => ContentGenerator::FONTS],
-                'palette' => $palette,
-                'scenes' => [
-                    'type' => 'array',
-                    'minItems' => 2,
-                    'items' => [
-                        'type' => 'object',
-                        'properties' => [
-                            'asset_id' => ['type' => 'string', 'description' => 'Image or video asset id for this scene.'],
-                            'duration' => ['type' => 'integer', 'description' => 'Seconds, 2-6.'],
-                            'text' => ['type' => 'string', 'description' => 'Overlay text, max 8 words.'],
-                            'subtext' => ['type' => 'string'],
-                            'voiceover' => ['type' => 'string'],
-                            'motion' => ['type' => 'string', 'enum' => ContentGenerator::MOTIONS],
-                        ],
-                        'required' => ['asset_id', 'duration', 'text', 'subtext', 'voiceover', 'motion'],
-                        'additionalProperties' => false,
-                    ],
-                ],
-            ]);
 
         $tools[] = $this->tool('load_skill',
             'Read one skill from the library in full. Call before the work that skill covers.',
-            [
-                'name' => ['type' => 'string', 'enum' => array_column($this->skills->index(enabledOnly: true), 'name') ?: ['none']],
-            ]);
+            ['name' => ['type' => 'string', 'enum' => array_column($this->skills->index(enabledOnly: true), 'name') ?: ['none']]]);
+
+        if ($images) {
+            $tools[] = $this->tool('generate_image',
+                'Generate one image with the chosen image model. Returns the image so you can review it, plus its asset id. Pass reference_image_ids to keep the real logo/product faithful.',
+                [
+                    'provider' => ['type' => 'string', 'enum' => $images],
+                    'prompt' => ['type' => 'string', 'description' => 'Detailed English visual prompt.'],
+                    'aspect' => ['type' => 'string', 'enum' => self::ASPECTS],
+                    'reference_image_ids' => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'Asset ids used as references (may be empty).'],
+                    'purpose' => ['type' => 'string', 'description' => 'Short internal note: what this image is for.'],
+                ]);
+        }
+
+        if ($creation->type === Creation::REEL && $videos) {
+            $tools[] = $this->tool('generate_videos',
+                'Generate several 9:16 video clips in parallel (one call for the whole storyboard). Each clip is 5 or 10 s. first_frame_image_id animates an existing image ("" for text-to-video). Takes several minutes. Returns clip asset ids and any failures.',
+                [
+                    'clips' => [
+                        'type' => 'array',
+                        'items' => [
+                            'type' => 'object',
+                            'properties' => [
+                                'provider' => ['type' => 'string', 'enum' => $videos],
+                                'prompt' => ['type' => 'string', 'description' => 'English prompt: subject motion + camera motion.'],
+                                'duration' => ['type' => 'integer', 'enum' => config('creations.reel.clip_seconds')],
+                                'first_frame_image_id' => ['type' => 'string'],
+                                'purpose' => ['type' => 'string'],
+                            ],
+                            'required' => ['provider', 'prompt', 'duration', 'first_frame_image_id', 'purpose'],
+                            'additionalProperties' => false,
+                        ],
+                    ],
+                ]);
+        }
+
+        if ($creation->type === Creation::POSTER) {
+            $tools[] = $this->tool('deliver_poster',
+                'Deliver the final image for one requested format. It is cropped (center) to the exact pixel size. Call once per format.',
+                [
+                    'format' => ['type' => 'string', 'enum' => array_values($creation->formats)],
+                    'image_id' => ['type' => 'string'],
+                ]);
+        } else {
+            $tools[] = $this->tool('deliver_reel',
+                'Deliver the reel: clip asset ids in playback order. Their durations must add up to at least '.config('creations.reel.duration').' s; the result is trimmed to exactly that length.',
+                ['clip_ids' => ['type' => 'array', 'items' => ['type' => 'string']]]);
+        }
 
         $tools[] = $this->tool('finish',
-            'Call once when all deliverables are created. Ends the job.',
-            [
-                'summary' => ['type' => 'string', 'description' => 'What was made, which models were used and why, assumptions. In the client\'s language.'],
-            ]);
+            'Call once after delivering everything.',
+            ['summary' => ['type' => 'string', 'description' => 'Internal note: what you made, which models and why.']]);
 
         return $tools;
     }
@@ -291,119 +256,17 @@ class CreativeAgent
     /**
      * @return array{content: string|array, summary: string}
      */
-    private function call(AgentRun $run, string $name, array $input): array
+    private function call(Creation $creation, string $name, array $input): array
     {
         return match ($name) {
-            'generate_image' => $this->generateImage($run, $input),
-            'generate_video' => $this->generateVideo($run, $input),
-            'create_poster' => $this->createPoster($run, $input),
-            'create_reel' => $this->createReel($run, $input),
             'load_skill' => $this->loadSkill($input),
-            'finish' => $this->finish($run, $input),
+            'generate_image' => $this->generateImage($creation, $input),
+            'generate_videos' => $this->generateVideos($creation, $input),
+            'deliver_poster' => $this->deliverPoster($creation, $input),
+            'deliver_reel' => $this->deliverReel($creation, $input),
+            'finish' => $this->finish($creation, $input),
             default => throw new AiException("Unknown tool [{$name}]."),
         };
-    }
-
-    private function generateImage(AgentRun $run, array $in): array
-    {
-        $references = [];
-        foreach ($in['reference_image_ids'] ?? [] as $id) {
-            $references[] = $this->readAsset($run, $id, 'image');
-        }
-
-        $url = $this->generator->image($in['prompt'], $in['aspect'], $in['provider'], $references);
-
-        if ($url === null) {
-            throw new AiException('Provider returned no image.');
-        }
-
-        $id = $run->addAsset([
-            'kind' => 'image', 'url' => $url, 'provider' => $in['provider'], 'source' => 'generated',
-            'prompt' => $in['prompt'], 'aspect' => $in['aspect'], 'note' => $in['purpose'] ?? '',
-        ]);
-
-        return [
-            'summary' => "{$id} ← {$in['provider']}",
-            'content' => [
-                ['type' => 'text', 'text' => "Generated image asset id: {$id} (aspect {$in['aspect']}, provider {$in['provider']}). Review it:"],
-                $this->imageBlock($run->asset($id)),
-            ],
-        ];
-    }
-
-    private function generateVideo(AgentRun $run, array $in): array
-    {
-        $frame = filled($in['first_frame_image_id'] ?? null) ? $this->readAsset($run, $in['first_frame_image_id'], 'image') : null;
-
-        $url = $this->generator->video($in['prompt'], $in['aspect'], (int) $in['duration'], $in['provider'], $frame);
-
-        $id = $run->addAsset([
-            'kind' => 'video', 'url' => $url, 'provider' => $in['provider'], 'source' => 'generated',
-            'prompt' => $in['prompt'], 'aspect' => $in['aspect'], 'duration' => (int) $in['duration'], 'note' => $in['purpose'] ?? '',
-        ]);
-
-        return [
-            'summary' => "{$id} ← {$in['provider']}",
-            'content' => "Generated video asset id: {$id} ({$in['duration']}s, aspect {$in['aspect']}). It cannot be previewed here; assume the prompt was followed.",
-        ];
-    }
-
-    private function createPoster(AgentRun $run, array $in): array
-    {
-        $asset = $run->asset($in['image_id']) ?? throw new AiException("Unknown asset [{$in['image_id']}].");
-
-        $content = $this->generator->normalizePoster($in);
-        $content['image_url'] = $asset['url'];
-        $content['format'] = in_array($in['format'] ?? null, self::ASPECTS, true) ? $in['format'] : '4:5';
-        $content['image_prompt'] = $asset['prompt'] ?? '';
-
-        $generation = Generation::create([
-            'type' => 'poster',
-            'prompt' => $run->prompt,
-            'text_provider' => 'agent',
-            'image_provider' => $asset['provider'] ?? 'upload',
-            'options' => ['language' => $run->language, 'format' => $content['format'], 'agent_run_id' => $run->id],
-            'content' => $content,
-        ]);
-
-        $run->update(['outputs' => [...$run->outputs, ['type' => 'poster', 'id' => $generation->id, 'title' => $content['headline']]]]);
-
-        return ['summary' => "poster #{$generation->id}", 'content' => "Poster created (id {$generation->id})."];
-    }
-
-    private function createReel(AgentRun $run, array $in): array
-    {
-        $scenes = [];
-        foreach ($in['scenes'] ?? [] as $scene) {
-            $asset = $run->asset($scene['asset_id'] ?? '') ?? throw new AiException("Unknown asset [{$scene['asset_id']}].");
-            $scenes[] = $scene + [
-                'image_url' => $asset['kind'] === 'image' ? $asset['url'] : null,
-                'video_url' => $asset['kind'] === 'video' ? $asset['url'] : null,
-                'image_prompt' => $asset['prompt'] ?? '',
-            ];
-        }
-
-        $content = $this->generator->normalizeReel(['scenes' => $scenes] + $in);
-
-        // normalizeReel drops unknown keys; re-attach the media per scene.
-        foreach ($content['scenes'] as $i => &$s) {
-            $s['image_url'] = $scenes[$i]['image_url'];
-            $s['video_url'] = $scenes[$i]['video_url'];
-        }
-        unset($s);
-
-        $generation = Generation::create([
-            'type' => 'reel',
-            'prompt' => $run->prompt,
-            'text_provider' => 'agent',
-            'image_provider' => 'agent',
-            'options' => ['language' => $run->language, 'duration' => array_sum(array_column($content['scenes'], 'duration')), 'scenes' => count($content['scenes']), 'agent_run_id' => $run->id],
-            'content' => $content,
-        ]);
-
-        $run->update(['outputs' => [...$run->outputs, ['type' => 'reel', 'id' => $generation->id, 'title' => $content['title'] ?: $content['hook']]]]);
-
-        return ['summary' => "reel #{$generation->id}", 'content' => "Reel created (id {$generation->id}) with ".count($content['scenes']).' scenes.'];
     }
 
     private function loadSkill(array $in): array
@@ -414,46 +277,209 @@ class CreativeAgent
         return ['summary' => $name, 'content' => "<skill name=\"{$name}\">\n{$content}\n</skill>"];
     }
 
-    private function finish(AgentRun $run, array $in): array
+    private function generateImage(Creation $creation, array $in): array
     {
-        $run->update(['summary' => (string) ($in['summary'] ?? '')]);
+        $aspect = in_array($in['aspect'] ?? null, self::ASPECTS, true) ? $in['aspect'] : '1:1';
+        $references = array_map(fn ($id) => $this->readAsset($creation, $id, 'image'), $in['reference_image_ids'] ?? []);
+
+        $image = $this->ai->image($in['provider'])->generateImage(trim($in['prompt']).' High quality, professional, no watermark.', $aspect, $references);
+        $file = MediaStore::put("creations/{$creation->public_id}/work", $image['data'], $image['mime']);
+
+        $id = $creation->addAsset([
+            'kind' => 'image', 'source' => 'generated', 'provider' => $in['provider'],
+            'path' => $file['path'], 'prompt' => $in['prompt'], 'aspect' => $aspect, 'note' => $in['purpose'] ?? '',
+        ]);
+
+        $this->bumpProgress($creation);
+
+        return [
+            'summary' => "{$id} ← {$in['provider']}",
+            'content' => [
+                ['type' => 'text', 'text' => "Generated image `{$id}` (aspect {$aspect}). Review it:"],
+                $this->imageBlock($file['path']),
+            ],
+        ];
+    }
+
+    private function generateVideos(Creation $creation, array $in): array
+    {
+        $clips = array_values($in['clips'] ?? []);
+
+        if (! $clips) {
+            throw new AiException('No clips requested.');
+        }
+
+        $creation->setStage('filming', 25);
+
+        // Submit everything first so the provider renders clips in parallel.
+        $tasks = [];
+        $report = [];
+
+        foreach ($clips as $i => $clip) {
+            try {
+                $frame = filled($clip['first_frame_image_id'] ?? null) ? $this->readAsset($creation, $clip['first_frame_image_id'], 'image') : null;
+                $provider = $this->ai->video($clip['provider']);
+                $tasks[$i] = ['provider' => $provider, 'name' => $clip['provider'], 'id' => $provider->submit($clip['prompt'], '9:16', (int) $clip['duration'], $frame), 'clip' => $clip];
+            } catch (AiException|ConnectionException $e) {
+                $report[$i] = 'clip #'.($i + 1).": FAILED to start — {$e->getMessage()}";
+            }
+        }
+
+        $pending = $tasks;
+        $done = 0;
+        $interval = max(0, (int) config('ai.providers.seedance.poll_interval'));
+        $deadline = time() + (int) config('ai.providers.seedance.poll_timeout');
+
+        while ($pending && time() <= $deadline) {
+            if ($interval) {
+                sleep($interval);
+            }
+
+            foreach ($pending as $i => $task) {
+                $status = $task['provider']->status($task['id']);
+
+                if ($status['state'] === 'pending') {
+                    continue;
+                }
+
+                unset($pending[$i]);
+
+                if ($status['state'] === 'failed') {
+                    $report[$i] = 'clip #'.($i + 1).": FAILED — {$status['error']}";
+
+                    continue;
+                }
+
+                try {
+                    $video = $task['provider']->download($status['url']);
+                    $file = MediaStore::put("creations/{$creation->public_id}/work", $video['data'], $video['mime']);
+                    $id = $creation->addAsset([
+                        'kind' => 'video', 'source' => 'generated', 'provider' => $task['name'],
+                        'path' => $file['path'], 'prompt' => $task['clip']['prompt'],
+                        'duration' => (int) $task['clip']['duration'], 'note' => $task['clip']['purpose'] ?? '',
+                    ]);
+                    $report[$i] = 'clip #'.($i + 1).": `{$id}` ({$task['clip']['duration']} s) — {$task['clip']['purpose']}";
+                    $done++;
+                } catch (AiException|ConnectionException $e) {
+                    $report[$i] = 'clip #'.($i + 1).": FAILED to download — {$e->getMessage()}";
+                }
+
+                $creation->setStage('filming', 25 + (int) (55 * $done / count($clips)));
+            }
+        }
+
+        foreach ($pending as $i => $task) {
+            $report[$i] = 'clip #'.($i + 1).': FAILED — timed out';
+        }
+
+        ksort($report);
+
+        return [
+            'summary' => "{$done}/".count($clips).' clips',
+            'content' => "Clips (cannot be previewed here; assume each followed its prompt):\n".implode("\n", $report),
+        ];
+    }
+
+    private function deliverPoster(Creation $creation, array $in): array
+    {
+        $key = $in['format'] ?? '';
+
+        if (! in_array($key, $creation->formats, true)) {
+            throw new AiException("Format [{$key}] was not requested.");
+        }
+
+        $asset = $creation->asset($in['image_id'] ?? '') ?? throw new AiException("Unknown asset [{$in['image_id']}].");
+
+        if ($asset['kind'] !== 'image') {
+            throw new AiException('Only images can be delivered as posters.');
+        }
+
+        $format = config("creations.poster_formats.{$key}");
+        $poster = $this->formatter->fit(MediaStore::read($asset['path'])['data'], $format['width'], $format['height']);
+        $file = MediaStore::put("creations/{$creation->public_id}", $poster['data'], $poster['mime']);
+
+        // Re-delivering a format replaces the earlier output.
+        $creation->outputs = array_values(array_filter($creation->outputs, fn ($o) => ($o['format'] ?? null) !== $key));
+        $creation->addOutput([
+            'kind' => 'image', 'format' => $key, 'label' => $format['label'],
+            'width' => $format['width'], 'height' => $format['height'],
+            'path' => $file['path'], 'url' => $file['url'], 'source_asset' => $asset['id'],
+        ]);
+
+        $this->bumpProgress($creation);
+
+        return ['summary' => "{$key} ← {$asset['id']}", 'content' => "Delivered {$key} ({$format['width']}×{$format['height']})."];
+    }
+
+    private function deliverReel(Creation $creation, array $in): array
+    {
+        $ids = array_values($in['clip_ids'] ?? []);
+        $total = 0;
+
+        foreach ($ids as $id) {
+            $asset = $creation->asset($id) ?? throw new AiException("Unknown asset [{$id}].");
+
+            if ($asset['kind'] !== 'video') {
+                throw new AiException("Asset [{$id}] is not a video clip.");
+            }
+
+            $total += (int) ($asset['duration'] ?? 0);
+        }
+
+        $need = config('creations.reel.duration');
+
+        if ($total < $need) {
+            throw new AiException("Clips add up to {$total} s; at least {$need} s are needed. Generate more clips and deliver again.");
+        }
+
+        $creation->update(['reel_clips' => $ids]);
+
+        return ['summary' => count($ids)." clips, {$total} s", 'content' => "Reel accepted ({$total} s of clips, trimmed to {$need} s). It will be assembled after you finish."];
+    }
+
+    private function finish(Creation $creation, array $in): array
+    {
+        $creation->update(['summary' => (string) ($in['summary'] ?? '')]);
 
         return ['summary' => 'done', 'content' => 'OK'];
     }
 
     // --------------------------------------------------------------- helpers
 
+    private function bumpProgress(Creation $creation): void
+    {
+        if ($creation->type === Creation::POSTER) {
+            $need = max(1, count($creation->formats));
+            $generated = count(array_filter($creation->assets, fn ($a) => ($a['source'] ?? '') === 'generated'));
+            $delivered = count($creation->outputs);
+            $creation->setStage('generating', 10 + (int) (50 * min(1, $generated / $need)) + (int) (35 * $delivered / $need));
+        } else {
+            $creation->setStage('storyboard', 15);
+        }
+    }
+
     /**
      * @return array{data: string, mime: string}
      */
-    private function readAsset(AgentRun $run, string $id, string $kind): array
+    private function readAsset(Creation $creation, string $id, string $kind): array
     {
-        $asset = $run->asset($id) ?? throw new AiException("Unknown asset [{$id}].");
+        $asset = $creation->asset($id) ?? throw new AiException("Unknown asset [{$id}].");
 
         if ($asset['kind'] !== $kind) {
             throw new AiException("Asset [{$id}] is a {$asset['kind']}, not a {$kind}.");
         }
 
-        $path = preg_replace('#^/storage/#', '', $asset['url']);
-        $disk = Storage::disk('public');
-
-        if (! $disk->exists($path)) {
-            throw new AiException("Asset file for [{$id}] is missing.");
-        }
-
-        return ['data' => $disk->get($path), 'mime' => $disk->mimeType($path) ?: 'image/png'];
+        return MediaStore::read($asset['path']);
     }
 
     /**
-     * Claude image block, downscaled to keep requests small.
+     * Claude image block, downscaled to ≤1024 px to keep requests small.
      */
-    private function imageBlock(array $asset): array
+    private function imageBlock(string $path): array
     {
-        $path = preg_replace('#^/storage/#', '', $asset['url']);
-        $data = Storage::disk('public')->get($path);
-        $mime = Storage::disk('public')->mimeType($path) ?: 'image/png';
+        ['data' => $data, 'mime' => $mime] = MediaStore::read($path);
 
-        if (function_exists('imagecreatefromstring') && ($img = @imagecreatefromstring($data))) {
+        if ($img = @imagecreatefromstring($data)) {
             $w = imagesx($img);
             $h = imagesy($img);
             $scale = min(1, 1024 / max($w, $h));
@@ -467,10 +493,5 @@ class CreativeAgent
         }
 
         return ['type' => 'image', 'source' => ['type' => 'base64', 'media_type' => $mime, 'data' => base64_encode($data)]];
-    }
-
-    private function lastText(array $response): string
-    {
-        return collect($response['content'])->where('type', 'text')->pluck('text')->implode("\n");
     }
 }
