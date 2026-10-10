@@ -73,21 +73,21 @@ class CreationTest extends TestCase
         $user = User::factory()->create();
         $poster = ['type' => 'poster', 'formats' => ['feed_square'], 'prompt' => 'Кофены постер'];
 
-        // A new account starts with the free plan's credits: one poster (14) + one reel (130).
+        // A new account starts with the free plan's credits: one poster (12) + one reel (120).
         $this->actingAs($user)->getJson('/api/v1/me')
-            ->assertJsonPath('data.credits', 144)
+            ->assertJsonPath('data.credits', 132)
             ->assertJsonPath('data.plan', ['name' => 'Үнэгүй', 'free' => true])
             ->assertJsonPath('data.subscribed', false);
 
         $first = $this->actingAs($user)->postJson('/api/v1/creations', $poster)->assertStatus(202)->json('data.id');
-        $this->assertSame(14, Creation::where('public_id', $first)->value('credits'));
+        $this->assertSame(12, Creation::where('public_id', $first)->value('credits'));
         $this->actingAs($user)->postJson('/api/v1/creations', ['type' => 'reel', 'prompt' => 'Кофены reels'])->assertStatus(202);
         $this->actingAs($user)->getJson('/api/v1/me')->assertJsonPath('data.credits', 0);
 
         $this->actingAs($user)->postJson('/api/v1/creations', $poster)
             ->assertStatus(402)
             ->assertJsonPath('code', 'subscription_required')
-            ->assertJsonPath('needed', 14);
+            ->assertJsonPath('needed', 12);
         $this->assertSame(2, Creation::count()); // nothing is kept for a refused job
 
         // Deleting a finished creation does not give credits back; a failed run does.
@@ -98,16 +98,16 @@ class CreationTest extends TestCase
 
         (new RunCreation($creation))->failed(new \RuntimeException('boom'));
         (new RunCreation($creation))->failed(new \RuntimeException('again')); // idempotent
-        $this->actingAs($user)->getJson('/api/v1/me')->assertJsonPath('data.credits', 14);
+        $this->actingAs($user)->getJson('/api/v1/me')->assertJsonPath('data.credits', 12);
 
         // A paid period adds its credits, which are spent before the never-expiring free ones.
         $standard = Plan::where('slug', 'standard')->first();
         app(BillingService::class)->markPaid(Payment::create(['user_id' => $user->id, 'plan_id' => $standard->id, 'amount' => $standard->price, 'status' => Payment::PENDING, 'sender_invoice_no' => 'T1', 'callback_token' => 'tok-t1']));
-        $this->actingAs($user)->getJson('/api/v1/me')->assertJsonPath('data.credits', 174)->assertJsonPath('data.plan.name', 'Стандарт');
+        $this->actingAs($user)->getJson('/api/v1/me')->assertJsonPath('data.credits', 172)->assertJsonPath('data.plan.name', 'Стандарт');
 
         $id = $this->actingAs($user)->postJson('/api/v1/creations', ['formats' => ['feed_square', 'story']] + $poster)->assertStatus(202)->json('data.id');
         $paid = Subscription::where('user_id', $user->id)->paid()->first();
-        $this->assertSame([['subscription_id' => $paid->id, 'credits' => 18]], Creation::where('public_id', $id)->value('charges'));
+        $this->assertSame([['subscription_id' => $paid->id, 'credits' => 15]], Creation::where('public_id', $id)->value('charges'));
 
         // The free plan cannot be bought.
         $this->actingAs($user)->postJson('/api/v1/payments', ['plan_id' => Plan::where('slug', 'free')->first()->id])->assertStatus(422);
@@ -217,7 +217,7 @@ class CreationTest extends TestCase
                 && $tools === ['load_skill', 'generate_image', 'deliver_poster', 'finish']
                 && collect($r['tools'])->firstWhere('name', 'deliver_poster')['input_schema']['properties']['format']['enum'] === ['feed_portrait', 'story']
                 && str_contains($r['system'][0]['text'], '`poster-design`')
-                && ! str_contains(json_encode($r['messages']), 'cache_control') // job history is never cached
+                && last(last($r['messages'])['content'])['cache_control'] === ['type' => 'ephemeral']
                 && str_contains(last($r['messages'][0]['content'])['text'], 'Media budget for this job: $1.00')
                 && collect($r['messages'][0]['content'])->contains(fn ($b) => $b['type'] === 'image');
         });
