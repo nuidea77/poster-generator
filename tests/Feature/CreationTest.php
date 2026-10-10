@@ -73,22 +73,26 @@ class CreationTest extends TestCase
         $user = User::factory()->create();
         $poster = ['type' => 'poster', 'formats' => ['feed_square'], 'prompt' => 'Кофены постер'];
 
-        // A new account starts with the free plan's credits: one poster (12) + one reel (120).
+        // A new account gets exactly one free poster (12 credits, one size).
         $this->actingAs($user)->getJson('/api/v1/me')
-            ->assertJsonPath('data.credits', 132)
+            ->assertJsonPath('data.credits', 12)
             ->assertJsonPath('data.plan', ['name' => 'Үнэгүй', 'free' => true])
             ->assertJsonPath('data.subscribed', false);
 
+        $this->actingAs($user)->postJson('/api/v1/creations', ['type' => 'reel', 'prompt' => 'Кофены reels'])
+            ->assertStatus(402)->assertJsonPath('needed', 120);
+        $this->actingAs($user)->postJson('/api/v1/creations', ['formats' => ['feed_square', 'story']] + $poster)
+            ->assertStatus(402)->assertJsonPath('needed', 15);
+
         $first = $this->actingAs($user)->postJson('/api/v1/creations', $poster)->assertStatus(202)->json('data.id');
         $this->assertSame(12, Creation::where('public_id', $first)->value('credits'));
-        $this->actingAs($user)->postJson('/api/v1/creations', ['type' => 'reel', 'prompt' => 'Кофены reels'])->assertStatus(202);
         $this->actingAs($user)->getJson('/api/v1/me')->assertJsonPath('data.credits', 0);
 
         $this->actingAs($user)->postJson('/api/v1/creations', $poster)
             ->assertStatus(402)
             ->assertJsonPath('code', 'subscription_required')
             ->assertJsonPath('needed', 12);
-        $this->assertSame(2, Creation::count()); // nothing is kept for a refused job
+        $this->assertSame(1, Creation::count()); // nothing is kept for a refused job
 
         // Deleting a finished creation does not give credits back; a failed run does.
         $creation = Creation::where('public_id', $first)->first();

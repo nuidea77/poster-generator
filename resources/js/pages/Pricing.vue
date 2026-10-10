@@ -48,7 +48,7 @@ async function paid() {
     <div class="mx-auto max-w-5xl">
         <section class="mx-auto max-w-2xl py-10 text-center">
             <h1 class="display text-4xl leading-[0.95] md:text-6xl">Кредитээр<br /><span class="text-lime">бүтээ.</span></h1>
-            <p class="mt-4 text-zinc-400">Бүртгүүлмэгц 1 постер, 1 reels хийх кредит үнэгүй. Дараа нь сарын багцаар кредит аваарай. QPay-ээр төлнө.</p>
+            <p class="mt-4 text-zinc-400">Бүртгүүлмэгц 1 постер үнэгүй. Дараа нь сарын багцаар кредит аваарай. QPay-ээр төлнө.</p>
             <div class="mt-5 flex flex-wrap justify-center gap-2 text-sm">
                 <span class="chip"><Icon name="image" size="14" /> Постер · {{ prices.poster }} кредит <span class="text-muted">(+{{ prices.poster_extra_format }} нэмэлт хэмжээ бүрт)</span></span>
                 <span class="chip"><Icon name="video" size="14" /> Reels · {{ prices.reel }} кредит</span>

@@ -17,8 +17,8 @@ class PlanSeeder extends Seeder
 
         foreach ([
             [
-                'slug' => 'free', 'name' => 'Үнэгүй', 'price' => 0, 'period_days' => 1, 'credits' => 132, 'sort' => 0,
-                'features' => ['132 кредит, нэг удаа', '= 1 постер + 1 reels', ...$common],
+                'slug' => 'free', 'name' => 'Үнэгүй', 'price' => 0, 'period_days' => 1, 'credits' => 12, 'sort' => 0, // exactly one poster in one size
+                'features' => ['1 постер үнэгүй (12 кредит)', 'Нэг хэмжээ сонгоно', 'Лого, бүтээгдэхүүний зураг ашиглана', 'Reels-д багц шаардлагатай'],
             ],
             [
                 'slug' => 'standard', 'name' => 'Стандарт', 'price' => 199000, 'period_days' => 30, 'credits' => 160, 'sort' => 1,

@@ -57,8 +57,8 @@ const cards = ['from-orange-500 to-amber-700', 'from-sky-500 to-indigo-700', 'fr
         </section>
 
         <section v-if="session.meta.plans.length" class="mt-16 text-center">
-            <h2 class="display text-3xl">Үнэгүй туршаад, хязгааргүй бүтээ</h2>
-            <p class="mt-2 text-zinc-400">1 постер, 1 reels үнэгүй. Хязгааргүй багц {{ money(session.meta.plans.find((p) => p.price)?.price ?? 0) }}-өөс эхэлнэ</p>
+            <h2 class="display text-3xl">Эхний постер үнэгүй</h2>
+            <p class="mt-2 text-zinc-400">Бүртгүүлээд туршаад үз. Багц {{ money(session.meta.plans.find((p) => p.price)?.price ?? 0) }}-өөс эхэлнэ</p>
             <RouterLink to="/pricing" class="btn btn-lime mt-5">Багцууд</RouterLink>
         </section>
     </div>

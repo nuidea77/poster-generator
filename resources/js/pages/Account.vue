@@ -53,7 +53,7 @@ async function signOut() {
             </div>
             <div v-else-if="session.user.plan?.free" class="flex flex-wrap items-center gap-3">
                 <span class="badge badge-muted">Үнэгүй</span>
-                <span class="text-sm">Эхлэлийн кредит (1 постер + 1 reels)</span>
+                <span class="text-sm">Эхлэлийн кредит (1 үнэгүй постер)</span>
                 <RouterLink to="/pricing" class="btn btn-lime btn-sm ml-auto">Багц сонгох</RouterLink>
             </div>
             <div v-else class="flex flex-wrap items-center gap-3">
