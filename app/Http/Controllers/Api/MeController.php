@@ -57,6 +57,7 @@ class MeController extends Controller
             'uploads' => config('creations.uploads'),
             'plans' => Plan::where('is_active', true)->orderBy('sort')->get(['id', 'slug', 'name', 'price', 'period_days', 'credits', 'features']),
             'credit_prices' => config('pricing.credits'),
+            'usd_mnt' => config('pricing.usd_mnt'),
             'payments_fake' => (bool) config('qpay.fake'),
         ]);
     }

@@ -107,7 +107,7 @@ class CreationTest extends TestCase
         // A paid period adds its credits, which are spent before the never-expiring free ones.
         $standard = Plan::where('slug', 'standard')->first();
         app(BillingService::class)->markPaid(Payment::create(['user_id' => $user->id, 'plan_id' => $standard->id, 'amount' => $standard->price, 'status' => Payment::PENDING, 'sender_invoice_no' => 'T1', 'callback_token' => 'tok-t1']));
-        $this->actingAs($user)->getJson('/api/v1/me')->assertJsonPath('data.credits', 732)->assertJsonPath('data.plan.name', 'Стандарт');
+        $this->actingAs($user)->getJson('/api/v1/me')->assertJsonPath('data.credits', 72)->assertJsonPath('data.plan.name', 'Стандарт');
 
         $id = $this->actingAs($user)->postJson('/api/v1/creations', ['formats' => ['feed_square', 'story']] + $poster)->assertStatus(202)->json('data.id');
         $paid = Subscription::where('user_id', $user->id)->paid()->first();

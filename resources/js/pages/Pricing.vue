@@ -83,6 +83,7 @@ async function paid() {
                     <span v-if="i === 1" class="badge badge-top">Top</span>
                 </div>
                 <div class="display text-4xl">{{ money(p.price) }}<span v-if="p.price" class="ml-1 text-base text-muted">/{{ isYearly(p) ? 'жил' : 'сар' }}</span></div>
+                <div v-if="p.price" class="mt-0.5 text-xs text-muted">≈ ${{ Math.round(p.price / session.meta.usd_mnt) }}</div>
                 <div v-if="p.price && isYearly(p)" class="mt-1 text-sm text-muted">
                     Сард {{ money(Math.round(p.price / 12)) }} · <b class="text-fg">{{ p.credits.toLocaleString() }} кредит</b>
                     <span v-if="saving(p) > 0" class="ml-1 text-lime">· {{ money(saving(p)) }} хэмнэнэ</span>

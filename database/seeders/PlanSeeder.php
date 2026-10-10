@@ -8,7 +8,7 @@ use Illuminate\Database\Seeder;
 class PlanSeeder extends Seeder
 {
     /**
-     * Three credit plans. A poster costs 12 credits (+3 per extra size), a reel 120.
+     * Free tier plus Standard ($20/mo) and Pro ($100/mo), monthly or yearly. A poster costs 12 credits (+3 per extra size), a reel 120.
      * Priced for the most expensive models: ≥2× margin worst case, ≥3× typical (docs/PRICING.md).
      */
     public function run(): void
@@ -20,24 +20,24 @@ class PlanSeeder extends Seeder
                 'slug' => 'free', 'name' => 'Үнэгүй', 'price' => 0, 'period_days' => 1, 'credits' => 12, 'sort' => 0, // exactly one poster in one size
                 'features' => ['1 постер үнэгүй (12 кредит)', 'Нэг хэмжээ сонгоно', 'Лого, бүтээгдэхүүний зураг ашиглана', 'Reels-д багц шаардлагатай'],
             ],
+            // $20 and $100 a month (1$ ≈ 3,600₮). Credits keep ≥1,111₮ per credit, the
+            // floor for ≥2× worst-case and ≥3× typical margin with the most expensive models.
             [
-                // Sized for an average customer: 10 posters + 5 reels a month.
-                'slug' => 'standard', 'name' => 'Стандарт', 'price' => 900000, 'period_days' => 30, 'credits' => 720, 'sort' => 1,
-                'features' => ['Сард 720 кредит', '≈ 10 постер + 5 reels', ...$common],
+                'slug' => 'standard', 'name' => 'Стандарт', 'price' => 72000, 'period_days' => 30, 'credits' => 60, 'sort' => 1,
+                'features' => ['Сард 60 кредит', '≈ 5 постер', ...$common],
             ],
             [
-                'slug' => 'pro', 'name' => 'Про', 'price' => 2070000, 'period_days' => 30, 'credits' => 1800, 'sort' => 2,
-                'features' => ['Сард 1,800 кредит', '≈ 25 постер + 12 reels', ...$common, 'Кредитийн үнэ хамгийн хямд'],
+                'slug' => 'pro', 'name' => 'Про', 'price' => 360000, 'period_days' => 30, 'credits' => 320, 'sort' => 2,
+                'features' => ['Сард 320 кредит', '≈ 2 reels + 6 постер, эсвэл 26 постер', ...$common, 'Кредитийн үнэ хамгийн хямд'],
             ],
-            // Yearly: 12 months of credits at once, valid 365 days. Discounts stay above the
-            // margin floor (≥1,111₮ per credit keeps reels at ≥3× typical cost).
+            // Yearly: 12 months of credits at once, valid 365 days; discount limited by the same floor.
             [
-                'slug' => 'standard-yearly', 'name' => 'Стандарт', 'price' => 9720000, 'period_days' => 365, 'credits' => 8640, 'sort' => 3,
-                'features' => ['Жилд 8,640 кредит (сард 720)', '≈ сард 10 постер + 5 reels', ...$common, '10% хямд'],
+                'slug' => 'standard-yearly', 'name' => 'Стандарт', 'price' => 800000, 'period_days' => 365, 'credits' => 720, 'sort' => 3,
+                'features' => ['Жилд 720 кредит (сард 60)', '≈ сард 5 постер', ...$common, '7% хямд'],
             ],
             [
-                'slug' => 'pro-yearly', 'name' => 'Про', 'price' => 24000000, 'period_days' => 365, 'credits' => 21600, 'sort' => 4,
-                'features' => ['Жилд 21,600 кредит (сард 1,800)', '≈ сард 25 постер + 12 reels', ...$common, 'Кредитийн үнэ хамгийн хямд'],
+                'slug' => 'pro-yearly', 'name' => 'Про', 'price' => 4270000, 'period_days' => 365, 'credits' => 3840, 'sort' => 4,
+                'features' => ['Жилд 3,840 кредит (сард 320)', '≈ сард 2 reels + 6 постер', ...$common, 'Кредитийн үнэ хамгийн хямд'],
             ],
         ] as $plan) {
             Plan::updateOrCreate(['slug' => $plan['slug']], $plan + ['is_active' => true]);
