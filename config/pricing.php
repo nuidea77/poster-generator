@@ -19,7 +19,7 @@ return [
     'usd_mnt' => (float) env('PRICING_USD_MNT', 3600),
 
     // Value of one credit in the cheapest paid plan (used for margin reports).
-    'credit_mnt' => (int) env('PRICING_CREDIT_MNT', 1134),
+    'credit_mnt' => (int) env('PRICING_CREDIT_MNT', 1150),
 
     'costs' => [
         // Claude Fable, USD per 1M tokens.

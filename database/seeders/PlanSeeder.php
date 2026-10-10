@@ -21,12 +21,13 @@ class PlanSeeder extends Seeder
                 'features' => ['1 постер үнэгүй (12 кредит)', 'Нэг хэмжээ сонгоно', 'Лого, бүтээгдэхүүний зураг ашиглана', 'Reels-д багц шаардлагатай'],
             ],
             [
-                'slug' => 'standard', 'name' => 'Стандарт', 'price' => 199000, 'period_days' => 30, 'credits' => 160, 'sort' => 1,
-                'features' => ['Сард 160 кредит', '≈ 1 reels + 3 постер, эсвэл 13 постер', ...$common],
+                // Sized for an average customer: 10 posters + 5 reels a month.
+                'slug' => 'standard', 'name' => 'Стандарт', 'price' => 900000, 'period_days' => 30, 'credits' => 720, 'sort' => 1,
+                'features' => ['Сард 720 кредит', '≈ 10 постер + 5 reels', ...$common],
             ],
             [
-                'slug' => 'pro', 'name' => 'Про', 'price' => 499000, 'period_days' => 30, 'credits' => 440, 'sort' => 2,
-                'features' => ['Сард 440 кредит', '≈ 3 reels + 6 постер, эсвэл 36 постер', ...$common, 'Кредитийн үнэ хамгийн хямд'],
+                'slug' => 'pro', 'name' => 'Про', 'price' => 2070000, 'period_days' => 30, 'credits' => 1800, 'sort' => 2,
+                'features' => ['Сард 1,800 кредит', '≈ 25 постер + 12 reels', ...$common, 'Кредитийн үнэ хамгийн хямд'],
             ],
         ] as $plan) {
             Plan::updateOrCreate(['slug' => $plan['slug']], $plan + ['is_active' => true]);
