@@ -73,9 +73,9 @@ class CreationTest extends TestCase
         $user = User::factory()->create();
         $poster = ['type' => 'poster', 'formats' => ['feed_square'], 'prompt' => 'Кофены постер'];
 
-        // A new account starts with the free plan's credits: one poster (12) + one reel (55).
+        // A new account starts with the free plan's credits: one poster (12) + one reel (120).
         $this->actingAs($user)->getJson('/api/v1/me')
-            ->assertJsonPath('data.credits', 67)
+            ->assertJsonPath('data.credits', 132)
             ->assertJsonPath('data.plan', ['name' => 'Үнэгүй', 'free' => true])
             ->assertJsonPath('data.subscribed', false);
 
@@ -103,7 +103,7 @@ class CreationTest extends TestCase
         // A paid period adds its credits, which are spent before the never-expiring free ones.
         $standard = Plan::where('slug', 'standard')->first();
         app(BillingService::class)->markPaid(Payment::create(['user_id' => $user->id, 'plan_id' => $standard->id, 'amount' => $standard->price, 'status' => Payment::PENDING, 'sender_invoice_no' => 'T1', 'callback_token' => 'tok-t1']));
-        $this->actingAs($user)->getJson('/api/v1/me')->assertJsonPath('data.credits', 92)->assertJsonPath('data.plan.name', 'Стандарт');
+        $this->actingAs($user)->getJson('/api/v1/me')->assertJsonPath('data.credits', 172)->assertJsonPath('data.plan.name', 'Стандарт');
 
         $id = $this->actingAs($user)->postJson('/api/v1/creations', ['formats' => ['feed_square', 'story']] + $poster)->assertStatus(202)->json('data.id');
         $paid = Subscription::where('user_id', $user->id)->paid()->first();
@@ -218,7 +218,7 @@ class CreationTest extends TestCase
                 && collect($r['tools'])->firstWhere('name', 'deliver_poster')['input_schema']['properties']['format']['enum'] === ['feed_portrait', 'story']
                 && str_contains($r['system'][0]['text'], '`poster-design`')
                 && last(last($r['messages'])['content'])['cache_control'] === ['type' => 'ephemeral']
-                && str_contains(last($r['messages'][0]['content'])['text'], 'Media budget for this job: $0.75')
+                && str_contains(last($r['messages'][0]['content'])['text'], 'Media budget for this job: $1.00')
                 && collect($r['messages'][0]['content'])->contains(fn ($b) => $b['type'] === 'image');
         });
     }
@@ -228,8 +228,8 @@ class CreationTest extends TestCase
         $image = ['provider' => 'openai', 'prompt' => 'hero', 'aspect' => '4:5', 'reference_image_ids' => [], 'purpose' => 'try'];
         Http::fake([
             'api.anthropic.com/*' => Http::sequence()
-                ->push($this->turn([['generate_image', $image], ['generate_image', $image], ['generate_image', $image]]))
-                ->push($this->turn([['deliver_poster', ['format' => 'feed_portrait', 'image_id' => 'img_2']]]))
+                ->push($this->turn([['generate_image', $image], ['generate_image', $image], ['generate_image', $image], ['generate_image', $image]]))
+                ->push($this->turn([['deliver_poster', ['format' => 'feed_portrait', 'image_id' => 'img_3']]]))
                 ->push($this->turn([['finish', ['summary' => 'ok']]])),
             'api.openai.com/v1/images/generations' => Http::response(['data' => [['b64_json' => base64_encode(self::png(800, 1000))]]]),
         ]);
@@ -238,16 +238,16 @@ class CreationTest extends TestCase
         RunCreation::dispatchSync($creation);
         $creation->refresh();
 
-        // $0.50 budget for one format = two high-quality GPT images; the third is refused.
+        // $0.75 budget for one format = three high-quality GPT images (1 + 2 retries); the fourth is refused.
         $this->assertSame('done', $creation->status, (string) $creation->error_detail);
-        $this->assertCount(2, $creation->assets);
-        $this->assertStringContainsString('Over the media budget', $creation->steps[2]['error']);
-        Http::assertSentCount(5);
+        $this->assertCount(3, $creation->assets);
+        $this->assertStringContainsString('Over the media budget', $creation->steps[3]['error']);
+        Http::assertSentCount(6);
 
         $this->user->forceFill(['is_admin' => true])->save();
         $this->actingAs($this->user)->getJson("/api/v1/admin/creations/{$creation->public_id}")
-            ->assertJsonPath('data.cost.media_usd', 0.5)
-            ->assertJsonPath('data.cost.budget_usd', 0.5);
+            ->assertJsonPath('data.cost.media_usd', 0.75)
+            ->assertJsonPath('data.cost.budget_usd', 0.75);
     }
 
     public function test_agent_without_deliverables_fails_with_generic_message(): void
@@ -284,8 +284,8 @@ class CreationTest extends TestCase
                 ]]]]))
                 ->push($this->turn([['deliver_reel', ['clip_ids' => ['vid_4', 'vid_2']]]]))
                 ->push($this->turn([['finish', ['summary' => 'ok']]])),
-            "{$veo}/models/veo-3.1-fast-generate-preview:predictLongRunning" => Http::response(['name' => 'models/veo-3.1-fast-generate-preview/operations/op1']),
-            "{$veo}/models/veo-3.1-fast-generate-preview/operations/op1" => Http::sequence()
+            "{$veo}/models/veo-3.1-generate-preview:predictLongRunning" => Http::response(['name' => 'models/veo-3.1-generate-preview/operations/op1']),
+            "{$veo}/models/veo-3.1-generate-preview/operations/op1" => Http::sequence()
                 ->push(['name' => 'op1', 'done' => false])
                 ->push(['name' => 'op1', 'done' => true, 'response' => ['generateVideoResponse' => ['generatedSamples' => [['video' => ['uri' => "{$veo}/files/v1:download?alt=media"]]]]]]),
             "{$veo}/files/*" => Http::response($clipBytes),

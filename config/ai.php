@@ -64,8 +64,9 @@ return [
             'kind' => 'video',
             'key' => env('VEO_API_KEY', env('GEMINI_API_KEY')),
             'base_url' => env('VEO_BASE_URL', env('GEMINI_BASE_URL', 'https://generativelanguage.googleapis.com/v1beta')),
-            // Fast: about a third of the standard model's price per second. Keep COST_VEO_SECOND in step.
-            'video_model' => env('VEO_MODEL', 'veo-3.1-fast-generate-preview'),
+            // Standard model ($0.40/s); credits are priced for it. veo-3.1-fast-generate-preview
+            // costs ~$0.12/s and only raises the margin. Keep COST_VEO_SECOND in step.
+            'video_model' => env('VEO_MODEL', 'veo-3.1-generate-preview'),
             'resolution' => env('VEO_RESOLUTION', '1080p'), // 720p | 1080p (1080p only for 8 s clips)
             'poll_interval' => (int) env('VEO_POLL_INTERVAL', 10),
             'poll_timeout' => (int) env('VEO_POLL_TIMEOUT', 1500),

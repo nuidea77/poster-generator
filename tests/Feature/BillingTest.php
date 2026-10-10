@@ -66,7 +66,7 @@ class BillingTest extends TestCase
         $id = $this->actingAs($user)->postJson('/api/v1/payments', ['plan_id' => $plan->id])
             ->assertCreated()
             ->assertJsonPath('data.status', 'pending')
-            ->assertJsonPath('data.amount', 99000)
+            ->assertJsonPath('data.amount', 199000)
             ->assertJsonPath('data.urls.0.name', 'Khan bank')
             ->json('data.id');
 
@@ -76,7 +76,7 @@ class BillingTest extends TestCase
         Http::assertSent(fn (Request $r) => str_ends_with($r->url(), '/v2/auth/token') && $r->hasHeader('Authorization', 'Basic '.base64_encode('cid:secret')));
         Http::assertSent(fn (Request $r) => str_ends_with($r->url(), '/v2/invoice')
             && $r['invoice_code'] === 'TEST_INVOICE'
-            && $r['amount'] === 99000
+            && $r['amount'] === 199000
             && $r['sender_invoice_no'] === $payment->sender_invoice_no
             && $r['callback_url'] === 'https://poster.test/api/v1/payments/qpay/callback/'.$payment->callback_token);
         Http::assertSentCount(2); // token cached, second checkout reused the invoice
@@ -84,7 +84,7 @@ class BillingTest extends TestCase
 
     public function test_callback_verifies_with_qpay_and_activates_once(): void
     {
-        $this->fakeQpay([['payment_id' => 'p1', 'payment_status' => 'PAID', 'payment_amount' => 99000]]);
+        $this->fakeQpay([['payment_id' => 'p1', 'payment_status' => 'PAID', 'payment_amount' => 199000]]);
         $user = User::factory()->create();
         $payment = app(BillingService::class)->startCheckout($user, Plan::where('slug', 'standard')->first());
 
