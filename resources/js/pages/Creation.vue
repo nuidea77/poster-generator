@@ -56,6 +56,7 @@ async function remove() {
     router.push('/library');
 }
 
+const clock = (s) => `${Math.floor(Math.round(s) / 60)}:${String(Math.round(s) % 60).padStart(2, '0')}`;
 const fileName = (o) => `poster-studio-${creation.value.id.slice(-6).toLowerCase()}-${o.format}.${o.kind === 'video' ? 'mp4' : 'jpg'}`;
 </script>
 
@@ -67,7 +68,7 @@ const fileName = (o) => `poster-studio-${creation.value.id.slice(-6).toLowerCase
         <template v-if="creation">
             <div class="mb-4 flex flex-wrap items-center gap-2">
                 <RouterLink to="/library" class="btn btn-ghost btn-sm"><Icon name="arrow" size="12" class="rotate-180" /> Миний бүтээлүүд</RouterLink>
-                <span class="badge" :class="creation.type === 'reel' ? 'badge-top' : 'badge-new'">{{ creation.type === 'reel' ? 'Reels 1:30' : 'Постер' }}</span>
+                <span class="badge" :class="creation.type === 'reel' ? 'badge-top' : 'badge-new'">{{ creation.type === 'reel' ? 'Reels' + (creation.outputs[0]?.duration ? ` · ${clock(creation.outputs[0].duration)}` : '') : 'Постер' }}</span>
                 <span class="text-xs text-muted">{{ date(creation.created_at) }}</span>
                 <span class="ml-auto flex gap-2">
                     <button v-if="!active" class="btn btn-ghost btn-sm" :disabled="busy" @click="retry"><Icon name="refresh" size="12" /> Дахин үүсгэх</button>
@@ -80,7 +81,7 @@ const fileName = (o) => `poster-studio-${creation.value.id.slice(-6).toLowerCase
             <div v-if="active" class="panel mx-auto max-w-2xl p-6">
                 <StageProgress :creation="creation" />
                 <p class="mt-5 text-sm text-zinc-400">
-                    <template v-if="creation.type === 'reel'">1:30 минутын видео бүтээхэд ихэвчлэн 15–25 минут болдог. Энэ хуудсыг хааж болно, бэлэн болмогц "Миний бүтээлүүд"-д харагдана.</template>
+                    <template v-if="creation.type === 'reel'">Reels видео бүтээхэд ихэвчлэн 10–20 минут болдог. Энэ хуудсыг хааж болно, бэлэн болмогц "Миний бүтээлүүд"-д харагдана.</template>
                     <template v-else>Постер ихэвчлэн 1–3 минутад бэлэн болно.</template>
                 </p>
             </div>

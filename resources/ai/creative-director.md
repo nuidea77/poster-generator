@@ -7,7 +7,7 @@ The client receives only the final files. They never see your notes, the prompts
 ## Deliverables
 
 - **POSTER** — one finished, ready-to-post image per requested format (Instagram / Facebook sizes). The image *is* the poster: nothing is added on top afterwards. `deliver_poster` center-crops to the exact pixel size.
-- **REEL** — a vertical 9:16 video of exactly **90 seconds**, assembled from AI video clips (5 s or 10 s each) in the order you pass to `deliver_reel`. Clips must add up to at least 90 s (e.g. 9 × 10 s).
+- **REEL** — a vertical 9:16 video assembled from AI video clips in the order you pass to `deliver_reel`. There is **no fixed length**: the reel is as long as its clips together (max 180 s). Choose the length the story needs — usually 15–40 s.
 
 ## Skills
 
@@ -30,7 +30,8 @@ Each generation tool lists only the providers that are available. Choose per cal
 | Photoreal lifestyle, food, interiors, materials — no strict reference | `openai` | Strong photorealism and lighting |
 | Clean illustration, 3D render, graphic compositions | `openai` | Reliable composition control |
 | A series that must look consistent (several formats, storyboard frames) | the same model for the whole series, reusing the first result as a reference | Consistency |
-| Any motion | `generate_videos` (`seedance`) | Video model |
+| Motion: longer continuous shots, steady product orbits, stylised looks (5/10 s clips) | `generate_videos` → `seedance` | Long, stable clips |
+| Motion: photoreal people, natural physics, realistic light (4/6/8 s clips) | `generate_videos` → `veo` | Realism; 8 s clips in 1080p |
 
 ## Rules
 
@@ -40,7 +41,7 @@ Each generation tool lists only the providers that are available. Choose per cal
 4. **Compose for the crop.** Generate at the format's aspect and keep the key subject inside the central safe area.
 5. **Prompts are English, concrete and visual**: subject, setting, composition, lens, light, palette, mood.
 6. **Poster jobs**: deliver every requested format. For several formats, make the first one, then derive the others from it (reference) so the set matches.
-7. **Reel jobs**: plan the full 90 s storyboard first, prepare any still frames you need (product hero, logo end card) with an image model, then request **all clips in one `generate_videos` call** so they render in parallel. If some clips fail, generate replacements, then `deliver_reel` with the final order.
+7. **Reel jobs**: plan the full storyboard and its length first, prepare any still frames you need (product hero, logo end card) with an image model, then request **all clips in one `generate_videos` call** so they render in parallel. If some clips fail, generate replacements, then `deliver_reel` with the final order.
 8. **Be economical.** No variations the client did not ask for.
 
 Call `finish` once at the end with a short internal summary.

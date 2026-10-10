@@ -1,6 +1,6 @@
-# Poster Studio — AI постер ба 1:30 reels
+# Poster Studio — AI постер ба reels
 
-Instagram, Facebook-д тавих **постер** болон **90 секундын reels видео**-г захиалгаар (subscription) бүтээдэг вэб үйлчилгээ.
+Instagram, Facebook-д тавих **постер** болон **reels видео**-г захиалгаар (subscription) бүтээдэг вэб үйлчилгээ.
 Laravel 13 + Vue 3 + Tailwind 4.
 
 Шаардлагын бүрэн тодорхойлолт: [`docs/SRS.md`](docs/SRS.md)
@@ -11,11 +11,13 @@ Laravel 13 + Vue 3 + Tailwind 4.
 2. **Claude Fable 5.1** брифийг **skills**-тэй хамт боловсруулна. Ажил бүрт аль AI-г дуудахыг **өөрөө шийднэ**:
    - **Gemini**: бодит бүтээгдэхүүн, логог хэвээр хадгалж засах (reference)
    - **GPT Image**: фото реалистик, бүтээгдэхүүний зурагт хамаарахгүй дүрслэл
-   - **Seedance**: видео клипүүд (бүгдийг зэрэг илгээнэ)
+   - **Seedance** (5/10 сек клип): урт, тогтвортой шот, бүтээгдэхүүн эргүүлэх
+   - **Veo** (Gemini API, 4/6/8 сек клип): бодит хүн, шингэн, гэрэл, физик
+   - Видео клипүүдийг бүгдийг нь зэрэг илгээнэ
 3. Fable үүсгэсэн зураг бүрийг (vision-оор) шалгаж, муу бол дахин үүсгэнэ.
 4. Үр дүн:
    - **Постер**: сонгосон хэмжээ бүрт яг пикселийн хэмжээтэй JPEG. Дээр нь текст давхарлахгүй.
-   - **Reels**: клипүүдийг сервер дээр ffmpeg-ээр угсарч **яг 90.0 секунд**, 1080×1920, H.264 + AAC MP4 болгоно.
+   - **Reels**: клипүүдийг сервер дээр ffmpeg-ээр угсарч 1080×1920, H.264 + AAC MP4 болгоно. Урт нь клипүүдийн нийлбэр (ихэвчлэн 15–40 сек, дээд тал 180 сек).
 5. Вэб дээр харуулж, татах товч гаргана. **Хэрэглэгч аль модель ашигласныг хаана ч харахгүй.** Модель, токен, алхмын лог зөвхөн админд харагдана.
 
 ### Skills
@@ -50,9 +52,9 @@ composer setup        # install, .env, key, migrate, seed (багцууд), stor
 
 ```dotenv
 ANTHROPIC_API_KEY=...          # заавал. Claude Fable бүх ажлыг удирдана
-GEMINI_API_KEY=...             # зураг (дор хаяж нэг зураг модель)
+GEMINI_API_KEY=...             # зураг + Veo видео (дор хаяж нэг зураг модель)
 OPENAI_API_KEY=...             # зураг
-SEEDANCE_API_KEY=...           # видео (reels-д заавал), BytePlus ModelArk
+SEEDANCE_API_KEY=...           # видео, BytePlus ModelArk (reels-д Seedance эсвэл Veo-ийн аль нэг)
 
 QPAY_CLIENT_ID=...
 QPAY_CLIENT_SECRET=...
@@ -78,7 +80,7 @@ composer serve   # http://127.0.0.1:8000 — вэб + queue worker (--timeout=36
 ```
 
 Production:
-- `php artisan queue:work --timeout=3600 --tries=1` (Supervisor). Reels нэг job-д 15–25 минут болно.
+- `php artisan queue:work --timeout=3600 --tries=1` (Supervisor). Reels нэг job-д 10–25 минут болно.
 - `php artisan schedule:run` cron-оор минут бүр. Гацсан бүтээл, хугацаа дууссан нэхэмжлэхийг цэвэрлэнэ.
 - php-fpm: `public/.user.ini` upload 200MB.
 
@@ -89,9 +91,9 @@ app/Services/Agent/CreativeAgent.php   Claude Fable tool-use loop: load_skill, g
                                        generate_videos (зэрэг), deliver_poster, deliver_reel, finish
 app/Services/Agent/SkillLibrary.php    skills: resources/ai/skills/*/SKILL.md + admin-ийн custom (DB)
 resources/ai/creative-director.md      system prompt (модель сонгох дүрэм)
-app/Services/AI/Providers/             OpenAI, Gemini (зураг), Seedance (видео: submit + poll)
+app/Services/AI/Providers/             OpenAI, Gemini (зураг), Seedance, Veo (видео: submit + poll)
 app/Services/Media/PosterFormatter.php яг пикселийн хэмжээгээр crop
-app/Services/Media/ReelAssembler.php   ffmpeg: normalize → concat → pad/trim 90 сек → AAC
+app/Services/Media/ReelAssembler.php   ffmpeg: normalize → concat → AAC (урт = клипүүдийн нийлбэр)
 app/Jobs/RunCreation.php               queue job: агент → угсралт → done/failed
 app/Services/Billing/                  QPayClient (v2), BillingService (invoice, check, сунгалт)
 app/Http/Resources/CreationResource    хэрэглэгчид харагдах (модельгүй)
@@ -125,4 +127,4 @@ resources/js/pages/                    Home, Create, Creation, Library, Pricing,
 composer test
 ```
 
-Claude, Gemini, OpenAI, Seedance, QPay-г `Http::fake()`-ээр дуурайлгана. Reels-ийн тест бодит ffmpeg-ээр угсралтыг шалгана (ffmpeg байхгүй бол алгасна).
+Claude, Gemini, OpenAI, Seedance, Veo, QPay-г `Http::fake()`-ээр дуурайлгана. Reels-ийн тест бодит ffmpeg-ээр угсралтыг шалгана (ffmpeg байхгүй бол алгасна).

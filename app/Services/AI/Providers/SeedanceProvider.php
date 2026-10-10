@@ -15,9 +15,13 @@ class SeedanceProvider implements VideoProvider
 {
     public function __construct(private array $config, private int $timeout) {}
 
+    public function durations(): array
+    {
+        return [5, 10];
+    }
+
     public function submit(string $prompt, string $aspect, int $duration, ?array $firstFrame = null): string
     {
-        $duration = $duration >= 8 ? 10 : 5;
 
         // Image-to-video takes its ratio from the frame; text-to-video needs the flag.
         $text = trim($prompt).' --duration '.$duration.($firstFrame ? '' : ' --ratio '.$aspect);

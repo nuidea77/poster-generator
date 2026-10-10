@@ -43,7 +43,7 @@ async function paid() {
     <div class="mx-auto max-w-5xl">
         <section class="mx-auto max-w-2xl py-10 text-center">
             <h1 class="display text-4xl leading-[0.95] md:text-6xl">Хязгааргүй<br /><span class="text-lime">бүтээ.</span></h1>
-            <p class="mt-4 text-zinc-400">Нэг багц — постер ба 1:30 reels хязгааргүй. QPay-ээр төлнө.</p>
+            <p class="mt-4 text-zinc-400">Нэг багц — постер ба reels хязгааргүй. QPay-ээр төлнө.</p>
             <p v-if="session.user?.subscription" class="mt-4 inline-block rounded-xl bg-lime/10 px-4 py-2 text-sm text-lime">
                 Таны {{ session.user.subscription.plan }} багц {{ date(session.user.subscription.ends_at) }} хүртэл идэвхтэй. Одоо авбал хугацаа нь үргэлжилж сунгагдана.
             </p>

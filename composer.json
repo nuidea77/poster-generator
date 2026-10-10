@@ -2,7 +2,7 @@
     "$schema": "https://getcomposer.org/schema.json",
     "name": "nuidea77/poster-generator",
     "type": "project",
-    "description": "AI poster & 90-second reels for Instagram/Facebook — Laravel + Vue, Claude Fable routes work to GPT Image, Gemini and Seedance; QPay subscriptions",
+    "description": "AI posters & reels for Instagram/Facebook — Laravel + Vue, Claude Fable routes work to GPT Image, Gemini, Seedance and Veo; QPay subscriptions",
     "keywords": [
         "laravel",
         "framework"

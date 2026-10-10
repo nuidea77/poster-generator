@@ -36,6 +36,8 @@ class CreationTest extends TestCase
             'ai.providers.gemini.key' => 'k-gemini',
             'ai.providers.seedance.key' => 'k-seedance',
             'ai.providers.seedance.poll_interval' => 0,
+            'ai.providers.veo.key' => 'k-gemini',
+            'ai.providers.veo.poll_interval' => 0,
         ]);
 
         $this->user = User::factory()->create();
@@ -153,7 +155,7 @@ class CreationTest extends TestCase
             ->assertJsonPath('data.progress', 100)
             ->assertJsonCount(2, 'data.outputs')
             ->getContent();
-        foreach (['gemini', 'openai', 'seedance', 'claude', 'fable', 'provider', 'steps', 'summary'] as $word) {
+        foreach (['gemini', 'openai', 'seedance', 'veo', 'claude', 'fable', 'provider', 'steps', 'summary'] as $word) {
             $this->assertStringNotContainsStringIgnoringCase($word, $json);
         }
 
@@ -189,28 +191,32 @@ class CreationTest extends TestCase
             ->assertJsonPath('data.error', 'Бүтээх явцад алдаа гарлаа. Дахин оролдоно уу.');
     }
 
-    public function test_reel_pipeline_generates_clips_in_parallel_and_assembles_exact_duration(): void
+    public function test_reel_pipeline_mixes_video_models_and_keeps_the_real_length(): void
     {
         if (! Process::run(['ffmpeg', '-version'])->successful()) {
             $this->markTestSkipped('ffmpeg not installed');
         }
 
-        // Short reel for the test; the production value is 90 s.
-        config(['creations.reel.duration' => 4]);
-
         $clip = tempnam(sys_get_temp_dir(), 'clip').'.mp4';
         Process::run(['ffmpeg', '-y', '-f', 'lavfi', '-i', 'testsrc=size=320x568:rate=24', '-t', '1.5', '-pix_fmt', 'yuv420p', $clip])->throw();
         $clipBytes = file_get_contents($clip);
+        $veo = 'https://generativelanguage.googleapis.com/v1beta';
 
         Http::fake([
             'api.anthropic.com/*' => Http::sequence()
                 ->push($this->turn([['generate_image', ['provider' => 'gemini', 'prompt' => 'product still 9:16', 'aspect' => '9:16', 'reference_image_ids' => ['product_1'], 'purpose' => 'hero frame']]]))
                 ->push($this->turn([['generate_videos', ['clips' => [
-                    ['provider' => 'seedance', 'prompt' => 'slow orbit', 'duration' => 5, 'first_frame_image_id' => 'img_1', 'purpose' => 'hero'],
+                    ['provider' => 'seedance', 'prompt' => 'slow orbit', 'duration' => 10, 'first_frame_image_id' => 'img_1', 'purpose' => 'hero'],
                     ['provider' => 'seedance', 'prompt' => 'city at night', 'duration' => 5, 'first_frame_image_id' => '', 'purpose' => 'world'],
+                    ['provider' => 'veo', 'prompt' => 'barista pours milk', 'duration' => 5, 'first_frame_image_id' => 'img_1', 'purpose' => 'in use'],
                 ]]]]))
-                ->push($this->turn([['deliver_reel', ['clip_ids' => ['vid_2']]]])) // 5 s ≥ 4 s
+                ->push($this->turn([['deliver_reel', ['clip_ids' => ['vid_4', 'vid_2']]]]))
                 ->push($this->turn([['finish', ['summary' => 'ok']]])),
+            "{$veo}/models/veo-3.1-generate-preview:predictLongRunning" => Http::response(['name' => 'models/veo-3.1-generate-preview/operations/op1']),
+            "{$veo}/models/veo-3.1-generate-preview/operations/op1" => Http::sequence()
+                ->push(['name' => 'op1', 'done' => false])
+                ->push(['name' => 'op1', 'done' => true, 'response' => ['generateVideoResponse' => ['generatedSamples' => [['video' => ['uri' => "{$veo}/files/v1:download?alt=media"]]]]]]),
+            "{$veo}/files/*" => Http::response($clipBytes),
             'generativelanguage.googleapis.com/*' => Http::response(['candidates' => [['content' => ['parts' => [['inlineData' => ['mimeType' => 'image/png', 'data' => base64_encode(self::png(90, 160))]]]]]]]),
             'ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks' => Http::sequence()->push(['id' => 't1'])->push(['id' => 't2']),
             'ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks/t1' => Http::sequence()
@@ -228,39 +234,74 @@ class CreationTest extends TestCase
         $creation->refresh();
 
         $this->assertSame('done', $creation->status, (string) $creation->error_detail);
-        $this->assertSame(['vid_2'], $creation->reel_clips);
-        $this->assertSame('video', $creation->outputs[0]['kind']);
+        $this->assertSame(['vid_4', 'vid_2'], $creation->reel_clips);
+        // Ids follow completion order: the 5 s Seedance clip finishes first.
+        $this->assertSame([['seedance', 5], ['seedance', 10], ['veo', 6]], array_map(fn ($a) => [$a['provider'], $a['duration']], array_slice($creation->assets, 1)));
+        $this->assertSame('veo', $creation->asset('vid_4')['provider']);
 
+        // No padding or trimming: the reel is as long as its clips (2 × 1.5 s here).
         $out = Storage::disk('public')->path($creation->outputs[0]['path']);
         $probe = Process::run(['ffprobe', '-v', 'error', '-show_entries', 'stream=codec_type,codec_name,width,height:format=duration', '-of', 'json', $out])->throw();
         $info = json_decode($probe->output(), true);
         $video = collect($info['streams'])->firstWhere('codec_type', 'video');
         $this->assertSame(['h264', 1080, 1920], [$video['codec_name'], $video['width'], $video['height']]);
         $this->assertNotNull(collect($info['streams'])->firstWhere('codec_type', 'audio'));
-        $this->assertEqualsWithDelta(4.0, (float) $info['format']['duration'], 0.15);
+        $this->assertEqualsWithDelta(3.0, (float) $info['format']['duration'], 0.15);
+        $this->assertEqualsWithDelta(3.0, $creation->outputs[0]['duration'], 0.15);
 
-        // Both clips were submitted before polling; the first one used the still as first frame.
+        // All clips were submitted before polling.
         $posts = collect(Http::recorded())->filter(fn ($p) => $p[0]->method() === 'POST' && str_ends_with($p[0]->url(), '/contents/generations/tasks'));
         $this->assertCount(2, $posts);
         $this->assertSame('first_frame', $posts->first()[0]['content'][1]['role']);
+        $this->assertStringContainsString('--duration 10', $posts->first()[0]['content'][0]['text']);
         $this->assertStringContainsString('--ratio 9:16', $posts->last()[0]['content'][0]['text']);
+
+        Http::assertSent(fn (Request $r) => str_ends_with($r->url(), ':predictLongRunning')
+            && $r->hasHeader('x-goog-api-key', 'k-gemini')
+            && $r['instances'][0]['prompt'] === 'barista pours milk'
+            && $r['instances'][0]['image']['inlineData']['mimeType'] === 'image/png'
+            && $r['parameters'] === ['aspectRatio' => '9:16', 'durationSeconds' => '6', 'resolution' => '720p']);
+
+        // Fable sees both video models with their clip lengths.
+        Http::assertSent(function (Request $r) {
+            $tool = str_contains($r->url(), 'anthropic.com') ? collect($r['tools'])->firstWhere('name', 'generate_videos') : null;
+            $clip = $tool['input_schema']['properties']['clips']['items']['properties'] ?? null;
+
+            return $clip
+                && $clip['provider']['enum'] === ['seedance', 'veo']
+                && $clip['duration']['enum'] === [4, 5, 6, 8, 10]
+                && str_contains($tool['description'], 'veo 4/6/8 s');
+        });
+
+        // Customers never see either video model.
+        $json = $this->actingAs($this->user)->getJson("/api/v1/creations/{$creation->public_id}")->getContent();
+        foreach (['seedance', 'veo', 'gemini'] as $word) {
+            $this->assertStringNotContainsStringIgnoringCase($word, $json);
+        }
 
         @unlink($clip);
     }
 
-    public function test_reel_rejects_too_short_delivery(): void
+    public function test_reel_delivery_needs_clips_and_respects_the_cap(): void
     {
+        config(['creations.reel.max_seconds' => 8]);
+
         Http::fake([
             'api.anthropic.com/*' => Http::sequence()
                 ->push($this->turn([['deliver_reel', ['clip_ids' => []]]]))
+                ->push($this->turn([['deliver_reel', ['clip_ids' => ['vid_1', 'vid_2']]]]))
                 ->push($this->turn([['finish', ['summary' => 'x']]])),
         ]);
 
-        $creation = Creation::create(['user_id' => $this->user->id, 'type' => 'reel', 'prompt' => 'x', 'status' => 'queued']);
+        $creation = Creation::create(['user_id' => $this->user->id, 'type' => 'reel', 'prompt' => 'x', 'status' => 'queued', 'assets' => [
+            ['id' => 'vid_1', 'kind' => 'video', 'duration' => 5],
+            ['id' => 'vid_2', 'kind' => 'video', 'duration' => 5],
+        ]]);
         RunCreation::dispatchSync($creation);
         $creation->refresh();
 
-        $this->assertStringContainsString('at least 90 s', $creation->steps[0]['error']);
+        $this->assertStringContainsString('at least one clip', $creation->steps[0]['error']);
+        $this->assertStringContainsString('at most 8 s', $creation->steps[1]['error']);
         $this->assertSame('failed', $creation->status);
     }
 

@@ -9,6 +9,14 @@ namespace App\Services\AI\Contracts;
 interface VideoProvider
 {
     /**
+     * Clip lengths (seconds) the model can render.
+     *
+     * @return list<int>
+     */
+    public function durations(): array;
+
+    /**
+     * @param  int  $duration  One of durations().
      * @param  array{data: string, mime: string}|null  $firstFrame  Image to animate (image-to-video).
      * @return string Provider task id.
      */
@@ -23,4 +31,8 @@ interface VideoProvider
      * @return array{data: string, mime: string}
      */
     public function download(string $url): array;
+
+    public function pollInterval(): int;
+
+    public function pollTimeout(): int;
 }

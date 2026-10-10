@@ -53,7 +53,7 @@ class BillingTest extends TestCase
             ->assertOk()
             ->assertJsonCount(3, 'plans')
             ->assertJsonCount(4, 'poster_formats')
-            ->assertJsonPath('reel.duration', 90)
+            ->assertJsonPath('reel.max_seconds', 180)
             ->assertJsonMissingPath('providers');
     }
 

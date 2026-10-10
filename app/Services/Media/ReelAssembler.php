@@ -9,9 +9,8 @@ use Illuminate\Support\Str;
 
 /**
  * Builds the final reel: every clip is scaled/cropped to 1080×1920 @30fps,
- * concatenated in order, padded with the last frame or trimmed to exactly
- * the configured duration, and given a stereo AAC track (silent when the
- * clips have no audio) so Instagram/Facebook accept the file.
+ * concatenated in order (the reel is as long as the clips together), and
+ * given a silent stereo AAC track so Instagram/Facebook accept the file.
  */
 class ReelAssembler
 {
@@ -25,7 +24,7 @@ class ReelAssembler
             throw new AiException('No clips to assemble.');
         }
 
-        ['width' => $w, 'height' => $h, 'fps' => $fps, 'duration' => $duration] = config('creations.reel');
+        ['width' => $w, 'height' => $h, 'fps' => $fps] = config('creations.reel');
         $ffmpeg = config('ai.ffmpeg');
         $dir = storage_path('app/private/reels/'.Str::uuid());
         File::ensureDirectoryExists($dir);
@@ -49,16 +48,11 @@ class ReelAssembler
             $joined = "{$dir}/joined.mp4";
             $this->run([$ffmpeg, '-y', '-f', 'concat', '-safe', '0', '-i', "{$dir}/list.txt", '-c', 'copy', $joined]);
 
-            $length = $this->duration($joined);
-            $pad = max(0, $duration - $length);
-
             $final = "{$dir}/reel.mp4";
             $this->run([
                 $ffmpeg, '-y', '-i', $joined,
                 '-f', 'lavfi', '-i', 'anullsrc=channel_layout=stereo:sample_rate=48000',
-                '-vf', $pad > 0 ? sprintf('tpad=stop_mode=clone:stop_duration=%.3f', $pad + 0.1) : 'null',
-                '-map', '0:v', '-map', '1:a',
-                '-t', (string) $duration,
+                '-map', '0:v', '-map', '1:a', '-shortest',
                 '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '19', '-pix_fmt', 'yuv420p', '-r', (string) $fps,
                 '-c:a', 'aac', '-b:a', '128k',
                 '-movflags', '+faststart',

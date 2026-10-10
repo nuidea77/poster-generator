@@ -29,7 +29,7 @@ if (session.user?.logo_url) {
 }
 
 const formatLabel = computed(() => {
-    if (form.type === 'reel') return 'Reels 9:16 · 1:30';
+    if (form.type === 'reel') return 'Reels 9:16';
     const picked = meta.poster_formats.filter((f) => form.formats.includes(f.id));
     return picked.length === 1 ? picked[0].label : `${picked.length} хэмжээ`;
 });
@@ -131,7 +131,7 @@ async function submit() {
                     Постер
                 </button>
                 <button class="rounded-xl px-5 py-2 text-sm font-semibold transition" :class="form.type === 'reel' ? 'bg-lime text-ink' : 'text-zinc-400 hover:text-fg'" @click="form.type = 'reel'">
-                    Reels · 1:30
+                    Reels
                 </button>
             </div>
 
@@ -139,11 +139,11 @@ async function submit() {
                 Постер бүтээ<br /><span class="text-lime">Instagram · Facebook</span>
             </h1>
             <h1 v-else class="display text-4xl leading-[0.95] md:text-6xl">
-                1:30 reels<br /><span class="text-lime">бүтнээрээ</span>
+                Reels видео<br /><span class="text-lime">Instagram · Facebook</span>
             </h1>
             <p class="mt-4 max-w-xl text-base text-zinc-400">
                 <template v-if="form.type === 'poster'">Юу сурталчлахаа бичээд, лого, бүтээгдэхүүнийхээ зургийг нэмнэ үү. Бэлэн постер хэдэн минутад гарна.</template>
-                <template v-else>9:16 босоо, 90 секундын бэлэн видео. Ихэвчлэн 15–25 минут болно. Хуудсаа хааж болно, бэлэн болмогц "Миний бүтээлүүд"-д гарна.</template>
+                <template v-else>9:16 босоо, бэлэн видео. Урт нь санаанаасаа хамаарна, ихэвчлэн 15–40 секунд. Бүтээхэд 10–20 минут болно. Хуудсаа хааж болно, бэлэн болмогц "Миний бүтээлүүд"-д гарна.</template>
             </p>
 
             <!-- Poster format picker -->

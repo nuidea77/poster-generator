@@ -1,6 +1,6 @@
 ---
 name: motion-art-director
-description: Motion-design thinking for the 90-second reel — one message, the motion metaphor, hook in the first two seconds, one idea per shot, rhythm and breathing, transitions that carry something across cuts, vertical safe areas, and Mongolian legal/cultural limits. Load for every REEL job together with reels-storyboard.
+description: Motion-design thinking for the reel — one message, the motion metaphor, hook in the first two seconds, one idea per shot, rhythm and breathing, transitions that carry something across cuts, vertical safe areas, and Mongolian legal/cultural limits. Load for every REEL job together with reels-storyboard.
 origin: Claude skill "motion-graphic-designer" (adapted for AI video clips)
 ---
 
@@ -10,7 +10,7 @@ Core principle: **motion is narrative, not decoration.** Every shot exists for a
 
 ## 1. One message
 
-What should the viewer remember and do after 90 seconds? If it does not fit one sentence, the reel will be vague. Write it down before planning shots.
+What should the viewer remember and do when the reel ends? If it does not fit one sentence, the reel will be vague. Write it down before planning shots.
 
 ## 2. Motion metaphor
 
@@ -27,7 +27,7 @@ The movement grows out of the message:
 
 A reel whose motion has nothing to do with the message is just moving wallpaper.
 
-## 3. Rhythm across 90 seconds
+## 3. Rhythm
 
 - **The first 1–2 seconds decide.** Open with the strongest image, never with the logo (the logo ends the reel). The first frame is never empty or black.
 - **One shot, one idea.** Do not ask one clip to show the product, the venue and the people at once.

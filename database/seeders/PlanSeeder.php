@@ -12,7 +12,7 @@ class PlanSeeder extends Seeder
      */
     public function run(): void
     {
-        $features = ['Хязгааргүй постер', 'Хязгааргүй 1:30 reels', 'Instagram · Facebook бүх хэмжээ', 'Лого, бүтээгдэхүүний зураг ашиглана'];
+        $features = ['Хязгааргүй постер', 'Хязгааргүй reels видео', 'Instagram · Facebook бүх хэмжээ', 'Лого, бүтээгдэхүүний зураг ашиглана'];
 
         foreach ([
             ['slug' => 'monthly', 'name' => '1 сар', 'price' => 49000, 'period_days' => 30, 'sort' => 1],

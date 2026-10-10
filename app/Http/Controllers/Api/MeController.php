@@ -53,7 +53,7 @@ class MeController extends Controller
             'poster_formats' => collect(config('creations.poster_formats'))
                 ->map(fn ($f, $key) => ['id' => $key] + collect($f)->only(['label', 'platforms', 'width', 'height'])->all())
                 ->values(),
-            'reel' => collect(config('creations.reel'))->only(['width', 'height', 'duration'])->all(),
+            'reel' => collect(config('creations.reel'))->only(['width', 'height', 'max_seconds'])->all(),
             'uploads' => config('creations.uploads'),
             'plans' => Plan::where('is_active', true)->orderBy('sort')->get(['id', 'slug', 'name', 'price', 'period_days', 'features']),
             'payments_fake' => (bool) config('qpay.fake'),

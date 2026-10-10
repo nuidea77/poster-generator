@@ -48,7 +48,7 @@ return [
             'image_model' => env('GEMINI_IMAGE_MODEL', 'gemini-2.5-flash-image'),
         ],
 
-        // Video models — ByteDance Seedance via BytePlus ModelArk.
+        // Video models. Seedance: ByteDance via BytePlus ModelArk.
         'seedance' => [
             'kind' => 'video',
             'key' => env('SEEDANCE_API_KEY'),
@@ -56,6 +56,17 @@ return [
             'video_model' => env('SEEDANCE_MODEL', 'seedance-1-0-pro-250528'),
             'poll_interval' => (int) env('SEEDANCE_POLL_INTERVAL', 8),
             'poll_timeout' => (int) env('SEEDANCE_POLL_TIMEOUT', 1500),
+        ],
+
+        // Veo: Google, through the Gemini API. Uses the Gemini key unless VEO_API_KEY is set.
+        'veo' => [
+            'kind' => 'video',
+            'key' => env('VEO_API_KEY', env('GEMINI_API_KEY')),
+            'base_url' => env('VEO_BASE_URL', env('GEMINI_BASE_URL', 'https://generativelanguage.googleapis.com/v1beta')),
+            'video_model' => env('VEO_MODEL', 'veo-3.1-generate-preview'),
+            'resolution' => env('VEO_RESOLUTION', '1080p'), // 720p | 1080p (1080p only for 8 s clips)
+            'poll_interval' => (int) env('VEO_POLL_INTERVAL', 10),
+            'poll_timeout' => (int) env('VEO_POLL_TIMEOUT', 1500),
         ],
 
     ],

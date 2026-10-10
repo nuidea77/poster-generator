@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Http;
  * Claude Fable runs the creative job: it reads the brief and the client's
  * logo / product photos, loads skills, decides per asset which image or
  * video model to call, reviews each image, and delivers the finished
- * posters or the ordered clips for the 90-second reel.
+ * posters or the ordered clips for the reel.
  */
 class CreativeAgent
 {
@@ -146,7 +146,7 @@ class CreativeAgent
             }
         } else {
             $reel = config('creations.reel');
-            $lines[] = "Deliverable: REEL — vertical 9:16 video, exactly {$reel['duration']} seconds, assembled from AI video clips (5 or 10 s each) in the order you give.";
+            $lines[] = "Deliverable: REEL — vertical 9:16 video assembled from AI video clips in the order you give. No fixed length: choose what the story needs (at most {$reel['max_seconds']} s).";
         }
 
         if (array_filter($creation->product ?? [])) {
@@ -197,8 +197,11 @@ class CreativeAgent
         }
 
         if ($creation->type === Creation::REEL && $videos) {
+            $lengths = collect($videos)->mapWithKeys(fn ($v) => [$v => $this->ai->video($v)->durations()]);
             $tools[] = $this->tool('generate_videos',
-                'Generate several 9:16 video clips in parallel (one call for the whole storyboard). Each clip is 5 or 10 s. first_frame_image_id animates an existing image ("" for text-to-video). Takes several minutes. Returns clip asset ids and any failures.',
+                'Generate several 9:16 video clips in parallel (one call for the whole storyboard). Clip lengths per model: '
+                .$lengths->map(fn ($d, $v) => "{$v} ".implode('/', $d).' s')->implode(', ')
+                .' (other values snap to the nearest). first_frame_image_id animates an existing image ("" for text-to-video). Takes several minutes. Returns clip asset ids, real lengths and any failures.',
                 [
                     'clips' => [
                         'type' => 'array',
@@ -207,7 +210,7 @@ class CreativeAgent
                             'properties' => [
                                 'provider' => ['type' => 'string', 'enum' => $videos],
                                 'prompt' => ['type' => 'string', 'description' => 'English prompt: subject motion + camera motion.'],
-                                'duration' => ['type' => 'integer', 'enum' => config('creations.reel.clip_seconds')],
+                                'duration' => ['type' => 'integer', 'enum' => $lengths->flatten()->unique()->sort()->values()->all()],
                                 'first_frame_image_id' => ['type' => 'string'],
                                 'purpose' => ['type' => 'string'],
                             ],
@@ -227,7 +230,7 @@ class CreativeAgent
                 ]);
         } else {
             $tools[] = $this->tool('deliver_reel',
-                'Deliver the reel: clip asset ids in playback order. Their durations must add up to at least '.config('creations.reel.duration').' s; the result is trimmed to exactly that length.',
+                'Deliver the reel: clip asset ids in playback order. The reel is exactly as long as the clips together (at most '.config('creations.reel.max_seconds').' s).',
                 ['clip_ids' => ['type' => 'array', 'items' => ['type' => 'string']]]);
         }
 
@@ -319,7 +322,8 @@ class CreativeAgent
             try {
                 $frame = filled($clip['first_frame_image_id'] ?? null) ? $this->readAsset($creation, $clip['first_frame_image_id'], 'image') : null;
                 $provider = $this->ai->video($clip['provider']);
-                $tasks[$i] = ['provider' => $provider, 'name' => $clip['provider'], 'id' => $provider->submit($clip['prompt'], '9:16', (int) $clip['duration'], $frame), 'clip' => $clip];
+                $clip['duration'] = $this->nearest($provider->durations(), (int) $clip['duration']);
+                $tasks[$i] = ['provider' => $provider, 'name' => $clip['provider'], 'id' => $provider->submit($clip['prompt'], '9:16', $clip['duration'], $frame), 'clip' => $clip];
             } catch (AiException|ConnectionException $e) {
                 $report[$i] = 'clip #'.($i + 1).": FAILED to start — {$e->getMessage()}";
             }
@@ -327,8 +331,9 @@ class CreativeAgent
 
         $pending = $tasks;
         $done = 0;
-        $interval = max(0, (int) config('ai.providers.seedance.poll_interval'));
-        $deadline = time() + (int) config('ai.providers.seedance.poll_timeout');
+        $providers = collect($tasks)->pluck('provider');
+        $interval = max(0, (int) $providers->map->pollInterval()->min());
+        $deadline = time() + (int) $providers->map->pollTimeout()->max();
 
         while ($pending && time() <= $deadline) {
             if ($interval) {
@@ -426,15 +431,19 @@ class CreativeAgent
             $total += (int) ($asset['duration'] ?? 0);
         }
 
-        $need = config('creations.reel.duration');
+        $max = config('creations.reel.max_seconds');
 
-        if ($total < $need) {
-            throw new AiException("Clips add up to {$total} s; at least {$need} s are needed. Generate more clips and deliver again.");
+        if (! $ids) {
+            throw new AiException('Pass at least one clip.');
+        }
+
+        if ($total > $max) {
+            throw new AiException("Clips add up to {$total} s; a reel can be at most {$max} s. Drop some clips and deliver again.");
         }
 
         $creation->update(['reel_clips' => $ids]);
 
-        return ['summary' => count($ids)." clips, {$total} s", 'content' => "Reel accepted ({$total} s of clips, trimmed to {$need} s). It will be assembled after you finish."];
+        return ['summary' => count($ids)." clips, {$total} s", 'content' => "Reel accepted ({$total} s). It will be assembled after you finish."];
     }
 
     private function finish(Creation $creation, array $in): array
@@ -445,6 +454,14 @@ class CreativeAgent
     }
 
     // --------------------------------------------------------------- helpers
+
+    /**
+     * @param  list<int>  $options
+     */
+    private function nearest(array $options, int $value): int
+    {
+        return collect($options)->sortBy(fn ($o) => [abs($o - $value), -$o])->first();
+    }
 
     private function bumpProgress(Creation $creation): void
     {

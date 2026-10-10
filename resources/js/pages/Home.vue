@@ -6,7 +6,7 @@ import Icon from '../components/Icon.vue';
 const steps = [
     { icon: 'edit', title: 'Санаагаа бич', text: 'Юу сурталчлах, хэнд, ямар уур амьсгалтай байхыг энгийн үгээр бичнэ.' },
     { icon: 'upload', title: 'Лого, бүтээгдэхүүн', text: 'Логогоо, бүтээгдэхүүнийхээ зургийг хавсаргана. AI яг тэр бүтээгдэхүүнийг ашиглана.' },
-    { icon: 'sparkles', title: 'Бэлэн болно', text: 'Постер хэдэн минутад, 1:30 минутын reels видео бүтнээрээ гарч ирнэ. Татаад шууд нийтэл.' },
+    { icon: 'sparkles', title: 'Бэлэн болно', text: 'Постер хэдэн минутад, reels видео бэлэн MP4 болж гарч ирнэ. Татаад шууд нийтэл.' },
 ];
 const cards = ['from-orange-500 to-amber-700', 'from-sky-500 to-indigo-700', 'from-pink-500 to-rose-700', 'from-lime-400 to-emerald-700'];
 </script>
@@ -22,7 +22,7 @@ const cards = ['from-orange-500 to-amber-700', 'from-sky-500 to-indigo-700', 'fr
                 <span class="text-lime">AI-аар хийлгэ.</span>
             </h1>
             <p class="mt-5 max-w-2xl text-base text-zinc-400 md:text-lg">
-                Instagram, Facebook-д тохирсон постер болон 1:30 минутын reels видео. Дизайнер, видеографчгүйгээр, хэдхэн минутад.
+                Instagram, Facebook-д тохирсон постер болон reels видео. Дизайнер, видеографчгүйгээр, хэдхэн минутад.
             </p>
             <div class="mt-8 flex flex-wrap justify-center gap-3">
                 <RouterLink :to="session.user ? '/create' : '/register'" class="btn btn-lime px-6 py-3 text-base">Бүтээж эхлэх</RouterLink>
@@ -51,7 +51,7 @@ const cards = ['from-orange-500 to-amber-700', 'from-sky-500 to-indigo-700', 'fr
             </div>
             <div class="feature-card">
                 <div class="mb-6 flex items-center gap-2"><Icon name="video" size="20" /><span class="badge badge-top">Reels</span></div>
-                <h2 class="display text-3xl">1:30 видео бүтнээрээ</h2>
+                <h2 class="display text-3xl">Бэлэн reels видео</h2>
                 <p class="mt-3 text-sm text-zinc-400">9:16 босоо, 1080×1920, Instagram Reels болон Facebook-д шууд тавих MP4.</p>
             </div>
         </section>

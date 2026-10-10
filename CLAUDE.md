@@ -1,9 +1,9 @@
 # Poster Studio
 
-Laravel 13 + Vue 3 SPA (vue-router, served by Laravel) + Tailwind 4. Subscription service that makes Instagram/Facebook posters and exactly-90-second reels. Requirements: `docs/SRS.md`.
+Laravel 13 + Vue 3 SPA (vue-router, served by Laravel) + Tailwind 4. Subscription service that makes Instagram/Facebook posters and reels (reel length = sum of the clips, max 180 s). Requirements: `docs/SRS.md`.
 
 - Flow: `POST /api/v1/creations` → `RunCreation` job → `CreativeAgent` (Claude Fable + tools) → posters cropped by `PosterFormatter` / reel assembled by `ReelAssembler` (ffmpeg) → `outputs`.
-- Fable picks the image/video provider per call. Never expose provider/model names to customers: customer responses go through `CreationResource`; internals (`assets`, `steps`, `summary`, `error_detail`) only via `AdminCreationResource`. A feature test checks for leaks.
+- Fable picks the image (GPT Image, Gemini) and video (Seedance, Veo via Gemini API) provider per call; video providers declare their clip lengths in `durations()`. Never expose provider/model names to customers: customer responses go through `CreationResource`; internals (`assets`, `steps`, `summary`, `error_detail`) only via `AdminCreationResource`. A feature test checks for leaks.
 - No text is overlaid on posters; the generated image is the deliverable.
 - Fable API rules: no `thinking` param, no forced `tool_choice`, effort via `output_config`, `fallbacks: "default"` with the `server-side-fallback-2026-07-01` beta header. Pass assistant content (incl. thinking blocks) back unchanged.
 - Skills: bundled in `resources/ai/skills/<name>/SKILL.md` (frontmatter `name`, `description`, optional `origin`), custom ones in the `skills` table (admin, can import a Claude `SKILL.md`). `SkillLibrary` builds the index and serves `load_skill`. Several bundled skills are adapted from Claude skills; keep their `origin` line and LICENSE files (Apache-2.0 for theme-factory/canvas-design). Recommended skill sets per job type are listed in `resources/ai/creative-director.md`.

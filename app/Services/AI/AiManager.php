@@ -8,6 +8,7 @@ use App\Services\AI\Exceptions\AiException;
 use App\Services\AI\Providers\GeminiProvider;
 use App\Services\AI\Providers\OpenAIProvider;
 use App\Services\AI\Providers\SeedanceProvider;
+use App\Services\AI\Providers\VeoProvider;
 
 class AiManager
 {
@@ -23,6 +24,7 @@ class AiManager
     {
         return match ($this->configured($name, 'video')) {
             'seedance' => new SeedanceProvider(config('ai.providers.seedance'), config('ai.timeout')),
+            'veo' => new VeoProvider(config('ai.providers.veo'), config('ai.timeout')),
         };
     }
 

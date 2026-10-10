@@ -47,8 +47,9 @@ return [
         'width' => 1080,
         'height' => 1920,
         'fps' => 30,
-        'duration' => 90, // seconds, exact
-        'clip_seconds' => [5, 10],
+        // No fixed length: the reel is as long as the clips the agent delivers.
+        // Cap at Instagram's reel limit.
+        'max_seconds' => (int) env('REEL_MAX_SECONDS', 180),
     ],
 
     'uploads' => [

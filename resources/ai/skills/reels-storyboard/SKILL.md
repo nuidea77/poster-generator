@@ -1,13 +1,16 @@
 ---
 name: reels-storyboard
-description: Planning a complete 90-second vertical reel from AI video clips — beat structure, shot list, still frames for product and logo shots, continuity, and the parallel generate → deliver flow. Load for every REEL job.
+description: Planning a complete vertical reel from AI video clips — beat structure, shot list, still frames for product and logo shots, continuity, and the parallel generate → deliver flow. Load for every REEL job.
 ---
 
-# 90-second reel storyboard
+# Reel storyboard
 
-The reel is assembled from your clips in order and cut to exactly 90 s. There is no text overlay, voiceover or music added afterwards, so the visuals must carry the story.
+The reel is assembled from your clips in order and is exactly as long as they are together — there is no fixed length. There is no text overlay, voiceover or music added afterwards, so the visuals must carry the story.
 
-## Default shot list (9 × 10 s = 90 s)
+## Length
+Pick the length the story needs, not a quota. Most ads land at **15–40 s** (3–6 clips); a launch or event story can run longer. Every clip must earn its place — a tight 20 s reel beats a padded 60 s one. Hard cap: 180 s.
+
+## Beat menu (use the ones that fit, in this order)
 | # | Beat | Typical shot |
 |---|---|---|
 | 1 | Hook | The most striking visual: dramatic product reveal, fast dolly-in, splash, light burst |
@@ -20,7 +23,7 @@ The reel is assembled from your clips in order and cut to exactly 90 s. There is
 | 8 | Product again | Second hero angle, brand colours dominant |
 | 9 | End card | The logo on a brand-coloured background, gentle motion (animate a still made with the logo) |
 
-Adapt the beats to the brief (event, service, food, fashion), but keep: hook first, product clearly shown at least twice, logo end card last when a logo exists. You may mix 5 s clips for quick cuts — the total must still reach 90 s.
+Adapt the beats to the brief (event, service, food, fashion), but keep: hook first, product clearly shown at least twice, logo end card last when a logo exists. Short reels merge beats (e.g. hook → product hero → in use → end card). Mix short clips for quick cuts and longer ones for hero shots.
 
 ## Real product & logo shots
 Video models invent products from text. For any shot that must show the client's real product or logo:
@@ -37,4 +40,4 @@ Video models invent products from text. For any shot that must show the client's
 2. Create the needed still frames (usually 2–3).
 3. Call `generate_videos` **once** with all clips.
 4. Replace any failed clips with a second `generate_videos` call.
-5. `deliver_reel` with the ids in order (≥ 90 s), then `finish`.
+5. `deliver_reel` with the ids in order, then `finish`.
