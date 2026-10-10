@@ -29,6 +29,16 @@ class PlanSeeder extends Seeder
                 'slug' => 'pro', 'name' => 'Про', 'price' => 2070000, 'period_days' => 30, 'credits' => 1800, 'sort' => 2,
                 'features' => ['Сард 1,800 кредит', '≈ 25 постер + 12 reels', ...$common, 'Кредитийн үнэ хамгийн хямд'],
             ],
+            // Yearly: 12 months of credits at once, valid 365 days. Discounts stay above the
+            // margin floor (≥1,111₮ per credit keeps reels at ≥3× typical cost).
+            [
+                'slug' => 'standard-yearly', 'name' => 'Стандарт', 'price' => 9720000, 'period_days' => 365, 'credits' => 8640, 'sort' => 3,
+                'features' => ['Жилд 8,640 кредит (сард 720)', '≈ сард 10 постер + 5 reels', ...$common, '10% хямд'],
+            ],
+            [
+                'slug' => 'pro-yearly', 'name' => 'Про', 'price' => 24000000, 'period_days' => 365, 'credits' => 21600, 'sort' => 4,
+                'features' => ['Жилд 21,600 кредит (сард 1,800)', '≈ сард 25 постер + 12 reels', ...$common, 'Кредитийн үнэ хамгийн хямд'],
+            ],
         ] as $plan) {
             Plan::updateOrCreate(['slug' => $plan['slug']], $plan + ['is_active' => true]);
         }
