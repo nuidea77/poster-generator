@@ -34,10 +34,9 @@ Route::prefix('api/v1')->group(function () {
         Route::get('creations/{creation}', [CreationController::class, 'show']);
         Route::delete('creations/{creation}', [CreationController::class, 'destroy']);
 
-        Route::middleware('subscribed')->group(function () {
-            Route::post('creations', [CreationController::class, 'store'])->middleware('throttle:20,1');
-            Route::post('creations/{creation}/retry', [CreationController::class, 'retry'])->middleware('throttle:20,1');
-        });
+        // Plan limits (free tier included) are checked per type in CreationService.
+        Route::post('creations', [CreationController::class, 'store'])->middleware('throttle:20,1');
+        Route::post('creations/{creation}/retry', [CreationController::class, 'retry'])->middleware('throttle:20,1');
 
         Route::middleware('admin')->prefix('admin')->group(function () {
             Route::get('creations', [AdminCreationController::class, 'index']);

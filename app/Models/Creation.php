@@ -5,10 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Creation extends Model
 {
-    use HasUlids;
+    use HasUlids, SoftDeletes;
 
     public const POSTER = 'poster';
 
@@ -27,7 +28,7 @@ class Creation extends Model
     public const ACTIVE = [self::QUEUED, self::RUNNING, self::ASSEMBLING];
 
     protected $fillable = [
-        'user_id', 'type', 'formats', 'prompt', 'product', 'status', 'stage', 'progress',
+        'user_id', 'subscription_id', 'type', 'formats', 'prompt', 'product', 'status', 'stage', 'progress',
         'inputs', 'assets', 'steps', 'outputs', 'reel_clips', 'summary', 'error_detail',
         'model', 'input_tokens', 'output_tokens', 'started_at', 'finished_at',
     ];

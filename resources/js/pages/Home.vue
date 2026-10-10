@@ -25,7 +25,7 @@ const cards = ['from-orange-500 to-amber-700', 'from-sky-500 to-indigo-700', 'fr
                 Instagram, Facebook-д тохирсон постер болон reels видео. Дизайнер, видеографчгүйгээр, хэдхэн минутад.
             </p>
             <div class="mt-8 flex flex-wrap justify-center gap-3">
-                <RouterLink :to="session.user ? '/create' : '/register'" class="btn btn-lime px-6 py-3 text-base">Бүтээж эхлэх</RouterLink>
+                <RouterLink :to="session.user ? '/create' : '/register'" class="btn btn-lime px-6 py-3 text-base">{{ session.user ? 'Бүтээж эхлэх' : 'Үнэгүй туршиж үзэх' }}</RouterLink>
                 <RouterLink to="/pricing" class="btn btn-white px-6 py-3 text-base">Багц үзэх</RouterLink>
             </div>
         </section>
@@ -57,8 +57,8 @@ const cards = ['from-orange-500 to-amber-700', 'from-sky-500 to-indigo-700', 'fr
         </section>
 
         <section v-if="session.meta.plans.length" class="mt-16 text-center">
-            <h2 class="display text-3xl">Хязгааргүй хэрэглээ</h2>
-            <p class="mt-2 text-zinc-400">{{ money(session.meta.plans[0].price) }}-өөс эхэлнэ</p>
+            <h2 class="display text-3xl">Үнэгүй туршаад, хязгааргүй бүтээ</h2>
+            <p class="mt-2 text-zinc-400">1 постер, 1 reels үнэгүй. Хязгааргүй багц {{ money(session.meta.plans.find((p) => p.price)?.price ?? 0) }}-өөс эхэлнэ</p>
             <RouterLink to="/pricing" class="btn btn-lime mt-5">Багцууд</RouterLink>
         </section>
     </div>

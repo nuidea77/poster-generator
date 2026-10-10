@@ -58,7 +58,7 @@ async function signOut() {
                             </button>
                             <div v-if="menu" class="absolute right-0 mt-2 w-56 rounded-2xl border border-white/10 bg-[#161616] p-2 shadow-2xl">
                                 <div class="px-2 py-1.5 text-xs text-muted">
-                                    <template v-if="session.user.subscription">{{ session.user.subscription.plan }} багц</template>
+                                    <template v-if="session.user.plan">{{ session.user.plan.name }} багц</template>
                                     <template v-else>Багцгүй</template>
                                 </div>
                                 <RouterLink to="/account" class="block rounded-lg px-2 py-2 text-sm hover:bg-white/5">Миний бүртгэл</RouterLink>

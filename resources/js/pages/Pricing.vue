@@ -16,7 +16,11 @@ const perMonth = (p) => Math.round((p.price / p.period_days) * 30);
 
 async function buy(plan) {
     if (!session.user) {
-        router.push({ name: 'register', query: { next: '/pricing' } });
+        router.push({ name: 'register', query: { next: plan.price ? '/pricing' : '/create' } });
+        return;
+    }
+    if (!plan.price) {
+        router.push('/create');
         return;
     }
     error.value = '';
@@ -42,8 +46,8 @@ async function paid() {
 <template>
     <div class="mx-auto max-w-5xl">
         <section class="mx-auto max-w-2xl py-10 text-center">
-            <h1 class="display text-4xl leading-[0.95] md:text-6xl">Хязгааргүй<br /><span class="text-lime">бүтээ.</span></h1>
-            <p class="mt-4 text-zinc-400">Нэг багц — постер ба reels хязгааргүй. QPay-ээр төлнө.</p>
+            <h1 class="display text-4xl leading-[0.95] md:text-6xl">Үнэгүй турш.<br /><span class="text-lime">Хязгааргүй бүтээ.</span></h1>
+            <p class="mt-4 text-zinc-400">Эхлээд 1 постер, 1 reels-ийг үнэгүй хий. Таалагдвал хязгааргүй багц аваарай. QPay-ээр төлнө.</p>
             <p v-if="session.user?.subscription" class="mt-4 inline-block rounded-xl bg-lime/10 px-4 py-2 text-sm text-lime">
                 Таны {{ session.user.subscription.plan }} багц {{ date(session.user.subscription.ends_at) }} хүртэл идэвхтэй. Одоо авбал хугацаа нь үргэлжилж сунгагдана.
             </p>
@@ -58,12 +62,16 @@ async function paid() {
                     <span v-if="i === 1" class="badge badge-top">Top</span>
                 </div>
                 <div class="display text-4xl">{{ money(p.price) }}</div>
-                <div class="mt-1 text-sm text-muted">{{ p.period_days }} хоног<template v-if="p.period_days > 31"> · сард {{ money(perMonth(p)) }}</template></div>
+                <div v-if="p.price" class="mt-1 text-sm text-muted">{{ p.period_days }} хоног<template v-if="p.period_days > 31"> · сард {{ money(perMonth(p)) }}</template></div>
+                <div v-else class="mt-1 text-sm text-muted">Хугацаагүй · {{ p.poster_limit ?? '∞' }} постер, {{ p.reel_limit ?? '∞' }} reels</div>
                 <ul class="mt-5 flex-1 space-y-2 text-sm text-zinc-300">
                     <li v-for="f in p.features" :key="f" class="flex items-start gap-2"><Icon name="check" size="16" class="mt-0.5 shrink-0 text-lime" /> {{ f }}</li>
                 </ul>
-                <button class="btn mt-6 w-full py-2.5" :class="i === 1 ? 'btn-lime' : 'btn-white'" :disabled="busy === p.id" @click="buy(p)">
+                <button v-if="p.price" class="btn mt-6 w-full py-2.5" :class="i === 1 ? 'btn-lime' : 'btn-white'" :disabled="busy === p.id" @click="buy(p)">
                     <span v-if="busy === p.id" class="spinner" /> Авах
+                </button>
+                <button v-else class="btn btn-ghost mt-6 w-full py-2.5" :disabled="session.user?.plan && !session.user.plan.free" @click="buy(p)">
+                    {{ session.user?.plan?.free ? 'Бүтээж эхлэх' : session.user ? 'Таны багц илүү' : 'Үнэгүй эхлэх' }}
                 </button>
             </div>
         </div>

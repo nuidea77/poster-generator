@@ -50,6 +50,11 @@ async function signOut() {
                 <span class="text-sm">{{ session.user.subscription.plan }} · {{ date(session.user.subscription.ends_at) }} хүртэл</span>
                 <RouterLink to="/pricing" class="btn btn-ghost btn-sm ml-auto">Сунгах</RouterLink>
             </div>
+            <div v-else-if="session.user.plan?.free" class="flex flex-wrap items-center gap-3">
+                <span class="badge badge-muted">Үнэгүй</span>
+                <span class="text-sm">Постер {{ session.user.allowance.poster.remaining }}/{{ session.user.allowance.poster.limit }}, reels {{ session.user.allowance.reel.remaining }}/{{ session.user.allowance.reel.limit }} үлдсэн</span>
+                <RouterLink to="/pricing" class="btn btn-lime btn-sm ml-auto">Хязгааргүй болгох</RouterLink>
+            </div>
             <div v-else class="flex flex-wrap items-center gap-3">
                 <span class="badge badge-muted">Багцгүй</span>
                 <RouterLink to="/pricing" class="btn btn-lime btn-sm ml-auto">Багц сонгох</RouterLink>

@@ -20,7 +20,7 @@ class PaymentController extends Controller
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'plan_id' => ['required', Rule::exists('plans', 'id')->where('is_active', true)],
+            'plan_id' => ['required', Rule::exists('plans', 'id')->where('is_active', true)->where(fn ($q) => $q->where('price', '>', 0))],
         ]);
 
         try {

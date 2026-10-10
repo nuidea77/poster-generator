@@ -57,4 +57,37 @@ class User extends Authenticatable
     {
         return $this->is_admin || $this->subscriptions()->where('ends_at', '>', now())->exists();
     }
+
+    /**
+     * What the user may still create of each type under their current plan:
+     * the paid subscription covering now, otherwise the free tier.
+     *
+     * @return array{plan: ?Plan, subscription_id: ?int, used: int, limit: ?int, remaining: ?int}
+     */
+    public function allowance(string $type): array
+    {
+        $subscription = $this->subscriptions()->with('plan')
+            ->where('starts_at', '<=', now())->where('ends_at', '>', now())
+            ->orderByDesc('ends_at')->first();
+        $plan = $subscription?->plan ?? Plan::free();
+
+        if ($this->is_admin || ! $plan) {
+            return ['plan' => $plan, 'subscription_id' => $subscription?->id, 'used' => 0, 'limit' => $this->is_admin ? null : 0, 'remaining' => $this->is_admin ? null : 0];
+        }
+
+        $limit = $plan->limit($type);
+        $used = $limit === null ? 0 : $this->creations()->withTrashed()
+            ->where('type', $type)
+            ->where('status', '!=', Creation::FAILED) // failed runs give the credit back
+            ->where('subscription_id', $subscription?->id)
+            ->count();
+
+        return [
+            'plan' => $plan,
+            'subscription_id' => $subscription?->id,
+            'used' => $used,
+            'limit' => $limit,
+            'remaining' => $limit === null ? null : max(0, $limit - $used),
+        ];
+    }
 }

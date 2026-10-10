@@ -36,7 +36,7 @@ Laravel 13 + Vue 3 + Tailwind 4.
 Claude skill-үүдийг энэ системийн урсгалд тохируулсан: текст давхарлахгүй, ажлын хэрэгслүүд нь `generate_image`, `generate_videos`, `deliver_*`.
 Админ **Админ → Skills** хуудаснаас шинэ skill бичих, эсвэл Claude skill-ийн `SKILL.md` файлыг **импортлох** боломжтой. Custom skill нь ерөнхий зааврыг давамгайлна.
 
-Захиалга: **QPay** нэхэмжлэх (QR + банкны апп), callback ирэхэд `payment/check`-ээр баталгаажуулж багцыг идэвхжүүлнэ/сунгана. Багц хязгааргүй. Зардлыг fair-use хамгаална: зэрэг ажиллах бүтээл ≤2, өдрийн хязгаарыг тохиргоогоор асааж болно.
+Захиалга: **QPay** нэхэмжлэх (QR + банкны апп), callback ирэхэд `payment/check`-ээр баталгаажуулж багцыг идэвхжүүлнэ/сунгана. 3 багц: **Үнэгүй** (1 постер + 1 reels, бүртгүүлмэгц), **1 сар** ба **1 жил** (хязгааргүй). Багц бүрийн постер/reels хязгаарыг админ тохируулна. Зардлыг fair-use хамгаална: зэрэг ажиллах бүтээл ≤2, өдрийн хязгаарыг тохиргоогоор асааж болно.
 
 ## Суулгах
 
@@ -113,9 +113,9 @@ resources/js/pages/                    Home, Create, Creation, Library, Pricing,
 | POST | `/api/v1/payments` → QR | auth |
 | GET | `/api/v1/payments/{id}` | эзэн |
 | GET/POST | `/api/v1/payments/qpay/callback/{token}` | QPay |
-| GET/POST | `/api/v1/creations` | auth / subscribed |
+| GET/POST | `/api/v1/creations` | auth (POST: багцын үлдэгдэл) |
 | GET/DELETE | `/api/v1/creations/{id}` | эзэн |
-| POST | `/api/v1/creations/{id}/retry` | subscribed |
+| POST | `/api/v1/creations/{id}/retry` | эзэн, багцын үлдэгдэл |
 | GET | `/api/v1/admin/creations` | admin |
 | GET/POST/PUT | `/api/v1/admin/plans` | admin |
 | CRUD | `/api/v1/admin/skills` | admin |

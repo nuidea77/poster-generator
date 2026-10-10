@@ -41,7 +41,7 @@ class CreationTest extends TestCase
         ]);
 
         $this->user = User::factory()->create();
-        Subscription::create(['user_id' => $this->user->id, 'plan_id' => Plan::first()->id, 'starts_at' => now(), 'ends_at' => now()->addMonth()]);
+        Subscription::create(['user_id' => $this->user->id, 'plan_id' => Plan::where('slug', 'monthly')->first()->id, 'starts_at' => now(), 'ends_at' => now()->addMonth()]);
     }
 
     private static function png(int $w = 64, int $h = 64): string
@@ -64,13 +64,47 @@ class CreationTest extends TestCase
         return ['model' => 'claude-fable-5-1', 'stop_reason' => $stop, 'content' => $content, 'usage' => ['input_tokens' => 100, 'output_tokens' => 20]];
     }
 
-    public function test_requires_subscription(): void
+    public function test_free_plan_allows_one_poster_and_one_reel(): void
     {
-        $other = User::factory()->create();
+        Queue::fake();
+        config(['creations.max_active_per_user' => 10]); // queued jobs never finish here
+        $free = User::factory()->create();
+        $poster = ['type' => 'poster', 'formats' => ['feed_square'], 'prompt' => 'Кофены постер'];
+        $reel = ['type' => 'reel', 'prompt' => 'Кофены reels'];
 
-        $this->actingAs($other)->postJson('/api/v1/creations', ['type' => 'poster', 'formats' => ['feed_square'], 'prompt' => 'Кофены постер'])
+        $this->actingAs($free)->getJson('/api/v1/me')
+            ->assertJsonPath('data.plan', ['name' => 'Үнэгүй', 'free' => true])
+            ->assertJsonPath('data.allowance.poster', ['used' => 0, 'limit' => 1, 'remaining' => 1])
+            ->assertJsonPath('data.subscribed', false);
+
+        $first = $this->actingAs($free)->postJson('/api/v1/creations', $poster)->assertStatus(202)->json('data.id');
+        $this->actingAs($free)->postJson('/api/v1/creations', $poster)
             ->assertStatus(402)
             ->assertJsonPath('code', 'subscription_required');
+        $this->actingAs($free)->postJson('/api/v1/creations', $reel)->assertStatus(202);
+        $this->actingAs($free)->postJson('/api/v1/creations', $reel)->assertStatus(402);
+
+        $this->actingAs($free)->getJson('/api/v1/me')
+            ->assertJsonPath('data.allowance.poster.remaining', 0)
+            ->assertJsonPath('data.allowance.reel.remaining', 0);
+
+        // Deleting a finished creation does not give the credit back...
+        $creation = Creation::where('public_id', $first)->first();
+        $creation->update(['status' => Creation::DONE]);
+        $this->actingAs($free)->deleteJson("/api/v1/creations/{$first}")->assertNoContent();
+        $this->actingAs($free)->postJson('/api/v1/creations', $poster)->assertStatus(402);
+
+        // ...but a failed run does.
+        Creation::withTrashed()->whereKey($creation->id)->update(['status' => Creation::FAILED]);
+        $this->actingAs($free)->postJson('/api/v1/creations', $poster)->assertStatus(202);
+
+        // Paid plans are unlimited, and usage restarts against the subscription.
+        Subscription::create(['user_id' => $free->id, 'plan_id' => Plan::where('slug', 'monthly')->first()->id, 'starts_at' => now(), 'ends_at' => now()->addMonth()]);
+        $this->actingAs($free)->postJson('/api/v1/creations', $reel)->assertStatus(202);
+        $this->actingAs($free)->getJson('/api/v1/me')->assertJsonPath('data.allowance.reel', ['used' => 0, 'limit' => null, 'remaining' => null]);
+
+        // The free plan cannot be bought.
+        $this->actingAs($free)->postJson('/api/v1/payments', ['plan_id' => Plan::where('slug', 'free')->first()->id])->assertStatus(422);
     }
 
     public function test_validation_and_queueing_with_uploads(): void

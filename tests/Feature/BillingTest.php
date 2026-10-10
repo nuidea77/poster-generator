@@ -127,7 +127,7 @@ class BillingTest extends TestCase
     {
         $this->fakeQpay();
         $user = User::factory()->create();
-        $payment = app(BillingService::class)->startCheckout($user, Plan::first());
+        $payment = app(BillingService::class)->startCheckout($user, Plan::where('slug', 'monthly')->first());
 
         $this->actingAs($user)->getJson("/api/v1/payments/{$payment->id}")->assertJsonPath('data.status', 'pending');
         $this->actingAs($user)->getJson("/api/v1/payments/{$payment->id}")->assertOk();
@@ -142,7 +142,7 @@ class BillingTest extends TestCase
         Http::fake();
         $user = User::factory()->create();
 
-        $id = $this->actingAs($user)->postJson('/api/v1/payments', ['plan_id' => Plan::first()->id])->assertCreated()->json('data.id');
+        $id = $this->actingAs($user)->postJson('/api/v1/payments', ['plan_id' => Plan::where('slug', 'monthly')->first()->id])->assertCreated()->json('data.id');
         $this->actingAs($user)->postJson("/api/v1/payments/{$id}/simulate")->assertJsonPath('data.status', 'paid');
 
         $this->assertTrue($user->fresh()->isSubscribed());

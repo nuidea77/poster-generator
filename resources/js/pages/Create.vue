@@ -2,7 +2,7 @@
 import { computed, onBeforeUnmount, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { api } from '../lib/api';
-import { session } from '../lib/session';
+import { refreshUser, session } from '../lib/session';
 import ChipMenu from '../components/ChipMenu.vue';
 import Composer from '../components/Composer.vue';
 import Icon from '../components/Icon.vue';
@@ -22,6 +22,11 @@ const logo = ref(null); // { file, url } | { saved: true, url }
 const images = ref([]); // [{ file, url }]
 const rememberLogo = ref(true);
 const busy = ref(false);
+
+// remaining null = unlimited
+const left = (type) => session.user.allowance?.[type]?.remaining;
+const blocked = computed(() => left(form.type) === 0);
+const onFree = computed(() => session.user.plan?.free);
 const error = ref('');
 
 if (session.user?.logo_url) {
@@ -87,7 +92,7 @@ onBeforeUnmount(() => {
 });
 
 async function submit() {
-    if (!session.user.subscribed) {
+    if (blocked.value) {
         router.push({ name: 'pricing', query: { next: '/create' } });
         return;
     }
@@ -110,6 +115,7 @@ async function submit() {
 
     try {
         const { data: creation } = await api.post('/creations', data);
+        refreshUser();
         router.push({ name: 'creation', params: { id: creation.id } });
     } catch (e) {
         if (e.code === 'subscription_required') {
@@ -169,8 +175,14 @@ async function submit() {
                 <button v-for="(ex, i) in examples[form.type]" :key="i" class="chip chip-sm max-w-xs truncate" :title="ex" @click="form.prompt = ex">{{ ex }}</button>
             </div>
 
-            <p v-if="!session.user.subscribed" class="mt-6 rounded-xl bg-lime/10 px-4 py-2 text-sm text-lime">
-                Бүтээхийн тулд багц идэвхжүүлнэ үү. <RouterLink to="/pricing" class="font-semibold underline">Багц сонгох</RouterLink>
+            <p v-if="blocked" class="mt-6 rounded-xl bg-lime/10 px-4 py-2 text-sm text-lime">
+                <template v-if="onFree">Үнэгүй {{ form.type === 'reel' ? 'reels-ээ' : 'постероо' }} ашиглачихлаа.</template>
+                <template v-else>Багцын хязгаарт хүрлээ.</template>{{ ' ' }}
+                <RouterLink to="/pricing" class="font-semibold underline">Хязгааргүй багц авах</RouterLink>
+            </p>
+            <p v-else-if="onFree" class="mt-6 rounded-xl bg-surface-2 px-4 py-2 text-sm text-zinc-300">
+                Үнэгүй эрх: постер <b class="text-fg">{{ left('poster') }}</b>, reels <b class="text-fg">{{ left('reel') }}</b> үлдсэн.
+                <RouterLink to="/pricing" class="text-lime underline">Хязгааргүй болгох</RouterLink>
             </p>
         </section>
 

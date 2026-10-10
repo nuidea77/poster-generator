@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Jobs\RunCreation;
 use App\Models\Creation;
 use App\Models\User;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -18,10 +19,11 @@ class CreationService
      */
     public function start(User $user, array $data, ?UploadedFile $logo, array $images): Creation
     {
-        $this->guardFairUse($user, $data['type']);
+        $subscriptionId = $this->guardAllowance($user, $data['type']);
 
         $creation = Creation::create([
             'user_id' => $user->id,
+            'subscription_id' => $subscriptionId,
             'type' => $data['type'],
             'formats' => $data['type'] === Creation::POSTER ? array_values(array_unique($data['formats'])) : null,
             'prompt' => $data['prompt'],
@@ -66,10 +68,11 @@ class CreationService
      */
     public function retry(Creation $source): Creation
     {
-        $this->guardFairUse($source->user, $source->type);
+        $subscriptionId = $this->guardAllowance($source->user, $source->type);
 
         $creation = Creation::create([
             'user_id' => $source->user_id,
+            'subscription_id' => $subscriptionId,
             'type' => $source->type,
             'formats' => $source->formats,
             'prompt' => $source->prompt,
@@ -92,6 +95,29 @@ class CreationService
         RunCreation::dispatch($creation);
 
         return $creation;
+    }
+
+    /**
+     * Plan limits first (free tier: 1 poster + 1 reel), then fair use.
+     *
+     * @return int|null The subscription the creation counts against (null = free tier).
+     */
+    private function guardAllowance(User $user, string $type): ?int
+    {
+        $allowance = $user->allowance($type);
+
+        if ($allowance['remaining'] === 0) {
+            throw new HttpResponseException(response()->json([
+                'message' => $allowance['plan']?->isFree()
+                    ? 'Үнэгүй эрхээ ашиглачихлаа. Үргэлжлүүлэхийн тулд багц авна уу.'
+                    : 'Багцын хязгаарт хүрлээ. Багцаа сунгах эсвэл ахиулна уу.',
+                'code' => 'subscription_required',
+            ], 402));
+        }
+
+        $this->guardFairUse($user, $type);
+
+        return $allowance['subscription_id'];
     }
 
     private function guardFairUse(User $user, string $type): void
