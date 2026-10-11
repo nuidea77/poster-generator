@@ -3,8 +3,10 @@ import { computed, onBeforeUnmount, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { api } from '../lib/api';
 import { refreshUser, session } from '../lib/session';
+import BottomSheet from '../components/BottomSheet.vue';
 import ChipMenu from '../components/ChipMenu.vue';
 import Composer from '../components/Composer.vue';
+import FormatOptions from '../components/FormatOptions.vue';
 import Icon from '../components/Icon.vue';
 
 const router = useRouter();
@@ -47,12 +49,22 @@ const formatLabel = computed(() => {
     return picked.length === 1 ? picked[0].label : `${picked.length} хэмжээ`;
 });
 
-// Outline of a ratio icon, fitted in a 14×14 box.
-const ratioBox = (f) => {
-    if (!f.width) return null;
-    const m = Math.max(f.width, f.height);
-    return { width: `${Math.round((f.width / m) * 14)}px`, height: `${Math.round((f.height / m) * 14)}px` };
-};
+const types = [
+    { id: 'poster', label: 'Постер', icon: 'image' },
+    { id: 'reel', label: 'Reels', icon: 'video' },
+];
+const typeLabel = computed(() => types.find((t) => t.id === form.type).label);
+
+// Phone layout: attachments and settings live in bottom sheets.
+const attachOpen = ref(false);
+const settingsOpen = ref(false);
+const expanded = ref('format'); // open row in the settings sheet
+function openSettings(row) {
+    expanded.value = row;
+    settingsOpen.value = true;
+}
+
+const attachCount = computed(() => (logo.value ? 1 : 0) + images.value.length + (form.type === 'poster' ? refs.value.length : 0));
 
 const productFilled = computed(() => Object.values(form.product).some((v) => v.trim()));
 
@@ -189,6 +201,7 @@ async function submit() {
             :busy="busy"
             busy-label="Илгээж байна"
             :label="balance === null ? 'Generate' : `Generate · ${cost}`"
+            :compact-label="balance === null ? '' : String(cost)"
             @generate="submit"
         >
             <template #top>
@@ -214,60 +227,124 @@ async function submit() {
                 </div>
             </template>
 
-            <!-- What to make: first control in the row, so the choices after it read as its settings. -->
-            <div class="inline-flex rounded-xl bg-white/5 p-0.5">
-                <button
-                    v-for="t in [['poster', 'Постер', 'image'], ['reel', 'Reels', 'video']]"
-                    :key="t[0]"
-                    type="button"
-                    class="flex h-8 items-center gap-1.5 rounded-[10px] px-2.5 text-sm font-semibold transition"
-                    :class="form.type === t[0] ? 'bg-lime text-ink' : 'text-zinc-400 hover:text-fg'"
-                    @click="form.type = t[0]"
-                >
-                    <Icon :name="t[2]" size="14" /> {{ t[1] }}
+            <!-- Phone: [+] attachments · type/size · settings, like a native app. -->
+            <div class="contents sm:hidden">
+                <button type="button" class="chip relative w-9 shrink-0 justify-center px-0" aria-label="Хавсралт" @click="attachOpen = true">
+                    <Icon name="plus" size="16" />
+                    <span v-if="attachCount" class="absolute -top-1 -right-1 grid size-4 place-items-center rounded-full bg-lime text-[10px] font-bold text-ink">{{ attachCount }}</span>
+                </button>
+                <button type="button" class="chip min-w-0" @click="openSettings('format')">
+                    <Icon :name="form.type === 'poster' ? 'image' : 'video'" size="14" />
+                    <span class="truncate">{{ typeLabel }} · {{ formatLabel }}</span>
+                </button>
+                <button type="button" class="chip w-9 shrink-0 justify-center px-0" :class="{ 'chip-active': productFilled }" aria-label="Тохиргоо" @click="openSettings('type')">
+                    <Icon name="sliders" size="15" />
                 </button>
             </div>
-            <label class="chip cursor-pointer" :class="{ 'chip-active': logo }" title="Лого хавсаргах">
-                <Icon name="plus" size="14" /> Лого
-                <input type="file" accept="image/png,image/jpeg,image/webp" class="hidden" @change="pickLogo" />
-            </label>
-            <label class="chip cursor-pointer" :class="{ 'opacity-50': images.length >= maxImages }" title="Бүтээгдэхүүний зураг">
-                <Icon name="image" size="14" /> <span class="hidden sm:inline">Бүтээгдэхүүн</span><span class="sm:hidden">Зураг</span> {{ images.length ? `${images.length}/${maxImages}` : '' }}
-                <input type="file" accept="image/png,image/jpeg,image/webp" multiple class="hidden" :disabled="images.length >= maxImages" @change="pickImages(images, maxImages, $event)" />
-            </label>
-            <label v-if="form.type === 'poster'" class="chip cursor-pointer" :class="{ 'chip-active': refs.length, 'opacity-50': refs.length >= maxRefs }" title="Дуурайх жишээ зураг: ийм харагдах, ийм өнгө аястай болгоно">
-                <Icon name="image" size="14" /> Жишээ {{ refs.length ? `${refs.length}/${maxRefs}` : '' }}
-                <input type="file" accept="image/png,image/jpeg,image/webp" multiple class="hidden" :disabled="refs.length >= maxRefs" @change="pickImages(refs, maxRefs, $event)" />
-            </label>
-            <ChipMenu label="Мэдээлэл" icon="edit" :active="productFilled" width="w-80">
-                <div class="space-y-2 p-1">
-                    <div class="label">Бүтээгдэхүүний мэдээлэл</div>
-                    <input v-model="form.product.name" class="field py-2 text-sm" placeholder="Нэр" />
-                    <input v-model="form.product.price" class="field py-2 text-sm" placeholder="Үнэ (жиш. 25,000₮)" />
-                    <textarea v-model="form.product.description" rows="3" class="field resize-none py-2 text-sm" placeholder="Онцлог, давуу тал" />
+
+            <div class="hidden sm:contents">
+                <!-- What to make: first control in the row, so the choices after it read as its settings. -->
+                <div class="inline-flex rounded-xl bg-white/5 p-0.5">
+                    <button
+                        v-for="t in [['poster', 'Постер', 'image'], ['reel', 'Reels', 'video']]"
+                        :key="t[0]"
+                        type="button"
+                        class="flex h-8 items-center gap-1.5 rounded-[10px] px-2.5 text-sm font-semibold transition"
+                        :class="form.type === t[0] ? 'bg-lime text-ink' : 'text-zinc-400 hover:text-fg'"
+                        @click="form.type = t[0]"
+                    >
+                        <Icon :name="t[2]" size="14" /> {{ t[1] }}
+                    </button>
                 </div>
-            </ChipMenu>
-            <ChipMenu :label="formatLabel" :icon="form.type === 'poster' ? 'grid' : 'video'" width="w-72">
-                <div class="px-2 pt-1 pb-2 text-xs text-muted">Хэмжээ</div>
-                <button
-                    v-for="f in formatOptions"
-                    :key="f.id"
-                    type="button"
-                    class="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left text-sm transition hover:bg-white/5"
-                    :class="isPicked(f.id) ? 'bg-white/5 text-fg' : 'text-zinc-300'"
-                    @click="toggleFormat(f.id)"
-                >
-                    <span class="grid size-7 place-items-center rounded-lg" :class="isPicked(f.id) ? 'bg-white/10' : ''">
-                        <span v-if="ratioBox(f)" class="block rounded-[3px] border-[1.5px] border-current" :style="ratioBox(f)" />
-                        <span v-else class="block size-3.5 rounded-[3px] border-[1.5px] border-dashed border-current" />
-                    </span>
-                    <span class="flex-1">
-                        <span class="block font-semibold">{{ f.label }}</span>
-                        <span class="block text-[11px] text-muted">{{ f.hint }}</span>
-                    </span>
-                    <Icon v-if="isPicked(f.id)" name="check" size="14" />
-                </button>
-            </ChipMenu>
+                <label class="chip cursor-pointer" :class="{ 'chip-active': logo }" title="Лого хавсаргах">
+                    <Icon name="plus" size="14" /> Лого
+                    <input type="file" accept="image/png,image/jpeg,image/webp" class="hidden" @change="pickLogo" />
+                </label>
+                <label class="chip cursor-pointer" :class="{ 'opacity-50': images.length >= maxImages }" title="Бүтээгдэхүүний зураг">
+                    <Icon name="image" size="14" /> Бүтээгдэхүүн {{ images.length ? `${images.length}/${maxImages}` : '' }}
+                    <input type="file" accept="image/png,image/jpeg,image/webp" multiple class="hidden" :disabled="images.length >= maxImages" @change="pickImages(images, maxImages, $event)" />
+                </label>
+                <label v-if="form.type === 'poster'" class="chip cursor-pointer" :class="{ 'chip-active': refs.length, 'opacity-50': refs.length >= maxRefs }" title="Дуурайх жишээ зураг: ийм харагдах, ийм өнгө аястай болгоно">
+                    <Icon name="image" size="14" /> Жишээ {{ refs.length ? `${refs.length}/${maxRefs}` : '' }}
+                    <input type="file" accept="image/png,image/jpeg,image/webp" multiple class="hidden" :disabled="refs.length >= maxRefs" @change="pickImages(refs, maxRefs, $event)" />
+                </label>
+                <ChipMenu label="Мэдээлэл" icon="edit" :active="productFilled" width="w-80">
+                    <div class="space-y-2 p-1">
+                        <div class="label">Бүтээгдэхүүний мэдээлэл</div>
+                        <input v-model="form.product.name" class="field py-2 text-sm" placeholder="Нэр" />
+                        <input v-model="form.product.price" class="field py-2 text-sm" placeholder="Үнэ (жиш. 25,000₮)" />
+                        <textarea v-model="form.product.description" rows="3" class="field resize-none py-2 text-sm" placeholder="Онцлог, давуу тал" />
+                    </div>
+                </ChipMenu>
+                <ChipMenu :label="formatLabel" :icon="form.type === 'poster' ? 'grid' : 'video'" width="w-72">
+                    <div class="px-2 pt-1 pb-2 text-xs text-muted">Хэмжээ</div>
+                    <FormatOptions :options="formatOptions" :picked="isPicked" @pick="toggleFormat" />
+                </ChipMenu>
+            </div>
         </Composer>
+
+        <BottomSheet v-model="attachOpen" title="Хавсралт">
+            <div class="space-y-1 pb-1">
+                <label class="sheet-row cursor-pointer">
+                    <img v-if="logo" :src="logo.url" class="size-9 rounded-lg bg-white/5 object-contain p-0.5" alt="" />
+                    <span v-else class="sheet-icon"><Icon name="plus" size="15" /></span>
+                    <span class="flex-1"><b class="block text-sm">Лого</b><span class="text-[11px] text-muted">{{ logo ? 'Солих бол дарна уу' : 'Брэндийн лого' }}</span></span>
+                    <button v-if="logo" type="button" class="sheet-icon" aria-label="Лого хасах" @click.prevent="removeLogo"><Icon name="x" size="13" /></button>
+                    <input type="file" accept="image/png,image/jpeg,image/webp" class="hidden" @change="pickLogo" />
+                </label>
+                <label class="sheet-row cursor-pointer" :class="{ 'opacity-50': images.length >= maxImages }">
+                    <span class="sheet-icon"><Icon name="image" size="15" /></span>
+                    <span class="flex-1"><b class="block text-sm">Бүтээгдэхүүний зураг</b><span class="text-[11px] text-muted">Бодит бүтээгдэхүүн хэвээрээ гарна</span></span>
+                    <span class="text-sm text-zinc-400">{{ images.length }}/{{ maxImages }}</span>
+                    <input type="file" accept="image/png,image/jpeg,image/webp" multiple class="hidden" :disabled="images.length >= maxImages" @change="pickImages(images, maxImages, $event)" />
+                </label>
+                <label v-if="form.type === 'poster'" class="sheet-row cursor-pointer" :class="{ 'opacity-50': refs.length >= maxRefs }">
+                    <span class="sheet-icon"><Icon name="layers" size="15" /></span>
+                    <span class="flex-1"><b class="block text-sm">Жишээ зураг</b><span class="text-[11px] text-muted">Ийм өнгө аяс, хэв маягтай болгоно</span></span>
+                    <span class="text-sm text-zinc-400">{{ refs.length }}/{{ maxRefs }}</span>
+                    <input type="file" accept="image/png,image/jpeg,image/webp" multiple class="hidden" :disabled="refs.length >= maxRefs" @change="pickImages(refs, maxRefs, $event)" />
+                </label>
+            </div>
+        </BottomSheet>
+
+        <BottomSheet v-model="settingsOpen" title="Тохиргоо">
+            <div class="divide-y divide-white/5 pb-1">
+                <div>
+                    <button type="button" class="sheet-row w-full" @click="expanded = expanded === 'type' ? '' : 'type'">
+                        <Icon :name="form.type === 'poster' ? 'image' : 'video'" size="16" class="text-zinc-400" />
+                        <span class="flex-1 text-left text-sm font-semibold">Төрөл</span>
+                        <span class="text-sm font-semibold">{{ typeLabel }}</span>
+                        <span class="sheet-chevron"><Icon name="chevron" size="12" :class="{ 'rotate-180': expanded === 'type' }" /></span>
+                    </button>
+                    <div v-if="expanded === 'type'" class="grid grid-cols-2 gap-2 px-1 pb-3">
+                        <button v-for="t in types" :key="t.id" type="button" class="flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold" :class="form.type === t.id ? 'bg-lime text-ink' : 'bg-white/5 text-zinc-300'" @click="form.type = t.id">
+                            <Icon :name="t.icon" size="14" /> {{ t.label }}
+                        </button>
+                    </div>
+                </div>
+                <div>
+                    <button type="button" class="sheet-row w-full" @click="expanded = expanded === 'format' ? '' : 'format'">
+                        <Icon name="grid" size="16" class="text-zinc-400" />
+                        <span class="flex-1 text-left text-sm font-semibold">Хэмжээ</span>
+                        <span class="text-sm font-semibold">{{ formatLabel }}</span>
+                        <span class="sheet-chevron"><Icon name="chevron" size="12" :class="{ 'rotate-180': expanded === 'format' }" /></span>
+                    </button>
+                    <div v-if="expanded === 'format'" class="pb-2"><FormatOptions :options="formatOptions" :picked="isPicked" @pick="toggleFormat" /></div>
+                </div>
+                <div>
+                    <button type="button" class="sheet-row w-full" @click="expanded = expanded === 'product' ? '' : 'product'">
+                        <Icon name="edit" size="16" class="text-zinc-400" />
+                        <span class="flex-1 text-left text-sm font-semibold">Бүтээгдэхүүний мэдээлэл</span>
+                        <span class="max-w-28 truncate text-sm font-semibold">{{ form.product.name.trim() || (productFilled ? 'Бөглөсөн' : 'Нэмэх') }}</span>
+                        <span class="sheet-chevron"><Icon name="chevron" size="12" :class="{ 'rotate-180': expanded === 'product' }" /></span>
+                    </button>
+                    <div v-if="expanded === 'product'" class="space-y-2 px-1 pb-3">
+                        <input v-model="form.product.name" class="field py-2 text-sm" placeholder="Нэр" />
+                        <input v-model="form.product.price" class="field py-2 text-sm" placeholder="Үнэ (жиш. 25,000₮)" />
+                        <textarea v-model="form.product.description" rows="3" class="field resize-none py-2 text-sm" placeholder="Онцлог, давуу тал" />
+                    </div>
+                </div>
+            </div>
+        </BottomSheet>
     </div>
 </template>

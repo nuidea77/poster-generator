@@ -11,6 +11,8 @@ defineProps({
     busyLabel: { type: String, default: '' },
     disabled: { type: Boolean, default: false },
     label: { type: String, default: 'Generate' },
+    // Shorter button text for phones (defaults to `label`).
+    compactLabel: { type: String, default: '' },
 });
 
 const emit = defineEmits(['generate']);
@@ -31,13 +33,14 @@ function onKey(e) {
                 :placeholder="placeholder"
                 @keydown="onKey"
             />
-            <div class="flex flex-wrap items-end gap-2">
+            <div class="flex items-end gap-2 sm:flex-wrap">
                 <div class="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
                     <slot />
                 </div>
-                <button class="btn-generate flex items-center gap-2" :disabled="busy || disabled || !prompt.trim()" @click="emit('generate')">
+                <button class="btn-generate flex items-center gap-2 max-sm:px-4 max-sm:py-2.5" :disabled="busy || disabled || !prompt.trim()" @click="emit('generate')">
                     <span v-if="busy" class="spinner size-3.5" /><Icon v-else name="sparkles" size="14" />
-                    {{ busy && busyLabel ? busyLabel : label }}
+                    <span class="sm:hidden">{{ busy ? '' : compactLabel || label }}</span>
+                    <span class="hidden sm:inline">{{ busy && busyLabel ? busyLabel : label }}</span>
                 </button>
             </div>
         </div>
