@@ -158,15 +158,6 @@ async function submit() {
 <template>
     <div class="pb-64">
         <section class="mx-auto flex min-h-[52vh] max-w-3xl flex-col items-center justify-center text-center">
-            <div class="mb-6 inline-flex rounded-2xl bg-surface-2 p-1">
-                <button class="rounded-xl px-5 py-2 text-sm font-semibold transition" :class="form.type === 'poster' ? 'bg-lime text-ink' : 'text-zinc-400 hover:text-fg'" @click="form.type = 'poster'">
-                    Постер
-                </button>
-                <button class="rounded-xl px-5 py-2 text-sm font-semibold transition" :class="form.type === 'reel' ? 'bg-lime text-ink' : 'text-zinc-400 hover:text-fg'" @click="form.type = 'reel'">
-                    Reels
-                </button>
-            </div>
-
             <h1 v-if="form.type === 'poster'" class="display text-4xl leading-[0.95] md:text-6xl">
                 Постер бүтээ<br /><span class="text-lime">Instagram · Facebook</span>
             </h1>
@@ -223,6 +214,19 @@ async function submit() {
                 </div>
             </template>
 
+            <!-- What to make: first control in the row, so the choices after it read as its settings. -->
+            <div class="inline-flex rounded-xl bg-white/5 p-0.5">
+                <button
+                    v-for="t in [['poster', 'Постер', 'image'], ['reel', 'Reels', 'video']]"
+                    :key="t[0]"
+                    type="button"
+                    class="flex items-center gap-1.5 rounded-[10px] px-3 py-1.5 text-sm font-semibold transition"
+                    :class="form.type === t[0] ? 'bg-lime text-ink' : 'text-zinc-400 hover:text-fg'"
+                    @click="form.type = t[0]"
+                >
+                    <Icon :name="t[2]" size="14" /> {{ t[1] }}
+                </button>
+            </div>
             <label class="chip cursor-pointer" :class="{ 'chip-active': logo }" title="Лого хавсаргах">
                 <Icon name="plus" size="14" /> Лого
                 <input type="file" accept="image/png,image/jpeg,image/webp" class="hidden" @change="pickLogo" />
