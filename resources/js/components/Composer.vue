@@ -22,7 +22,7 @@ function onKey(e) {
 
 <template>
     <div class="pointer-events-none fixed inset-x-0 bottom-0 z-40 px-4 pb-4 md:pb-6">
-        <div class="composer pointer-events-auto mx-auto max-w-4xl">
+        <div class="composer pointer-events-auto mx-auto max-w-5xl">
             <slot name="top" />
             <textarea
                 v-model="prompt"
@@ -32,7 +32,7 @@ function onKey(e) {
                 @keydown="onKey"
             />
             <div class="flex flex-wrap items-end gap-2">
-                <div class="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+                <div class="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
                     <slot />
                 </div>
                 <button class="btn-generate flex items-center gap-2" :disabled="busy || disabled || !prompt.trim()" @click="emit('generate')">

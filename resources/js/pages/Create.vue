@@ -137,7 +137,7 @@ async function submit() {
         data.append('use_saved_logo', '1');
     }
     images.value.forEach((i) => data.append('images[]', i.file));
-    refs.value.forEach((i) => data.append('references[]', i.file));
+    if (form.type === 'poster') refs.value.forEach((i) => data.append('references[]', i.file));
 
     try {
         const { data: creation } = await api.post('/creations', data);
@@ -193,7 +193,7 @@ async function submit() {
         >
             <template #top>
                 <p v-if="error" class="mb-2 rounded-xl bg-red-950/70 px-3 py-2 text-sm text-red-200">{{ error }}</p>
-                <div v-if="logo || images.length || refs.length" class="mb-2 flex flex-wrap items-end gap-2 px-1">
+                <div v-if="logo || images.length || (form.type === 'poster' && refs.length)" class="mb-2 flex flex-wrap items-end gap-2 px-1">
                     <div v-if="logo" class="group relative">
                         <img :src="logo.url" class="size-16 rounded-xl bg-white/5 object-contain p-1 ring-1 ring-lime/50" alt="Лого" />
                         <span class="absolute -bottom-1.5 left-1/2 -translate-x-1/2 rounded bg-lime px-1 text-[9px] font-bold text-ink">ЛОГО</span>
@@ -203,7 +203,7 @@ async function submit() {
                         <img :src="img.url" class="size-16 rounded-xl object-cover ring-1 ring-white/10" alt="Бүтээгдэхүүн" />
                         <button class="absolute -top-1.5 -right-1.5 grid size-5 place-items-center rounded-full bg-white text-black opacity-0 transition group-hover:opacity-100" @click="removeImage(images, i)"><Icon name="x" size="10" /></button>
                     </div>
-                    <div v-for="(img, i) in refs" :key="img.url" class="group relative">
+                    <div v-for="(img, i) in form.type === 'poster' ? refs : []" :key="img.url" class="group relative">
                         <img :src="img.url" class="size-16 rounded-xl object-cover ring-1 ring-sky-400/60" alt="Жишээ" />
                         <span class="absolute -bottom-1.5 left-1/2 -translate-x-1/2 rounded bg-sky-400 px-1 text-[9px] font-bold text-ink">ЖИШЭЭ</span>
                         <button class="absolute -top-1.5 -right-1.5 grid size-5 place-items-center rounded-full bg-white text-black opacity-0 transition group-hover:opacity-100" @click="removeImage(refs, i)"><Icon name="x" size="10" /></button>
@@ -220,7 +220,7 @@ async function submit() {
                     v-for="t in [['poster', 'Постер', 'image'], ['reel', 'Reels', 'video']]"
                     :key="t[0]"
                     type="button"
-                    class="flex items-center gap-1.5 rounded-[10px] px-3 py-1.5 text-sm font-semibold transition"
+                    class="flex h-8 items-center gap-1.5 rounded-[10px] px-2.5 text-sm font-semibold transition"
                     :class="form.type === t[0] ? 'bg-lime text-ink' : 'text-zinc-400 hover:text-fg'"
                     @click="form.type = t[0]"
                 >
@@ -235,7 +235,7 @@ async function submit() {
                 <Icon name="image" size="14" /> <span class="hidden sm:inline">Бүтээгдэхүүн</span><span class="sm:hidden">Зураг</span> {{ images.length ? `${images.length}/${maxImages}` : '' }}
                 <input type="file" accept="image/png,image/jpeg,image/webp" multiple class="hidden" :disabled="images.length >= maxImages" @change="pickImages(images, maxImages, $event)" />
             </label>
-            <label class="chip cursor-pointer" :class="{ 'chip-active': refs.length, 'opacity-50': refs.length >= maxRefs }" title="Дуурайх жишээ зураг: ийм харагдах, ийм өнгө аястай болгоно">
+            <label v-if="form.type === 'poster'" class="chip cursor-pointer" :class="{ 'chip-active': refs.length, 'opacity-50': refs.length >= maxRefs }" title="Дуурайх жишээ зураг: ийм харагдах, ийм өнгө аястай болгоно">
                 <Icon name="image" size="14" /> Жишээ {{ refs.length ? `${refs.length}/${maxRefs}` : '' }}
                 <input type="file" accept="image/png,image/jpeg,image/webp" multiple class="hidden" :disabled="refs.length >= maxRefs" @change="pickImages(refs, maxRefs, $event)" />
             </label>
