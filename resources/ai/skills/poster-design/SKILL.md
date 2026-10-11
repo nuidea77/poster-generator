@@ -8,12 +8,7 @@ description: How to make a finished, text-free advertising poster image for Inst
 The delivered image is the whole poster. No headline or button is added later, so the picture must sell on its own: one clear subject, a strong idea, brand colours, and the logo when one is given.
 
 ## Formats and safe areas
-| Format | Aspect generated | Final | Keep the subject in |
-|---|---|---|---|
-| `feed_portrait` | 4:5 | 1080×1350 | the middle 80% |
-| `feed_square` | 1:1 | 1080×1080 | the middle 80% |
-| `story` | 9:16 | 1080×1920 | the middle 60% vertically (top/bottom are covered by app UI) |
-| `fb_landscape` | 16:9 | 1200×628 (cropped from 16:9 → 1.91:1, a thin band is cut top & bottom) | the middle band |
+Formats are aspect ratios (`4:5`, `1:1`, `9:16`, `16:9` … or `auto`). Generate at the ordered aspect; the file is centre-cropped to it (short side 1080 px). Keep the subject in the middle 80% — the middle 60% vertically for 9:16, whose top and bottom are covered by app UI. Several ratios, `auto` or unusual ratios → load `format-composition`.
 
 ## Composition patterns
 - **Product hero** — the product large, sharp, centred or on a third; clean surface; soft shadow; brand-coloured background or a scene that tells the use.
@@ -34,6 +29,6 @@ The delivered image is the whole poster. No headline or button is added later, s
 Default: no words in the image. Only when the client explicitly asks for specific words (e.g. a price) put them in, short and exact, and verify spelling on the result. Cyrillic is often rendered poorly — if it comes out wrong, deliver without it.
 
 ## A matching set
-1. Generate the most important format first (usually `feed_portrait`).
+1. Generate the most important format first (the first one listed, usually `4:5`).
 2. Review it. Then for each other format call `generate_image` with the same model, aspect of that format, and the first image (plus logo/product) as references: "same scene and style, recomposed for a vertical 9:16 story".
 3. `deliver_poster` each format with its own image.

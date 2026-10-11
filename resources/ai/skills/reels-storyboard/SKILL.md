@@ -1,14 +1,14 @@
 ---
 name: reels-storyboard
-description: Planning a complete vertical reel from AI video clips — beat structure, shot list, still frames for product and logo shots, continuity, and the parallel generate → deliver flow. Load for every REEL job.
+description: Planning a complete reel (9:16 or 16:9, at the length the client ordered) from AI video clips — beat structure, shot list, still frames for product and logo shots, continuity, and the parallel generate → deliver flow. Load for every REEL job.
 ---
 
 # Reel storyboard
 
-The reel is assembled from your clips in order and is exactly as long as they are together — there is no fixed length. There is no text overlay, voiceover or music added afterwards, so the visuals must carry the story.
+The reel is assembled from your clips in order and is exactly as long as they are together. The client ordered the length (15, 30, 45 or 60 s) and the orientation (9:16 or 16:9); the clips must add up to the ordered length ± 3 s. There is no text overlay, voiceover or music added afterwards, so the visuals must carry the story.
 
 ## Length
-Pick the length the story needs, not a quota. Most ads land at **15–40 s** (3–6 clips); a launch or event story can run longer. Every clip must earn its place — a tight 20 s reel beats a padded 60 s one. Hard cap: 180 s.
+Plan the beats for the ordered length: **15 s** ≈ 3 clips (hook, product, end card), **30 s** ≈ 4–6, **45 s** ≈ 6–8, **60 s** ≈ 8–10. Choose clip lengths that add up (Seedance 5/10 s, Veo 4/6/8 s). Every clip must earn its place — vary shots rather than stretching one idea.
 
 ## Beat menu (use the ones that fit, in this order)
 | # | Beat | Typical shot |
@@ -27,7 +27,7 @@ Adapt the beats to the brief (event, service, food, fashion), but keep: hook fir
 
 ## Real product & logo shots
 Video models invent products from text. For any shot that must show the client's real product or logo:
-1. Make a still with `generate_image` (provider `gemini`, aspect `9:16`, the product/logo as references), e.g. "the provided product on a dark slate pedestal, rim light, vertical composition".
+1. Make a still with `generate_image` (provider `gemini`, aspect = the reel's orientation, `9:16` or `16:9`, the product/logo as references), e.g. "the provided product on a dark slate pedestal, rim light, vertical composition".
 2. Review it, then use its id as `first_frame_image_id` in the clip, describing only the motion.
 
 ## Continuity

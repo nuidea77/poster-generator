@@ -32,10 +32,10 @@ Steam rising, liquid pouring, fabric moving in wind, hair in slow motion, sparks
 ## Duration
 - Short clips (4–6 s): one quick beat, hooks, details.
 - Long clips (8–10 s): hero shots, slow reveals, the end card.
-- The reel length is simply the sum of the clips you deliver.
+- The reel length is the sum of the clips you deliver; it must match the ordered length ± 3 s.
 
 ## Image-to-video
-- Generate and review the still first (product fidelity!), then pass it as `first_frame_image_id`. The clip's aspect follows the frame, so make the still 9:16 for reels.
+- Generate and review the still first (product fidelity!), then pass it as `first_frame_image_id`. The clip's aspect follows the frame, so make the still at the reel's aspect (9:16 or 16:9).
 - Describe only the motion in the prompt ("camera slowly pushes in, steam rises from the cup"); the look is already in the frame.
 - This is the safest way to get a real product moving — a video model from text alone will invent a product.
 
@@ -43,4 +43,4 @@ Steam rising, liquid pouring, fabric moving in wind, hair in slow motion, sparks
 - No on-screen text, logos or readable labels from text prompts — they come out garbled. Show a logo only by animating a still that already contains it.
 - Faces of real people from references are not reliable; use product/venue shots instead.
 - Generation takes 1–4 minutes per clip; always request all clips of a reel in a single `generate_videos` call so they render in parallel.
-- Reels are 9:16. Still frames used as `first_frame_image_id` must be 9:16 too, or the clip is cropped.
+- Reels are 9:16 or 16:9 (the job says which). Still frames used as `first_frame_image_id` must have the same aspect, or the clip is cropped.

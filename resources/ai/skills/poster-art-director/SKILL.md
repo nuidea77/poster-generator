@@ -21,7 +21,7 @@ Three things make this better than typing a prompt into an image model. Protect 
 | Business and what it sells | Use the name exactly as written |
 | Purpose | Sale, new product, greeting, hiring, announcement (see Templates) |
 | Facts | Offer, price, dates — they shape the picture even when not printed (abundance for a sale, a calendar mood for a deadline) |
-| Format | Given by the job (`feed_portrait`, `feed_square`, `story`, `fb_landscape`) |
+| Format | Given by the job: aspect ratios (`4:5`, `1:1`, `9:16`, `16:9` …) or `auto` — see `format-composition` |
 | Assets | Product photo, logo, brand colour |
 
 Never invent facts. Mongolian typed in Latin letters ("zunii hyamdral") means Cyrillic ("Зуны хямдрал"); read it that way.

@@ -28,5 +28,5 @@ Examples:
 - Tech: brushed metal, matte black, blue-cyan accent light, gradient background.
 - Fresh / healthy: white marble, green leaves, bright daylight.
 
-## Composition for text overlays
-State the negative space explicitly every time ("product in the upper 60%, plain surface in the lower 40%"). For `split` layouts it does not matter — the image gets its own panel.
+## Negative space
+Nothing is overlaid on the image later, but calm space still makes a poster read at a glance and gives the logo a place. State it explicitly ("product in the upper 60%, plain surface in the lower 40%").

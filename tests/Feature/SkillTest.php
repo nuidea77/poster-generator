@@ -27,6 +27,14 @@ class SkillTest extends TestCase
         $this->assertStringStartsWith('# Poster design', $library->get('poster-design'));
         $this->assertStringNotContainsString('---', substr($library->get('poster-design'), 0, 5));
         $this->assertNull($library->get('../creative-director'));
+
+        // Every bundled skill has a description and is recommended somewhere in the director prompt.
+        $director = file_get_contents(resource_path('ai/creative-director.md'));
+        foreach ($library->bundled() as $name => $skill) {
+            $this->assertNotEmpty($skill['description'], $name);
+            $this->assertStringContainsString("`{$name}`", $director, "{$name} is not recommended in creative-director.md");
+        }
+        $this->assertGreaterThanOrEqual(18, count($library->bundled()));
     }
 
     public function test_claude_skills_are_bundled_with_origin(): void
