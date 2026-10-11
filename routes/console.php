@@ -3,9 +3,11 @@
 use App\Models\Creation;
 use App\Models\Payment;
 use App\Models\User;
+use App\Services\Agent\ClaudeSkillExporter;
 use App\Services\Billing\CostMeter;
 use App\Services\Billing\Credits;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schedule;
 
 Artisan::command('app:make-admin {email}', function (string $email) {
@@ -48,6 +50,22 @@ Artisan::command('pricing:report', function (CostMeter $meter) {
         ], $actuals))
         : $this->line('  No finished jobs yet.');
 })->purpose('Show credit prices derived from unit costs, and real job costs');
+
+Artisan::command('skills:export {--to= : Folder for the skill folders and zips} {--install : Also copy them into ~/.claude/skills for Claude Code}', function (ClaudeSkillExporter $exporter) {
+    $to = $this->option('to') ?: storage_path('app/claude-skills');
+    $written = $exporter->export($to);
+
+    if ($this->option('install')) {
+        $home = rtrim((string) (getenv('USERPROFILE') ?: getenv('HOME')), '\\/').'/.claude/skills';
+        foreach ($written as $skill) {
+            File::deleteDirectory("{$home}/{$skill['name']}");
+            File::copyDirectory($skill['dir'], "{$home}/{$skill['name']}");
+        }
+        $this->info(count($written)." skills installed in {$home}");
+    }
+
+    $this->info(count($written)." skills exported to {$to} (one .zip per skill for claude.ai)");
+})->purpose('Export the studio skills as Claude Agent Skills');
 
 // Fail creations whose worker died (job timeout + margin) so users are not left waiting.
 Schedule::call(function () {

@@ -5,11 +5,13 @@ namespace Tests\Feature;
 use App\Models\Creation;
 use App\Models\Skill;
 use App\Models\User;
+use App\Services\Agent\ClaudeSkillExporter;
 use App\Services\Agent\CreativeAgent;
 use App\Services\Agent\SkillLibrary;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
@@ -35,6 +37,30 @@ class SkillTest extends TestCase
             $this->assertStringContainsString("`{$name}`", $director, "{$name} is not recommended in creative-director.md");
         }
         $this->assertGreaterThanOrEqual(18, count($library->bundled()));
+    }
+
+    public function test_skills_export_as_claude_agent_skills(): void
+    {
+        Skill::create(['name' => 'my-brand', 'description' => 'Our "navy" brand rules', 'content' => 'Pair with `poster-design`.']);
+        Skill::create(['name' => 'old-notes', 'description' => 'x', 'content' => 'y', 'enabled' => false]);
+        $to = storage_path('framework/testing/claude-skills');
+
+        $written = collect(app(ClaudeSkillExporter::class)->export($to))->keyBy('name');
+
+        $this->assertTrue($written->has('studio-poster-design'));
+        $this->assertFalse($written->has('studio-old-notes')); // switched-off skills stay out
+        $md = file_get_contents("{$to}/studio-my-brand/SKILL.md");
+        $this->assertStringStartsWith("---\nname: studio-my-brand\ndescription: \"Our \\\"navy\\\" brand rules\"\n---", $md);
+        $this->assertStringContainsString('Pair with `studio-poster-design`.', $md);
+        $this->assertFileExists("{$to}/studio-color-themes/LICENSE.txt");
+        $this->assertStringContainsString('license: Apache-2.0', file_get_contents("{$to}/studio-color-themes/SKILL.md"));
+
+        $zip = new \ZipArchive;
+        $zip->open($written['studio-color-themes']['zip']);
+        $this->assertNotFalse($zip->locateName('studio-color-themes/SKILL.md'));
+        $zip->close();
+
+        File::deleteDirectory($to);
     }
 
     public function test_claude_skills_are_bundled_with_origin(): void
