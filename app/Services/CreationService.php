@@ -19,14 +19,17 @@ class CreationService
      * Validate fair-use limits, store uploads and queue the job.
      *
      * @param  array<int, UploadedFile>  $images
+     * @param  array<int, UploadedFile>  $references
      */
-    public function start(User $user, array $data, ?UploadedFile $logo, array $images): Creation
+    public function start(User $user, array $data, ?UploadedFile $logo, array $images, array $references = []): Creation
     {
         $this->guardFairUse($user, $data['type']);
 
         $creation = $this->createCharged($user, [
             'type' => $data['type'],
-            'formats' => $data['type'] === Creation::POSTER ? array_values(array_unique($data['formats'])) : null,
+            'formats' => $data['type'] === Creation::POSTER
+                ? array_values(array_unique($data['formats']))
+                : [$data['formats'][0] ?? array_key_first(config('creations.reel.formats'))],
             'prompt' => $data['prompt'],
             'product' => array_filter($data['product'] ?? [], 'filled') ?: null,
         ]);
@@ -53,6 +56,10 @@ class CreationService
 
         foreach (array_values($images) as $i => $image) {
             $inputs[] = ['id' => 'product_'.($i + 1), 'kind' => 'image', 'role' => 'product', 'source' => 'upload', 'path' => $image->store($dir, 'public')];
+        }
+
+        foreach (array_values($references) as $i => $image) {
+            $inputs[] = ['id' => 'reference_'.($i + 1), 'kind' => 'image', 'role' => 'reference', 'source' => 'upload', 'path' => $image->store($dir, 'public')];
         }
 
         $creation->update(['inputs' => $inputs]);

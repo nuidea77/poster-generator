@@ -29,8 +29,11 @@ return [
     ],
 
     'reel' => [
-        'width' => 1080,
-        'height' => 1920,
+        // Video orientation; the first one is the default.
+        'formats' => [
+            '9:16' => ['label' => '9:16', 'hint' => 'Reels · Story · TikTok', 'width' => 1080, 'height' => 1920],
+            '16:9' => ['label' => '16:9', 'hint' => 'YouTube · Facebook видео', 'width' => 1920, 'height' => 1080],
+        ],
         'fps' => 30,
         // No fixed length: the reel is as long as the clips the agent delivers.
         // Cap at Instagram's reel limit.
@@ -39,6 +42,8 @@ return [
 
     'uploads' => [
         'max_product_images' => 5,
+        // Example images the customer wants the result to look like.
+        'max_reference_images' => 3,
         'max_kb' => 10240,
     ],
 

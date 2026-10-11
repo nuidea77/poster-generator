@@ -93,9 +93,9 @@ const fileName = (o) => `poster-studio-${creation.value.id.slice(-6).toLowerCase
             </div>
 
             <template v-else>
-                <div v-if="creation.type === 'reel'" class="mx-auto max-w-sm">
+                <div v-if="creation.type === 'reel'" class="mx-auto" :class="creation.outputs[0]?.width > creation.outputs[0]?.height ? 'max-w-3xl' : 'max-w-sm'">
                     <div class="media-card bg-black">
-                        <video :src="creation.outputs[0]?.url" :poster="creation.outputs[0]?.thumb_url" class="aspect-[9/16] w-full" controls playsinline preload="none" />
+                        <video :src="creation.outputs[0]?.url" :poster="creation.outputs[0]?.thumb_url" :style="{ aspectRatio: `${creation.outputs[0]?.width ?? 9} / ${creation.outputs[0]?.height ?? 16}` }" class="w-full" controls playsinline preload="none" />
                     </div>
                     <a :href="creation.outputs[0]?.url" :download="fileName(creation.outputs[0])" class="btn btn-lime mt-4 w-full py-3"><Icon name="download" size="16" /> Видео татах (MP4)</a>
                 </div>

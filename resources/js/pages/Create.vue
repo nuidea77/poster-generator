@@ -10,16 +10,19 @@ import Icon from '../components/Icon.vue';
 const router = useRouter();
 const meta = session.meta;
 const maxImages = meta.uploads.max_product_images;
+const maxRefs = meta.uploads.max_reference_images;
 
 const form = reactive({
     type: 'poster',
     formats: ['4:5'],
+    reelFormat: meta.reel.formats[0].id,
     prompt: '',
     product: { name: '', price: '', description: '' },
 });
 
 const logo = ref(null); // { file, url } | { saved: true, url }
 const images = ref([]); // [{ file, url }]
+const refs = ref([]); // style examples, [{ file, url }]
 const rememberLogo = ref(true);
 const busy = ref(false);
 
@@ -34,8 +37,12 @@ if (session.user?.logo_url) {
     logo.value = { saved: true, url: session.user.logo_url };
 }
 
+// Size menu: poster ratios (several, or Auto) or the reel orientation (one).
+const formatOptions = computed(() => (form.type === 'reel' ? meta.reel.formats : meta.poster_formats));
+const isPicked = (id) => (form.type === 'reel' ? form.reelFormat === id : form.formats.includes(id));
+
 const formatLabel = computed(() => {
-    if (form.type === 'reel') return 'Reels 9:16';
+    if (form.type === 'reel') return form.reelFormat;
     const picked = meta.poster_formats.filter((f) => form.formats.includes(f.id));
     return picked.length === 1 ? picked[0].label : `${picked.length} хэмжээ`;
 });
@@ -64,6 +71,10 @@ const examples = {
 
 // Several ratios can be picked; Auto stands alone.
 function toggleFormat(id) {
+    if (form.type === 'reel') {
+        form.reelFormat = id;
+        return;
+    }
     if (id === 'auto' || form.formats.includes('auto')) {
         form.formats = [id];
         return;
@@ -81,17 +92,18 @@ function pickLogo(e) {
     logo.value = { file, url: URL.createObjectURL(file) };
 }
 
-function pickImages(e) {
+// `list` is the (template-unwrapped) reactive array of images or refs.
+function pickImages(list, max, e) {
     for (const file of e.target.files ?? []) {
-        if (images.value.length >= maxImages) break;
-        images.value.push({ file, url: URL.createObjectURL(file) });
+        if (list.length >= max) break;
+        list.push({ file, url: URL.createObjectURL(file) });
     }
     e.target.value = '';
 }
 
-function removeImage(i) {
-    URL.revokeObjectURL(images.value[i].url);
-    images.value.splice(i, 1);
+function removeImage(list, i) {
+    URL.revokeObjectURL(list[i].url);
+    list.splice(i, 1);
 }
 
 function removeLogo() {
@@ -100,7 +112,7 @@ function removeLogo() {
 }
 
 onBeforeUnmount(() => {
-    images.value.forEach((i) => URL.revokeObjectURL(i.url));
+    [...images.value, ...refs.value].forEach((i) => URL.revokeObjectURL(i.url));
     if (logo.value?.file) URL.revokeObjectURL(logo.value.url);
 });
 
@@ -116,7 +128,7 @@ async function submit() {
     const data = new FormData();
     data.append('type', form.type);
     data.append('prompt', form.prompt);
-    if (form.type === 'poster') form.formats.forEach((f) => data.append('formats[]', f));
+    (form.type === 'poster' ? form.formats : [form.reelFormat]).forEach((f) => data.append('formats[]', f));
     Object.entries(form.product).forEach(([k, v]) => v.trim() && data.append(`product[${k}]`, v.trim()));
     if (logo.value?.file) {
         data.append('logo', logo.value.file);
@@ -125,6 +137,7 @@ async function submit() {
         data.append('use_saved_logo', '1');
     }
     images.value.forEach((i) => data.append('images[]', i.file));
+    refs.value.forEach((i) => data.append('references[]', i.file));
 
     try {
         const { data: creation } = await api.post('/creations', data);
@@ -162,7 +175,7 @@ async function submit() {
             </h1>
             <p class="mt-4 max-w-xl text-base text-zinc-400">
                 <template v-if="form.type === 'poster'">Юу сурталчлахаа бичээд, лого, бүтээгдэхүүнийхээ зургийг нэмнэ үү. Бэлэн постер хэдэн минутад гарна.</template>
-                <template v-else>9:16 босоо, бэлэн видео. Урт нь санаанаасаа хамаарна, ихэвчлэн 15–40 секунд. Бүтээхэд 10–20 минут болно. Хуудсаа хааж болно, бэлэн болмогц "Миний бүтээлүүд"-д гарна.</template>
+                <template v-else>Босоо 9:16 эсвэл хэвтээ 16:9, бэлэн видео. Урт нь санаанаасаа хамаарна, ихэвчлэн 15–40 секунд. Бүтээхэд 10–20 минут болно. Хуудсаа хааж болно, бэлэн болмогц "Миний бүтээлүүд"-д гарна.</template>
             </p>
 
             <div class="mt-6 flex flex-wrap justify-center gap-2">
@@ -189,7 +202,7 @@ async function submit() {
         >
             <template #top>
                 <p v-if="error" class="mb-2 rounded-xl bg-red-950/70 px-3 py-2 text-sm text-red-200">{{ error }}</p>
-                <div v-if="logo || images.length" class="mb-2 flex flex-wrap items-end gap-2 px-1">
+                <div v-if="logo || images.length || refs.length" class="mb-2 flex flex-wrap items-end gap-2 px-1">
                     <div v-if="logo" class="group relative">
                         <img :src="logo.url" class="size-16 rounded-xl bg-white/5 object-contain p-1 ring-1 ring-lime/50" alt="Лого" />
                         <span class="absolute -bottom-1.5 left-1/2 -translate-x-1/2 rounded bg-lime px-1 text-[9px] font-bold text-ink">ЛОГО</span>
@@ -197,7 +210,12 @@ async function submit() {
                     </div>
                     <div v-for="(img, i) in images" :key="img.url" class="group relative">
                         <img :src="img.url" class="size-16 rounded-xl object-cover ring-1 ring-white/10" alt="Бүтээгдэхүүн" />
-                        <button class="absolute -top-1.5 -right-1.5 grid size-5 place-items-center rounded-full bg-white text-black opacity-0 transition group-hover:opacity-100" @click="removeImage(i)"><Icon name="x" size="10" /></button>
+                        <button class="absolute -top-1.5 -right-1.5 grid size-5 place-items-center rounded-full bg-white text-black opacity-0 transition group-hover:opacity-100" @click="removeImage(images, i)"><Icon name="x" size="10" /></button>
+                    </div>
+                    <div v-for="(img, i) in refs" :key="img.url" class="group relative">
+                        <img :src="img.url" class="size-16 rounded-xl object-cover ring-1 ring-sky-400/60" alt="Жишээ" />
+                        <span class="absolute -bottom-1.5 left-1/2 -translate-x-1/2 rounded bg-sky-400 px-1 text-[9px] font-bold text-ink">ЖИШЭЭ</span>
+                        <button class="absolute -top-1.5 -right-1.5 grid size-5 place-items-center rounded-full bg-white text-black opacity-0 transition group-hover:opacity-100" @click="removeImage(refs, i)"><Icon name="x" size="10" /></button>
                     </div>
                     <label v-if="logo?.file" class="ml-1 flex cursor-pointer items-center gap-1.5 text-[11px] text-muted">
                         <input v-model="rememberLogo" type="checkbox" class="accent-lime" /> Логог хадгалах
@@ -211,7 +229,11 @@ async function submit() {
             </label>
             <label class="chip cursor-pointer" :class="{ 'opacity-50': images.length >= maxImages }" title="Бүтээгдэхүүний зураг">
                 <Icon name="image" size="14" /> <span class="hidden sm:inline">Бүтээгдэхүүн</span><span class="sm:hidden">Зураг</span> {{ images.length ? `${images.length}/${maxImages}` : '' }}
-                <input type="file" accept="image/png,image/jpeg,image/webp" multiple class="hidden" :disabled="images.length >= maxImages" @change="pickImages" />
+                <input type="file" accept="image/png,image/jpeg,image/webp" multiple class="hidden" :disabled="images.length >= maxImages" @change="pickImages(images, maxImages, $event)" />
+            </label>
+            <label class="chip cursor-pointer" :class="{ 'chip-active': refs.length, 'opacity-50': refs.length >= maxRefs }" title="Дуурайх жишээ зураг: ийм харагдах, ийм өнгө аястай болгоно">
+                <Icon name="image" size="14" /> Жишээ {{ refs.length ? `${refs.length}/${maxRefs}` : '' }}
+                <input type="file" accept="image/png,image/jpeg,image/webp" multiple class="hidden" :disabled="refs.length >= maxRefs" @change="pickImages(refs, maxRefs, $event)" />
             </label>
             <ChipMenu label="Мэдээлэл" icon="edit" :active="productFilled" width="w-80">
                 <div class="space-y-2 p-1">
@@ -221,17 +243,17 @@ async function submit() {
                     <textarea v-model="form.product.description" rows="3" class="field resize-none py-2 text-sm" placeholder="Онцлог, давуу тал" />
                 </div>
             </ChipMenu>
-            <ChipMenu v-if="form.type === 'poster'" :label="formatLabel" icon="grid" width="w-72">
+            <ChipMenu :label="formatLabel" :icon="form.type === 'poster' ? 'grid' : 'video'" width="w-72">
                 <div class="px-2 pt-1 pb-2 text-xs text-muted">Хэмжээ</div>
                 <button
-                    v-for="f in meta.poster_formats"
+                    v-for="f in formatOptions"
                     :key="f.id"
                     type="button"
                     class="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left text-sm transition hover:bg-white/5"
-                    :class="form.formats.includes(f.id) ? 'bg-white/5 text-fg' : 'text-zinc-300'"
+                    :class="isPicked(f.id) ? 'bg-white/5 text-fg' : 'text-zinc-300'"
                     @click="toggleFormat(f.id)"
                 >
-                    <span class="grid size-7 place-items-center rounded-lg" :class="form.formats.includes(f.id) ? 'bg-white/10' : ''">
+                    <span class="grid size-7 place-items-center rounded-lg" :class="isPicked(f.id) ? 'bg-white/10' : ''">
                         <span v-if="ratioBox(f)" class="block rounded-[3px] border-[1.5px] border-current" :style="ratioBox(f)" />
                         <span v-else class="block size-3.5 rounded-[3px] border-[1.5px] border-dashed border-current" />
                     </span>
@@ -239,10 +261,9 @@ async function submit() {
                         <span class="block font-semibold">{{ f.label }}</span>
                         <span class="block text-[11px] text-muted">{{ f.hint }}</span>
                     </span>
-                    <Icon v-if="form.formats.includes(f.id)" name="check" size="14" />
+                    <Icon v-if="isPicked(f.id)" name="check" size="14" />
                 </button>
             </ChipMenu>
-            <span v-else class="chip hidden cursor-default sm:inline-flex"><Icon name="video" size="14" /> {{ formatLabel }}</span>
         </Composer>
     </div>
 </template>

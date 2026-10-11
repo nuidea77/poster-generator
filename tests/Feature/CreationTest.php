@@ -132,6 +132,7 @@ class CreationTest extends TestCase
             'logo' => UploadedFile::fake()->image('logo.png', 200, 200),
             'remember_logo' => '1',
             'images' => [UploadedFile::fake()->image('p1.jpg', 400, 400)],
+            'references' => [UploadedFile::fake()->image('look.jpg', 400, 400)],
         ], ['Accept' => 'application/json'])
             ->assertStatus(202)
             ->assertJsonPath('data.status', 'queued')
@@ -139,8 +140,40 @@ class CreationTest extends TestCase
 
         Queue::assertPushed(RunCreation::class);
         $creation = Creation::where('public_id', $id)->first();
-        $this->assertSame(['logo', 'product_1'], array_column($creation->inputs, 'id'));
+        $this->assertSame(['logo', 'product_1', 'reference_1'], array_column($creation->inputs, 'id'));
+        $this->assertSame('reference', $creation->inputs[2]['role']);
         $this->assertNotNull($this->user->fresh()->logo_path);
+    }
+
+    public function test_reel_orientation_defaults_to_vertical_and_reaches_the_video_model(): void
+    {
+        Queue::fake();
+        $reel = ['type' => 'reel', 'prompt' => 'Кофены reels'];
+
+        $this->actingAs($this->user)->postJson('/api/v1/creations', ['formats' => ['4:5']] + $reel)
+            ->assertStatus(422)->assertJsonValidationErrors('formats.0');
+        $this->actingAs($this->user)->postJson('/api/v1/creations', ['formats' => ['9:16', '16:9']] + $reel)
+            ->assertStatus(422)->assertJsonValidationErrors('formats');
+
+        $id = $this->actingAs($this->user)->postJson('/api/v1/creations', $reel)->assertStatus(202)->json('data.id');
+        $this->assertSame(['9:16'], Creation::where('public_id', $id)->first()->formats);
+
+        $id = $this->actingAs($this->user)->postJson('/api/v1/creations', ['formats' => ['16:9']] + $reel)->assertStatus(202)->json('data.id');
+        $creation = Creation::where('public_id', $id)->first();
+        $this->assertSame(['aspect' => '16:9', 'width' => 1920, 'height' => 1080], collect($creation->reelFormat())->only(['aspect', 'width', 'height'])->all());
+
+        Http::fake([
+            'api.anthropic.com/*' => Http::sequence()
+                ->push($this->turn([['generate_videos', ['clips' => [['provider' => 'seedance', 'prompt' => 'wide pan', 'duration' => 5, 'first_frame_image_id' => '', 'purpose' => 'x']]]]]))
+                ->push($this->turn([['finish', ['summary' => 'stop']]])),
+            'ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks' => Http::response(['id' => 't1']),
+            'ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks/t1' => Http::response(['status' => 'failed']),
+        ]);
+
+        app()->call([new RunCreation($creation), 'handle']); // the queue is faked above
+
+        Http::assertSent(fn (Request $r) => str_ends_with($r->url(), '/contents/generations/tasks') && str_contains($r['content'][0]['text'], '--ratio 16:9'));
+        Http::assertSent(fn (Request $r) => str_contains($r->url(), 'anthropic.com') && str_contains(json_encode($r['messages'][0]['content'], JSON_UNESCAPED_UNICODE), 'horizontal 16:9 video (1920×1080)'));
     }
 
     public function test_fair_use_limits_active_jobs(): void

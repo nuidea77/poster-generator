@@ -80,6 +80,19 @@ class Creation extends Model
         return in_array($this->status, self::ACTIVE, true);
     }
 
+    /**
+     * Reel orientation (kept in `formats`; older reels have none and are 9:16).
+     *
+     * @return array{aspect: string, label: string, hint: string, width: int, height: int}
+     */
+    public function reelFormat(): array
+    {
+        $formats = config('creations.reel.formats');
+        $aspect = isset($formats[$this->formats[0] ?? '']) ? $this->formats[0] : array_key_first($formats);
+
+        return ['aspect' => $aspect] + $formats[$aspect];
+    }
+
     public function addStep(array $step): void
     {
         $this->steps = [...$this->steps, $step + ['at' => now()->toIso8601String()]];

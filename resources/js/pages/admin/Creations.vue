@@ -67,7 +67,7 @@ const usage = (c) =>
                                 <div v-if="c.error_detail" class="text-red-300"><b>Алдаа:</b> {{ c.error_detail }}</div>
                                 <div class="flex flex-wrap gap-2">
                                     <a v-for="a in c.assets" :key="a.id" :href="a.url" target="_blank" class="w-24">
-                                        <video v-if="a.kind === 'video'" :src="a.url" class="aspect-[9/16] w-full rounded-lg object-cover" muted />
+                                        <video v-if="a.kind === 'video'" :src="a.url" class="w-full rounded-lg" muted />
                                         <img v-else :src="a.url" class="w-full rounded-lg" />
                                         <span class="text-[10px] text-muted">{{ a.id }} · {{ a.provider }}</span>
                                     </a>

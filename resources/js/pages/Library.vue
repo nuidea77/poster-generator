@@ -47,8 +47,8 @@ onBeforeUnmount(() => clearInterval(timer));
 const cover = (c) => (c.type === 'reel' ? c.outputs[0]?.thumb_url : c.outputs[0]?.url);
 const aspect = (c) => {
     const o = c.outputs[0];
-    if (c.type === 'reel') return { aspectRatio: '9 / 16' };
-    const ratio = c.formats?.[0]?.includes(':') ? c.formats[0].replace(':', ' / ') : '4 / 5';
+    const fallback = c.type === 'reel' ? '9 / 16' : '4 / 5';
+    const ratio = c.formats?.[0]?.includes(':') ? c.formats[0].replace(':', ' / ') : fallback;
     return { aspectRatio: o?.width ? `${o.width} / ${o.height}` : ratio };
 };
 </script>

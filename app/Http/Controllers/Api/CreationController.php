@@ -35,6 +35,7 @@ class CreationController extends Controller
             $request->validated(),
             $request->file('logo'),
             $request->file('images', []),
+            $request->file('references', []),
         );
 
         return (new CreationResource($creation->refresh()))->response()->setStatusCode(202);

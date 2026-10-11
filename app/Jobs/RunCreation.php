@@ -96,19 +96,18 @@ class RunCreation implements ShouldQueue
         $creation->update(['status' => Creation::ASSEMBLING, 'stage' => 'assembling', 'progress' => max($creation->progress, 88)]);
 
         $paths = array_map(fn ($id) => MediaStore::absolute($creation->asset($id)['path']), $creation->reel_clips);
-        $tmp = $assembler->assemble($paths);
+        $format = $creation->reelFormat();
+        $tmp = $assembler->assemble($paths, $format['width'], $format['height']);
 
         $duration = round($assembler->duration($tmp), 1);
         $file = MediaStore::put("creations/{$creation->public_id}", File::get($tmp), 'video/mp4');
         $thumb = MediaStore::put("creations/{$creation->public_id}", $assembler->thumbnail($tmp, min(2.0, $duration / 2)), 'image/jpeg');
         File::delete($tmp);
 
-        $reel = config('creations.reel');
-
         $creation->update([
             'outputs' => [[
-                'kind' => 'video', 'format' => 'reel', 'label' => 'Reels 9:16',
-                'width' => $reel['width'], 'height' => $reel['height'], 'duration' => $duration,
+                'kind' => 'video', 'format' => 'reel', 'label' => "Reels {$format['label']}",
+                'width' => $format['width'], 'height' => $format['height'], 'duration' => $duration,
                 'path' => $file['path'], 'url' => $file['url'], 'thumb_url' => $thumb['url'],
             ]],
             'status' => Creation::DONE,

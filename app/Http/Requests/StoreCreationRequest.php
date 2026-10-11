@@ -16,11 +16,12 @@ class StoreCreationRequest extends FormRequest
     public function rules(): array
     {
         $maxKb = config('creations.uploads.max_kb');
+        $reel = $this->input('type') === Creation::REEL;
 
         return [
             'type' => ['required', Rule::in([Creation::POSTER, Creation::REEL])],
-            'formats' => ['required_if:type,poster', 'array', 'min:1'],
-            'formats.*' => ['distinct', Rule::in(array_keys(config('creations.poster_formats')))],
+            'formats' => ['required_if:type,poster', 'array', 'min:1', ...($reel ? ['max:1'] : [])],
+            'formats.*' => ['distinct', Rule::in(array_keys(config($reel ? 'creations.reel.formats' : 'creations.poster_formats')))],
             'prompt' => ['required', 'string', 'min:5', 'max:3000'],
             'product' => ['nullable', 'array'],
             'product.name' => ['nullable', 'string', 'max:150'],
@@ -31,6 +32,8 @@ class StoreCreationRequest extends FormRequest
             'remember_logo' => ['sometimes', 'boolean'],
             'images' => ['nullable', 'array', 'max:'.config('creations.uploads.max_product_images')],
             'images.*' => ['image', 'mimes:jpg,jpeg,png,webp', "max:{$maxKb}"],
+            'references' => ['nullable', 'array', 'max:'.config('creations.uploads.max_reference_images')],
+            'references.*' => ['image', 'mimes:jpg,jpeg,png,webp', "max:{$maxKb}"],
         ];
     }
 
@@ -41,6 +44,7 @@ class StoreCreationRequest extends FormRequest
             'prompt.required' => 'Юу хийлгэхээ бичнэ үү.',
             'prompt.min' => 'Бриф хэт богино байна.',
             'images.max' => 'Бүтээгдэхүүний зураг :max-аас ихгүй байна.',
+            'references.max' => 'Жишээ зураг :max-аас ихгүй байна.',
         ];
     }
 }

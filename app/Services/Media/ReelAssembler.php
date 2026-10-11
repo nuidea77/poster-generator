@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Str;
 
 /**
- * Builds the final reel: every clip is scaled/cropped to 1080×1920 @30fps,
+ * Builds the final reel: every clip is scaled/cropped to the reel size (9:16 or 16:9) @30fps,
  * concatenated in order (the reel is as long as the clips together), and
  * given a silent stereo AAC track so Instagram/Facebook accept the file.
  */
@@ -18,13 +18,13 @@ class ReelAssembler
      * @param  list<string>  $clipPaths  Absolute paths, in playback order.
      * @return string Absolute path of the finished MP4 (caller moves it).
      */
-    public function assemble(array $clipPaths): string
+    public function assemble(array $clipPaths, int $w, int $h): string
     {
         if (! $clipPaths) {
             throw new AiException('No clips to assemble.');
         }
 
-        ['width' => $w, 'height' => $h, 'fps' => $fps] = config('creations.reel');
+        $fps = config('creations.reel.fps');
         $ffmpeg = config('ai.ffmpeg');
         $dir = storage_path('app/private/reels/'.Str::uuid());
         File::ensureDirectoryExists($dir);

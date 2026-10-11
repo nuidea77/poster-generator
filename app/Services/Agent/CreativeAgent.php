@@ -157,7 +157,11 @@ class CreativeAgent
         $content = [];
 
         foreach ($creation->inputs as $input) {
-            $label = $input['role'] === 'logo' ? 'Brand logo' : 'Product photo';
+            $label = match ($input['role']) {
+                'logo' => 'Brand logo',
+                'reference' => 'Style reference from the client (match its look, mood, composition and pacing; do not copy its content, text or logos)',
+                default => 'Product photo',
+            };
             $content[] = ['type' => 'text', 'text' => "{$label} — asset id `{$input['id']}`:"];
             $content[] = $this->imageBlock($input['path']);
         }
@@ -173,8 +177,9 @@ class CreativeAgent
                     : "- `{$key}`: final size {$f['width']}×{$f['height']}, generate at aspect {$key}";
             }
         } else {
-            $reel = config('creations.reel');
-            $lines[] = "Deliverable: REEL — vertical 9:16 video assembled from AI video clips in the order you give. No fixed length: choose what the story needs (at most {$reel['max_seconds']} s).";
+            $reel = $creation->reelFormat();
+            $orientation = $reel['width'] > $reel['height'] ? 'horizontal' : 'vertical';
+            $lines[] = "Deliverable: REEL — {$orientation} {$reel['aspect']} video ({$reel['width']}×{$reel['height']}) assembled from AI video clips in the order you give. First-frame images must be generated at {$reel['aspect']} too. No fixed length: choose what the story needs (at most ".config('creations.reel.max_seconds').' s).';
         }
 
         if (array_filter($creation->product ?? [])) {
@@ -231,7 +236,7 @@ class CreativeAgent
         if ($creation->type === Creation::REEL && $videos) {
             $lengths = collect($videos)->mapWithKeys(fn ($v) => [$v => $this->ai->video($v)->durations()]);
             $tools[] = $this->tool('generate_videos',
-                'Generate several 9:16 video clips in parallel (one call for the whole storyboard). Clip lengths per model: '
+                'Generate several '.$creation->reelFormat()['aspect'].' video clips in parallel (one call for the whole storyboard). Clip lengths per model: '
                 .$lengths->map(fn ($d, $v) => "{$v} ".implode('/', $d).' s')->implode(', ')
                 .' (other values snap to the nearest). first_frame_image_id animates an existing image ("" for text-to-video). Takes several minutes. Returns clip asset ids, real lengths and any failures.',
                 [
@@ -361,7 +366,7 @@ class CreativeAgent
                 $clip['duration'] = $this->nearest($provider->durations(), (int) $clip['duration']);
                 $cost = $this->cost->video($clip['provider'], $clip['duration']);
                 $this->guardBudget($creation, $cost + array_sum(array_column($tasks, 'cost')));
-                $tasks[$i] = ['provider' => $provider, 'name' => $clip['provider'], 'id' => $provider->submit($clip['prompt'], '9:16', $clip['duration'], $frame), 'clip' => $clip, 'cost' => $cost];
+                $tasks[$i] = ['provider' => $provider, 'name' => $clip['provider'], 'id' => $provider->submit($clip['prompt'], $creation->reelFormat()['aspect'], $clip['duration'], $frame), 'clip' => $clip, 'cost' => $cost];
             } catch (AiException|ConnectionException $e) {
                 $report[$i] = 'clip #'.($i + 1).": FAILED to start — {$e->getMessage()}";
             }
