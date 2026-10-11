@@ -83,7 +83,7 @@ class CreationTest extends TestCase
         $this->actingAs($user)->postJson('/api/v1/creations', ['type' => 'reel', 'prompt' => 'Кофены reels'])
             ->assertStatus(402)->assertJsonPath('needed', 80);
         $this->actingAs($user)->postJson('/api/v1/creations', ['type' => 'reel', 'duration' => 60, 'prompt' => 'Кофены reels'])
-            ->assertStatus(402)->assertJsonPath('needed', 270);
+            ->assertStatus(402)->assertJsonPath('needed', 265);
         $this->actingAs($user)->postJson('/api/v1/creations', ['type' => 'reel', 'duration' => 20, 'prompt' => 'Кофены reels'])
             ->assertStatus(422)->assertJsonValidationErrors('duration');
         $this->actingAs($user)->postJson('/api/v1/creations', ['formats' => ['1:1', '9:16']] + $poster)

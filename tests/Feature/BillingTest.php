@@ -2,11 +2,13 @@
 
 namespace Tests\Feature;
 
+use App\Models\Creation;
 use App\Models\Payment;
 use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Services\Billing\BillingService;
+use App\Services\Billing\CostMeter;
 use Database\Seeders\PlanSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
@@ -56,6 +58,42 @@ class BillingTest extends TestCase
             ->assertJsonCount(4, 'reel.durations')
             ->assertJsonPath('credit_prices.reel.30', 140)
             ->assertJsonMissingPath('providers');
+    }
+
+    public function test_credit_prices_follow_unit_costs_through_cost_meter(): void
+    {
+        $meter = app(CostMeter::class);
+        $this->assertSame(['poster' => 12, 'poster_extra_format' => 3, 'reel' => [15 => 80, 30 => 140, 45 => 205, 60 => 265]], $meter->creditPrices());
+
+        foreach ($meter->priceBook() as $row) {
+            $this->assertGreaterThanOrEqual(2.0, $row['margin_worst'], $row['label']);
+            $this->assertGreaterThanOrEqual(3.0, $row['margin_typical'], $row['label']);
+        }
+
+        // Media budget = worst-case media: 4 stills + 1.3 × length of the priciest video model.
+        $this->assertEqualsWithDelta(4 * 0.25 + 30 * 1.3 * 0.40, $meter->budget('reel', 30), 0.0001);
+
+        // A cheaper video model as the priciest one makes reels cheaper; posters do not change.
+        config(['pricing.costs.video_second.veo' => 0.12]);
+        $this->assertSame(12, $meter->credits('poster'));
+        $this->assertLessThan(80, $meter->credits('reel', 15));
+    }
+
+    public function test_admin_cost_report_compares_price_book_with_real_costs(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        Creation::create(['user_id' => $admin->id, 'type' => 'reel', 'duration' => 30, 'credits' => 140, 'prompt' => 'x', 'status' => 'done', 'cost_usd' => 9.5,
+            'assets' => [['id' => 'vid_1', 'kind' => 'video', 'cost' => 8.0]]]);
+
+        $this->actingAs(User::factory()->create())->getJson('/api/v1/admin/costs')->assertForbidden();
+        $this->actingAs($admin)->getJson('/api/v1/admin/costs')
+            ->assertOk()
+            ->assertJsonCount(6, 'price_book')
+            ->assertJsonPath('price_book.3.label', 'Reels 30 сек')
+            ->assertJsonPath('price_book.3.credits', 140)
+            ->assertJsonPath('actuals.0.label', 'Reels 30 сек')
+            ->assertJsonPath('actuals.0.avg_claude_usd', 1.5)
+            ->assertJsonPath('actuals.0.avg_media_usd', 8);
     }
 
     public function test_checkout_creates_qpay_invoice_and_reuses_pending(): void

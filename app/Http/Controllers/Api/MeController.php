@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\MeResource;
 use App\Models\Plan;
+use App\Services\Billing\CostMeter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -59,7 +60,7 @@ class MeController extends Controller
             ],
             'uploads' => config('creations.uploads'),
             'plans' => Plan::where('is_active', true)->orderBy('sort')->get(['id', 'slug', 'name', 'price', 'period_days', 'credits', 'features']),
-            'credit_prices' => config('pricing.credits'),
+            'credit_prices' => app(CostMeter::class)->creditPrices(),
             'usd_mnt' => config('pricing.usd_mnt'),
             'payments_fake' => (bool) config('qpay.fake'),
         ]);

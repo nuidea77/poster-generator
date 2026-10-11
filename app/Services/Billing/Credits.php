@@ -19,13 +19,15 @@ class Credits
     /** Never expires. */
     private const FREE_YEARS = 100;
 
+    public function __construct(private CostMeter $meter) {}
+
     public function price(Creation $creation): int
     {
-        $c = config('pricing.credits');
+        $extra = max(0, count($creation->formats ?? []) - 1);
 
         return $creation->type === Creation::REEL
-            ? $c['reel'][$creation->reelDuration()]
-            : $c['poster'] + max(0, count($creation->formats ?? []) - 1) * $c['poster_extra_format'];
+            ? $this->meter->credits('reel', $creation->reelDuration())
+            : $this->meter->credits('poster') + $extra * $this->meter->credits('poster_extra_format');
     }
 
     /**
@@ -33,11 +35,11 @@ class Credits
      */
     public function mediaBudget(Creation $creation): float
     {
-        $b = config('pricing.media_budget');
+        $extra = max(0, count($creation->formats ?? []) - 1);
 
         return $creation->type === Creation::REEL
-            ? $b['reel'][$creation->reelDuration()]
-            : $b['poster'] + max(0, count($creation->formats ?? []) - 1) * $b['poster_extra_format'];
+            ? $this->meter->budget('reel', $creation->reelDuration())
+            : $this->meter->budget('poster') + $extra * $this->meter->budget('poster_extra_format');
     }
 
     public function balance(User $user): int

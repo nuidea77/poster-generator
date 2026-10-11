@@ -5,12 +5,11 @@
 | Costs, credit prices and per-job budgets
 |--------------------------------------------------------------------------
 |
-| Prices are fixed in credits so customers know the cost up front. They are
-| set from the MOST EXPENSIVE models (GPT Image high for every image, Veo 3.1
-| standard for every second of video): even then a job's API cost stays under
-| price / 2 in the worst case and about price / 3 typically, because each job
-| has a hard media budget.
-| See docs/PRICING.md for the calculation. Unit costs are list prices in USD.
+| Prices are fixed in credits so customers know the cost up front. CostMeter
+| computes them from the unit costs (list prices in USD) and the estimates
+| below so that even with the most expensive models a job's API cost stays
+| under price / 2 in the worst case and about price / 3 typically; each job
+| has a hard media budget. See docs/PRICING.md.
 |
 */
 
@@ -18,7 +17,8 @@ return [
 
     'usd_mnt' => (float) env('PRICING_USD_MNT', 3600),
 
-    // Value of one credit in the cheapest paid plan (used for margin reports).
+    // Value of one credit in the cheapest paid plan: credit prices are set from
+    // it and margin reports use it.
     'credit_mnt' => (int) env('PRICING_CREDIT_MNT', 1112),
 
     'costs' => [
@@ -41,21 +41,49 @@ return [
         ],
     ],
 
-    // Credits charged when a job starts (refunded if it fails).
-    'credits' => [
-        'poster' => (int) env('CREDITS_POSTER', 12),            // first format
-        'poster_extra_format' => (int) env('CREDITS_POSTER_EXTRA', 3),
-        // Per reel length in seconds (see docs/PRICING.md §3).
-        'reel' => [15 => 80, 30 => 140, 45 => 210, 60 => 270],
+    /*
+    | Credit prices and media budgets are NOT typed in: CostMeter derives them
+    | from the unit costs above, priced as if every image were the priciest
+    | image model and every video second the priciest video model.
+    |
+    |   credits = ceil(max(worst × margin.worst, typical × margin.typical) / credit_mnt)
+    |   media budget (hard cap per job) = worst images × image + worst seconds × video
+    |
+    | `php artisan pricing:report` prints the table and the real costs CostMeter
+    | recorded on finished jobs.
+    */
+    'margin' => [
+        'worst' => 2.0,
+        'typical' => 3.0,
     ],
 
-    // Hard cap on image + video spend per job (USD). The agent is told the
-    // budget and generation tools refuse anything beyond it.
-    'media_budget' => [
-        'poster' => 0.75,                // 3 GPT high images (1 + 2 retries)
-        'poster_extra_format' => 0.25,   // 1 more image
-        // 4 GPT high stills ($1) + 1.3 × length of Veo standard ($0.40/s).
-        'reel' => [15 => 8.80, 30 => 16.60, 45 => 24.40, 60 => 32.20],
+    // What one job uses. Fable as token counts (priced by CostMeter::claude),
+    // media as image count and video seconds (× the reel length).
+    'estimates' => [
+        'poster' => [
+            'typical' => ['claude' => ['input_tokens' => 30000, 'output_tokens' => 6000], 'images' => 1],
+            'worst' => ['claude' => ['input_tokens' => 50000, 'output_tokens' => 10000], 'images' => 3], // 1 + 2 retries
+        ],
+        // Each further size is derived from the first image.
+        'poster_extra_format' => [
+            'typical' => ['claude' => ['input_tokens' => 2000, 'output_tokens' => 500], 'images' => 1],
+            'worst' => ['claude' => ['input_tokens' => 8000, 'output_tokens' => 2000], 'images' => 1],
+        ],
+        // Fable tokens grow with the storyboard: fixed part + per second of reel.
+        'reel' => [
+            'typical' => [
+                'claude' => ['input_tokens' => 40000, 'output_tokens' => 8000],
+                'claude_per_second' => ['input_tokens' => 1000, 'output_tokens' => 300],
+                'images' => 3,
+                'video_factor' => 1.0,
+            ],
+            'worst' => [
+                'claude' => ['input_tokens' => 60000, 'output_tokens' => 12000],
+                'claude_per_second' => ['input_tokens' => 1500, 'output_tokens' => 450],
+                'images' => 4,
+                'video_factor' => 1.3, // 30% of the length re-rendered for failed clips
+            ],
+        ],
     ],
 
 ];

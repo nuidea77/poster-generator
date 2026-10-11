@@ -12,6 +12,7 @@ const routes = [
     { path: '/account', name: 'account', component: () => import('./pages/Account.vue'), meta: { auth: true } },
     { path: '/admin', redirect: '/admin/creations' },
     { path: '/admin/creations', name: 'admin-creations', component: () => import('./pages/admin/Creations.vue'), meta: { auth: true, admin: true } },
+    { path: '/admin/costs', name: 'admin-costs', component: () => import('./pages/admin/Costs.vue'), meta: { auth: true, admin: true } },
     { path: '/admin/plans', name: 'admin-plans', component: () => import('./pages/admin/Plans.vue'), meta: { auth: true, admin: true } },
     { path: '/admin/skills', name: 'admin-skills', component: () => import('./pages/admin/Skills.vue'), meta: { auth: true, admin: true } },
     { path: '/:pathMatch(.*)*', redirect: '/' },

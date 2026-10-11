@@ -7,6 +7,7 @@
 <script setup>
 const links = [
     { to: '/admin/creations', label: 'Бүтээлүүд' },
+    { to: '/admin/costs', label: 'Өртөг' },
     { to: '/admin/plans', label: 'Багц, үнэ' },
     { to: '/admin/skills', label: 'Skills' },
 ];

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\Admin\CostController;
 use App\Http\Controllers\Api\Admin\CreationController as AdminCreationController;
 use App\Http\Controllers\Api\Admin\PlanController;
 use App\Http\Controllers\Api\AuthController;
@@ -41,6 +42,8 @@ Route::prefix('api/v1')->group(function () {
         Route::middleware('admin')->prefix('admin')->group(function () {
             Route::get('creations', [AdminCreationController::class, 'index']);
             Route::get('creations/{creation}', [AdminCreationController::class, 'show']);
+
+            Route::get('costs', CostController::class);
 
             Route::get('plans', [PlanController::class, 'index']);
             Route::post('plans', [PlanController::class, 'store']);
