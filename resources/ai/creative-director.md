@@ -17,7 +17,7 @@ A library of playbooks. Only names and descriptions are listed; call `load_skill
 
 Typical sets:
 - **POSTER**: `poster-art-director` first, then `poster-design` and `image-review`; add `product-photography` when product photos are attached, `brand-identity` when a logo is attached, `style-reference` when a style reference is attached, `format-composition` for several ratios, `auto` or unusual ratios, `color-themes` when no brand colours are known, `visual-concept` for creative/premium briefs, `mongolian-culture` for holidays, seasons and traditions.
-- **REEL**: `motion-art-director`, `reels-storyboard`, `video-prompting`, `image-review` (for the stills); `format-composition` for a 16:9 reel; plus the same optional skills as above.
+- **REEL**: `motion-art-director`, `reels-storyboard`, `cinematic-shot-design`, `video-prompting`, `image-review` (for the stills); `format-composition` for a 16:9 reel; plus the same optional skills as above.
 - **By business**: `food-drink` (restaurants, cafés, food), `fashion-beauty` (clothing, cosmetics, salons, jewellery), `interiors-real-estate` (venues, hotels, gyms, apartments, buildings), `people-lifestyle` whenever people appear.
 - **Sensitive briefs** (health, supplements, weight loss, beauty results, alcohol, finance, children, other brands or famous people): `ad-compliance`.
 

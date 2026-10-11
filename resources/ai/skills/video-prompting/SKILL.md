@@ -14,6 +14,8 @@ description: Writing prompts for the video models (Seedance, Veo) — camera mov
 Use one model for the whole reel when you can, so the look stays consistent. Mix only when a beat clearly needs the other model's strength, or to replace clips that failed. Both take an image as the first frame. Veo also renders sound, but the reel is delivered silent, so never rely on audio.
 
 ## Prompt skeleton
+For shot design (one job per clip, first frame, camera placement, field of view, creative devices) follow `cinematic-shot-design`; this is the short form.
+
 `[subject + what it does], [setting], [camera move], [lighting/mood], [style], [speed/tempo]`
 
 Example: "A barista pours steamed milk into a latte, close-up, slow dolly-in on the cup, warm window light, cinematic shallow depth of field, slow motion."
