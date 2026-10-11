@@ -51,7 +51,7 @@ class MeController extends Controller
     {
         return response()->json([
             'poster_formats' => collect(config('creations.poster_formats'))
-                ->map(fn ($f, $key) => ['id' => $key] + collect($f)->only(['label', 'width', 'height'])->all())
+                ->map(fn ($f, $key) => ['id' => $key] + collect($f)->only(['label', 'hint', 'width', 'height'])->all())
                 ->values(),
             'reel' => collect(config('creations.reel'))->only(['width', 'height', 'max_seconds'])->all(),
             'uploads' => config('creations.uploads'),

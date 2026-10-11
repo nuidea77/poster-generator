@@ -46,7 +46,7 @@ const cards = ['from-orange-500 to-amber-700', 'from-sky-500 to-indigo-700', 'fr
                 <div class="mb-6 flex items-center gap-2"><Icon name="image" size="20" /><span class="badge badge-new">Постер</span></div>
                 <h2 class="display text-3xl">Бүх хэмжээ нэг дор</h2>
                 <div class="mt-4 flex flex-wrap gap-2">
-                    <span v-for="f in session.meta.poster_formats" :key="f.id" class="chip chip-sm cursor-default">{{ f.label }}</span>
+                    <span v-for="f in session.meta.poster_formats" :key="f.id" class="chip chip-sm cursor-default">{{ f.label }} · {{ f.hint }}</span>
                 </div>
             </div>
             <div class="feature-card">

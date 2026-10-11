@@ -15,17 +15,17 @@ return [
     */
 
     'poster_formats' => [
-        'auto' => ['label' => 'Auto', 'width' => null, 'height' => null],
-        '1:1' => ['label' => '1:1', 'width' => 1080, 'height' => 1080],
-        '3:4' => ['label' => '3:4', 'width' => 1080, 'height' => 1440],
-        '4:3' => ['label' => '4:3', 'width' => 1440, 'height' => 1080],
-        '2:3' => ['label' => '2:3', 'width' => 1080, 'height' => 1620],
-        '3:2' => ['label' => '3:2', 'width' => 1620, 'height' => 1080],
-        '9:16' => ['label' => '9:16', 'width' => 1080, 'height' => 1920],
-        '16:9' => ['label' => '16:9', 'width' => 1920, 'height' => 1080],
-        '5:4' => ['label' => '5:4', 'width' => 1350, 'height' => 1080],
-        '4:5' => ['label' => '4:5', 'width' => 1080, 'height' => 1350],
-        '21:9' => ['label' => '21:9', 'width' => 2520, 'height' => 1080],
+        'auto' => ['label' => 'Auto', 'hint' => 'Брифэд тохирохыг автоматаар сонгоно', 'width' => null, 'height' => null],
+        '1:1' => ['label' => '1:1', 'hint' => 'Квадрат пост · профайл', 'width' => 1080, 'height' => 1080],
+        '3:4' => ['label' => '3:4', 'hint' => 'Instagram пост (босоо)', 'width' => 1080, 'height' => 1440],
+        '4:3' => ['label' => '4:3', 'hint' => 'Хэвтээ пост', 'width' => 1440, 'height' => 1080],
+        '2:3' => ['label' => '2:3', 'hint' => 'Постер · Pinterest', 'width' => 1080, 'height' => 1620],
+        '3:2' => ['label' => '3:2', 'hint' => 'Хэвтээ зураг · баннер', 'width' => 1620, 'height' => 1080],
+        '9:16' => ['label' => '9:16', 'hint' => 'Story · Reels', 'width' => 1080, 'height' => 1920],
+        '16:9' => ['label' => '16:9', 'hint' => 'Facebook cover · хэвтээ баннер', 'width' => 1920, 'height' => 1080],
+        '5:4' => ['label' => '5:4', 'hint' => 'Хэвтээ пост', 'width' => 1350, 'height' => 1080],
+        '4:5' => ['label' => '4:5', 'hint' => 'Instagram · Facebook пост', 'width' => 1080, 'height' => 1350],
+        '21:9' => ['label' => '21:9', 'hint' => 'Өргөн баннер · cover', 'width' => 2520, 'height' => 1080],
     ],
 
     'reel' => [

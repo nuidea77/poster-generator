@@ -221,8 +221,8 @@ async function submit() {
                     <textarea v-model="form.product.description" rows="3" class="field resize-none py-2 text-sm" placeholder="Онцлог, давуу тал" />
                 </div>
             </ChipMenu>
-            <ChipMenu v-if="form.type === 'poster'" :label="formatLabel" icon="grid" width="w-52">
-                <div class="px-2 pt-1 pb-2 text-xs text-muted">Aspect ratio</div>
+            <ChipMenu v-if="form.type === 'poster'" :label="formatLabel" icon="grid" width="w-72">
+                <div class="px-2 pt-1 pb-2 text-xs text-muted">Хэмжээ</div>
                 <button
                     v-for="f in meta.poster_formats"
                     :key="f.id"
@@ -235,7 +235,10 @@ async function submit() {
                         <span v-if="ratioBox(f)" class="block rounded-[3px] border-[1.5px] border-current" :style="ratioBox(f)" />
                         <span v-else class="block size-3.5 rounded-[3px] border-[1.5px] border-dashed border-current" />
                     </span>
-                    <span class="flex-1 font-semibold">{{ f.label }}</span>
+                    <span class="flex-1">
+                        <span class="block font-semibold">{{ f.label }}</span>
+                        <span class="block text-[11px] text-muted">{{ f.hint }}</span>
+                    </span>
                     <Icon v-if="form.formats.includes(f.id)" name="check" size="14" />
                 </button>
             </ChipMenu>
