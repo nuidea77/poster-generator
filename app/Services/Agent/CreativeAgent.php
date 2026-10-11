@@ -20,7 +20,7 @@ use Illuminate\Support\Facades\Http;
  */
 class CreativeAgent
 {
-    public const ASPECTS = ['1:1', '4:5', '9:16', '16:9'];
+    public const ASPECTS = ['1:1', '3:4', '4:3', '2:3', '3:2', '9:16', '16:9', '5:4', '4:5', '21:9'];
 
     public function __construct(
         private AiManager $ai,
@@ -168,7 +168,9 @@ class CreativeAgent
             $lines[] = 'Deliverable: POSTER — one finished image per format below.';
             foreach ($creation->formats as $key) {
                 $f = config("creations.poster_formats.{$key}");
-                $lines[] = "- `{$key}`: {$f['label']} ({$f['platforms']}), final size {$f['width']}×{$f['height']}, generate at aspect {$f['aspect']}";
+                $lines[] = $key === 'auto'
+                    ? '- `auto`: no fixed ratio. Pick the aspect that suits the brief best and generate at it; the poster keeps the aspect of the image you deliver.'
+                    : "- `{$key}`: final size {$f['width']}×{$f['height']}, generate at aspect {$key}";
             }
         } else {
             $reel = config('creations.reel');
@@ -438,6 +440,12 @@ class CreativeAgent
         }
 
         $format = config("creations.poster_formats.{$key}");
+
+        if ($key === 'auto') {
+            $aspect = in_array($asset['aspect'] ?? null, self::ASPECTS, true) ? $asset['aspect'] : '1:1';
+            $format = ['label' => $aspect] + config("creations.poster_formats.{$aspect}");
+        }
+
         $poster = $this->formatter->fit(MediaStore::read($asset['path'])['data'], $format['width'], $format['height']);
         $file = MediaStore::put("creations/{$creation->public_id}", $poster['data'], $poster['mime']);
 

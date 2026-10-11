@@ -114,7 +114,7 @@ class SkillTest extends TestCase
         ]);
 
         $user = User::factory()->create();
-        $run = Creation::create(['user_id' => $user->id, 'type' => 'poster', 'formats' => ['feed_square'], 'prompt' => 'x', 'status' => 'running']);
+        $run = Creation::create(['user_id' => $user->id, 'type' => 'poster', 'formats' => ['1:1'], 'prompt' => 'x', 'status' => 'running']);
         app(CreativeAgent::class)->run($run);
         $run->refresh();
 

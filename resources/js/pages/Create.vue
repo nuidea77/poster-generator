@@ -13,7 +13,7 @@ const maxImages = meta.uploads.max_product_images;
 
 const form = reactive({
     type: 'poster',
-    formats: ['feed_portrait'],
+    formats: ['4:5'],
     prompt: '',
     product: { name: '', price: '', description: '' },
 });
@@ -40,6 +40,13 @@ const formatLabel = computed(() => {
     return picked.length === 1 ? picked[0].label : `${picked.length} хэмжээ`;
 });
 
+// Outline of a ratio icon, fitted in a 14×14 box.
+const ratioBox = (f) => {
+    if (!f.width) return null;
+    const m = Math.max(f.width, f.height);
+    return { width: `${Math.round((f.width / m) * 14)}px`, height: `${Math.round((f.height / m) * 14)}px` };
+};
+
 const productFilled = computed(() => Object.values(form.product).some((v) => v.trim()));
 
 const examples = {
@@ -55,7 +62,12 @@ const examples = {
     ],
 };
 
+// Several ratios can be picked; Auto stands alone.
 function toggleFormat(id) {
+    if (id === 'auto' || form.formats.includes('auto')) {
+        form.formats = [id];
+        return;
+    }
     const i = form.formats.indexOf(id);
     if (i === -1) form.formats.push(id);
     else if (form.formats.length > 1) form.formats.splice(i, 1);
@@ -153,25 +165,6 @@ async function submit() {
                 <template v-else>9:16 босоо, бэлэн видео. Урт нь санаанаасаа хамаарна, ихэвчлэн 15–40 секунд. Бүтээхэд 10–20 минут болно. Хуудсаа хааж болно, бэлэн болмогц "Миний бүтээлүүд"-д гарна.</template>
             </p>
 
-            <!-- Poster format picker -->
-            <div v-if="form.type === 'poster'" class="mt-6 flex flex-wrap justify-center gap-2">
-                <button
-                    v-for="f in meta.poster_formats"
-                    :key="f.id"
-                    class="flex items-center gap-2 rounded-xl border px-3 py-2 text-left text-sm transition"
-                    :class="form.formats.includes(f.id) ? 'border-lime bg-lime/10 text-fg' : 'border-line bg-surface-2 text-zinc-400 hover:border-line-2'"
-                    @click="toggleFormat(f.id)"
-                >
-                    <span class="grid h-7 place-items-center" :style="{ width: '28px' }">
-                        <span class="block rounded-[3px] border-2" :class="form.formats.includes(f.id) ? 'border-lime' : 'border-zinc-500'" :style="{ width: `${Math.round((f.width / Math.max(f.width, f.height)) * 22)}px`, height: `${Math.round((f.height / Math.max(f.width, f.height)) * 22)}px` }" />
-                    </span>
-                    <span>
-                        <span class="block font-semibold">{{ f.label }}</span>
-                        <span class="block text-[11px] text-muted">{{ f.platforms }}</span>
-                    </span>
-                </button>
-            </div>
-
             <div class="mt-6 flex flex-wrap justify-center gap-2">
                 <button v-for="(ex, i) in examples[form.type]" :key="i" class="chip chip-sm max-w-xs truncate" :title="ex" @click="form.prompt = ex">{{ ex }}</button>
             </div>
@@ -228,7 +221,25 @@ async function submit() {
                     <textarea v-model="form.product.description" rows="3" class="field resize-none py-2 text-sm" placeholder="Онцлог, давуу тал" />
                 </div>
             </ChipMenu>
-            <span class="chip hidden cursor-default sm:inline-flex"><Icon :name="form.type === 'poster' ? 'grid' : 'video'" size="14" /> {{ formatLabel }}</span>
+            <ChipMenu v-if="form.type === 'poster'" :label="formatLabel" icon="grid" width="w-52">
+                <div class="px-2 pt-1 pb-2 text-xs text-muted">Aspect ratio</div>
+                <button
+                    v-for="f in meta.poster_formats"
+                    :key="f.id"
+                    type="button"
+                    class="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left text-sm transition hover:bg-white/5"
+                    :class="form.formats.includes(f.id) ? 'bg-white/5 text-fg' : 'text-zinc-300'"
+                    @click="toggleFormat(f.id)"
+                >
+                    <span class="grid size-7 place-items-center rounded-lg" :class="form.formats.includes(f.id) ? 'bg-white/10' : ''">
+                        <span v-if="ratioBox(f)" class="block rounded-[3px] border-[1.5px] border-current" :style="ratioBox(f)" />
+                        <span v-else class="block size-3.5 rounded-[3px] border-[1.5px] border-dashed border-current" />
+                    </span>
+                    <span class="flex-1 font-semibold">{{ f.label }}</span>
+                    <Icon v-if="form.formats.includes(f.id)" name="check" size="14" />
+                </button>
+            </ChipMenu>
+            <span v-else class="chip hidden cursor-default sm:inline-flex"><Icon name="video" size="14" /> {{ formatLabel }}</span>
         </Composer>
     </div>
 </template>

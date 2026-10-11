@@ -7,40 +7,25 @@ return [
     | Poster formats
     |--------------------------------------------------------------------------
     |
-    | `aspect` is what the image model is asked for; the delivered file is then
-    | cover-cropped to exactly width × height.
+    | Keyed by aspect ratio: the image model is asked for that aspect and the
+    | delivered file is cover-cropped to exactly width × height (short side
+    | 1080 px). `auto` lets the agent pick the ratio that suits the brief; the
+    | poster then takes the size of the ratio it was generated at.
     |
     */
 
     'poster_formats' => [
-        'feed_portrait' => [
-            'label' => 'Пост 4:5',
-            'platforms' => 'Instagram · Facebook',
-            'aspect' => '4:5',
-            'width' => 1080,
-            'height' => 1350,
-        ],
-        'feed_square' => [
-            'label' => 'Квадрат 1:1',
-            'platforms' => 'Instagram · Facebook',
-            'aspect' => '1:1',
-            'width' => 1080,
-            'height' => 1080,
-        ],
-        'story' => [
-            'label' => 'Story 9:16',
-            'platforms' => 'Instagram · Facebook story',
-            'aspect' => '9:16',
-            'width' => 1080,
-            'height' => 1920,
-        ],
-        'fb_landscape' => [
-            'label' => 'Хэвтээ 1.91:1',
-            'platforms' => 'Facebook линк · зар',
-            'aspect' => '16:9',
-            'width' => 1200,
-            'height' => 628,
-        ],
+        'auto' => ['label' => 'Auto', 'width' => null, 'height' => null],
+        '1:1' => ['label' => '1:1', 'width' => 1080, 'height' => 1080],
+        '3:4' => ['label' => '3:4', 'width' => 1080, 'height' => 1440],
+        '4:3' => ['label' => '4:3', 'width' => 1440, 'height' => 1080],
+        '2:3' => ['label' => '2:3', 'width' => 1080, 'height' => 1620],
+        '3:2' => ['label' => '3:2', 'width' => 1620, 'height' => 1080],
+        '9:16' => ['label' => '9:16', 'width' => 1080, 'height' => 1920],
+        '16:9' => ['label' => '16:9', 'width' => 1920, 'height' => 1080],
+        '5:4' => ['label' => '5:4', 'width' => 1350, 'height' => 1080],
+        '4:5' => ['label' => '4:5', 'width' => 1080, 'height' => 1350],
+        '21:9' => ['label' => '21:9', 'width' => 2520, 'height' => 1080],
     ],
 
     'reel' => [

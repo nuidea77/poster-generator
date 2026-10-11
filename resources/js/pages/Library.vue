@@ -45,7 +45,12 @@ onMounted(async () => {
 onBeforeUnmount(() => clearInterval(timer));
 
 const cover = (c) => (c.type === 'reel' ? c.outputs[0]?.thumb_url : c.outputs[0]?.url);
-const aspect = (c) => (c.type === 'reel' ? 'aspect-[9/16]' : { feed_square: 'aspect-square', story: 'aspect-[9/16]', fb_landscape: 'aspect-[1.91/1]' }[c.outputs[0]?.format] || 'aspect-[4/5]');
+const aspect = (c) => {
+    const o = c.outputs[0];
+    if (c.type === 'reel') return { aspectRatio: '9 / 16' };
+    const ratio = c.formats?.[0]?.includes(':') ? c.formats[0].replace(':', ' / ') : '4 / 5';
+    return { aspectRatio: o?.width ? `${o.width} / ${o.height}` : ratio };
+};
 </script>
 
 <template>
@@ -69,8 +74,8 @@ const aspect = (c) => (c.type === 'reel' ? 'aspect-[9/16]' : { feed_square: 'asp
 
         <div class="columns-2 gap-4 sm:columns-3 xl:columns-4 2xl:columns-5">
             <RouterLink v-for="c in items" :key="c.id" :to="`/c/${c.id}`" class="group media-card mb-4 block break-inside-avoid">
-                <img v-if="cover(c)" :src="cover(c)" class="w-full object-cover" :class="aspect(c)" loading="lazy" alt="" />
-                <div v-else class="grid w-full place-items-center bg-[radial-gradient(circle_at_center,#1f1f1f,#121212)]" :class="aspect(c)">
+                <img v-if="cover(c)" :src="cover(c)" class="w-full object-cover" :style="aspect(c)" loading="lazy" alt="" />
+                <div v-else class="grid w-full place-items-center bg-[radial-gradient(circle_at_center,#1f1f1f,#121212)]" :style="aspect(c)">
                     <span v-if="c.status === 'failed'" class="text-xs text-red-300">Амжилтгүй</span>
                     <span v-else-if="c.status === 'done'" class="grid size-12 place-items-center rounded-full bg-white/10"><Icon :name="c.type === 'reel' ? 'play' : 'image'" size="18" /></span>
                     <span v-else class="flex flex-col items-center gap-2 text-xs text-muted"><span class="spinner text-lime" /> {{ c.progress }}%</span>

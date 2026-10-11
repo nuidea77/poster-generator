@@ -52,7 +52,7 @@ class BillingTest extends TestCase
         $this->getJson('/api/v1/meta')
             ->assertOk()
             ->assertJsonCount(5, 'plans')
-            ->assertJsonCount(4, 'poster_formats')
+            ->assertJsonCount(11, 'poster_formats')
             ->assertJsonPath('reel.max_seconds', 180)
             ->assertJsonMissingPath('providers');
     }

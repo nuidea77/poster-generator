@@ -57,7 +57,7 @@ async function remove() {
 }
 
 const clock = (s) => `${Math.floor(Math.round(s) / 60)}:${String(Math.round(s) % 60).padStart(2, '0')}`;
-const fileName = (o) => `poster-studio-${creation.value.id.slice(-6).toLowerCase()}-${o.format}.${o.kind === 'video' ? 'mp4' : 'jpg'}`;
+const fileName = (o) => `poster-studio-${creation.value.id.slice(-6).toLowerCase()}-${o.label.replace(':', 'x')}.${o.kind === 'video' ? 'mp4' : 'jpg'}`;
 </script>
 
 <template>

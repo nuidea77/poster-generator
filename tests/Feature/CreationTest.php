@@ -71,7 +71,7 @@ class CreationTest extends TestCase
         Queue::fake();
         config(['creations.max_active_per_user' => 10]); // queued jobs never finish here
         $user = User::factory()->create();
-        $poster = ['type' => 'poster', 'formats' => ['feed_square'], 'prompt' => 'Кофены постер'];
+        $poster = ['type' => 'poster', 'formats' => ['1:1'], 'prompt' => 'Кофены постер'];
 
         // A new account gets exactly one free poster (12 credits, one size).
         $this->actingAs($user)->getJson('/api/v1/me')
@@ -81,7 +81,7 @@ class CreationTest extends TestCase
 
         $this->actingAs($user)->postJson('/api/v1/creations', ['type' => 'reel', 'prompt' => 'Кофены reels'])
             ->assertStatus(402)->assertJsonPath('needed', 120);
-        $this->actingAs($user)->postJson('/api/v1/creations', ['formats' => ['feed_square', 'story']] + $poster)
+        $this->actingAs($user)->postJson('/api/v1/creations', ['formats' => ['1:1', '9:16']] + $poster)
             ->assertStatus(402)->assertJsonPath('needed', 15);
 
         $first = $this->actingAs($user)->postJson('/api/v1/creations', $poster)->assertStatus(202)->json('data.id');
@@ -109,7 +109,7 @@ class CreationTest extends TestCase
         app(BillingService::class)->markPaid(Payment::create(['user_id' => $user->id, 'plan_id' => $standard->id, 'amount' => $standard->price, 'status' => Payment::PENDING, 'sender_invoice_no' => 'T1', 'callback_token' => 'tok-t1']));
         $this->actingAs($user)->getJson('/api/v1/me')->assertJsonPath('data.credits', 72)->assertJsonPath('data.plan.name', 'Стандарт');
 
-        $id = $this->actingAs($user)->postJson('/api/v1/creations', ['formats' => ['feed_square', 'story']] + $poster)->assertStatus(202)->json('data.id');
+        $id = $this->actingAs($user)->postJson('/api/v1/creations', ['formats' => ['1:1', '9:16']] + $poster)->assertStatus(202)->json('data.id');
         $paid = Subscription::where('user_id', $user->id)->paid()->first();
         $this->assertSame([['subscription_id' => $paid->id, 'credits' => 15]], Creation::where('public_id', $id)->value('charges'));
 
@@ -126,7 +126,7 @@ class CreationTest extends TestCase
 
         $id = $this->actingAs($this->user)->post('/api/v1/creations', [
             'type' => 'poster',
-            'formats' => ['feed_portrait', 'story'],
+            'formats' => ['4:5', '9:16'],
             'prompt' => 'Шинэ кофе шопын нээлт',
             'product' => ['name' => 'Латте', 'price' => '8,500₮'],
             'logo' => UploadedFile::fake()->image('logo.png', 200, 200),
@@ -147,10 +147,31 @@ class CreationTest extends TestCase
     {
         Queue::fake();
         config(['creations.max_active_per_user' => 1]);
-        Creation::create(['user_id' => $this->user->id, 'type' => 'poster', 'formats' => ['feed_square'], 'prompt' => 'x', 'status' => 'running']);
+        Creation::create(['user_id' => $this->user->id, 'type' => 'poster', 'formats' => ['1:1'], 'prompt' => 'x', 'status' => 'running']);
 
         $this->actingAs($this->user)->postJson('/api/v1/creations', ['type' => 'reel', 'prompt' => 'Фитнес клубын reels'])
             ->assertStatus(429);
+    }
+
+    public function test_auto_format_takes_the_aspect_the_image_was_generated_at(): void
+    {
+        Http::fake([
+            'api.anthropic.com/*' => Http::sequence()
+                ->push($this->turn([['generate_image', ['provider' => 'gemini', 'prompt' => 'wide banner', 'aspect' => '16:9', 'reference_image_ids' => [], 'purpose' => 'auto']]]))
+                ->push($this->turn([['deliver_poster', ['format' => 'auto', 'image_id' => 'img_1']]]))
+                ->push($this->turn([['finish', ['summary' => 'wide']]])),
+            'generativelanguage.googleapis.com/*' => Http::response(['candidates' => [['content' => ['parts' => [['inlineData' => ['mimeType' => 'image/png', 'data' => base64_encode(self::png(1600, 900))]]]]]]]),
+        ]);
+
+        $creation = Creation::create(['user_id' => $this->user->id, 'type' => 'poster', 'formats' => ['auto'], 'prompt' => 'x', 'status' => 'queued']);
+
+        RunCreation::dispatchSync($creation);
+        $creation->refresh();
+
+        $this->assertSame('done', $creation->status, (string) $creation->error_detail);
+        $this->assertSame(['auto', '16:9'], [$creation->outputs[0]['format'], $creation->outputs[0]['label']]);
+        [$w, $h] = getimagesizefromstring(Storage::disk('public')->get($creation->outputs[0]['path']));
+        $this->assertSame([1920, 1080], [$w, $h]);
     }
 
     public function test_poster_pipeline_delivers_exact_sizes_and_hides_models(): void
@@ -162,12 +183,12 @@ class CreationTest extends TestCase
                     ['generate_image', ['provider' => 'gemini', 'prompt' => 'latte hero shot', 'aspect' => '4:5', 'reference_image_ids' => ['logo'], 'purpose' => 'feed']],
                 ]))
                 ->push($this->turn([
-                    ['generate_image', ['provider' => 'openai', 'prompt' => 'same, vertical', 'aspect' => '9:16', 'reference_image_ids' => ['img_1'], 'purpose' => 'story']],
+                    ['generate_image', ['provider' => 'openai', 'prompt' => 'same, vertical', 'aspect' => '9:16', 'reference_image_ids' => ['img_1'], 'purpose' => '9:16']],
                 ]))
                 ->push($this->turn([
-                    ['deliver_poster', ['format' => 'feed_portrait', 'image_id' => 'img_1']],
-                    ['deliver_poster', ['format' => 'story', 'image_id' => 'img_2']],
-                    ['deliver_poster', ['format' => 'feed_square', 'image_id' => 'img_1']], // not requested → error back to Claude
+                    ['deliver_poster', ['format' => '4:5', 'image_id' => 'img_1']],
+                    ['deliver_poster', ['format' => '9:16', 'image_id' => 'img_2']],
+                    ['deliver_poster', ['format' => '1:1', 'image_id' => 'img_1']], // not requested → error back to Claude
                 ]))
                 ->push($this->turn([['finish', ['summary' => 'Gemini for the logo, GPT for the story.']]])),
             'generativelanguage.googleapis.com/*' => Http::response(['candidates' => [['content' => ['parts' => [['inlineData' => ['mimeType' => 'image/png', 'data' => base64_encode(self::png(800, 1000))]]]]]]]),
@@ -175,7 +196,7 @@ class CreationTest extends TestCase
         ]);
 
         $creation = Creation::create([
-            'user_id' => $this->user->id, 'type' => 'poster', 'formats' => ['feed_portrait', 'story'],
+            'user_id' => $this->user->id, 'type' => 'poster', 'formats' => ['4:5', '9:16'],
             'prompt' => 'Кофе шопын нээлт', 'status' => 'queued',
         ]);
         Storage::disk('public')->put('in/logo.png', self::png());
@@ -185,12 +206,12 @@ class CreationTest extends TestCase
         $creation->refresh();
 
         $this->assertSame('done', $creation->status, (string) $creation->error_detail);
-        $this->assertSame(['feed_portrait', 'story'], array_column($creation->outputs, 'format'));
+        $this->assertSame(['4:5', '9:16'], array_column($creation->outputs, 'format'));
         [$w, $h] = getimagesizefromstring(Storage::disk('public')->get($creation->outputs[0]['path']));
         $this->assertSame([1080, 1350], [$w, $h]);
         [$w, $h] = getimagesizefromstring(Storage::disk('public')->get($creation->outputs[1]['path']));
         $this->assertSame([1080, 1920], [$w, $h]);
-        $this->assertStringContainsString('was not requested', collect($creation->steps)->firstWhere('input.format', 'feed_square')['error']);
+        $this->assertStringContainsString('was not requested', collect($creation->steps)->firstWhere('input.format', '1:1')['error']);
         $this->assertSame(400, $creation->input_tokens);
         // 4 Claude turns (100 in / 20 out each) + one Gemini and one GPT image.
         $this->assertEqualsWithDelta(4 * 0.002 + 0.039 + 0.25, $creation->cost_usd, 0.0001);
@@ -219,7 +240,7 @@ class CreationTest extends TestCase
                 && $r['fallbacks'] === 'default'
                 && $r->hasHeader('anthropic-beta', 'server-side-fallback-2026-07-01')
                 && $tools === ['load_skill', 'generate_image', 'deliver_poster', 'finish']
-                && collect($r['tools'])->firstWhere('name', 'deliver_poster')['input_schema']['properties']['format']['enum'] === ['feed_portrait', 'story']
+                && collect($r['tools'])->firstWhere('name', 'deliver_poster')['input_schema']['properties']['format']['enum'] === ['4:5', '9:16']
                 && str_contains($r['system'][0]['text'], '`poster-design`')
                 && last(last($r['messages'])['content'])['cache_control'] === ['type' => 'ephemeral']
                 && str_contains(last($r['messages'][0]['content'])['text'], 'Media budget for this job: $1.00')
@@ -233,12 +254,12 @@ class CreationTest extends TestCase
         Http::fake([
             'api.anthropic.com/*' => Http::sequence()
                 ->push($this->turn([['generate_image', $image], ['generate_image', $image], ['generate_image', $image], ['generate_image', $image]]))
-                ->push($this->turn([['deliver_poster', ['format' => 'feed_portrait', 'image_id' => 'img_3']]]))
+                ->push($this->turn([['deliver_poster', ['format' => '4:5', 'image_id' => 'img_3']]]))
                 ->push($this->turn([['finish', ['summary' => 'ok']]])),
             'api.openai.com/v1/images/generations' => Http::response(['data' => [['b64_json' => base64_encode(self::png(800, 1000))]]]),
         ]);
 
-        $creation = Creation::create(['user_id' => $this->user->id, 'type' => 'poster', 'formats' => ['feed_portrait'], 'prompt' => 'x', 'status' => 'queued']);
+        $creation = Creation::create(['user_id' => $this->user->id, 'type' => 'poster', 'formats' => ['4:5'], 'prompt' => 'x', 'status' => 'queued']);
         RunCreation::dispatchSync($creation);
         $creation->refresh();
 
@@ -258,7 +279,7 @@ class CreationTest extends TestCase
     {
         Http::fake(['api.anthropic.com/*' => Http::response($this->turn([['finish', ['summary' => 'oops']]]))]);
 
-        $creation = Creation::create(['user_id' => $this->user->id, 'type' => 'poster', 'formats' => ['feed_square'], 'prompt' => 'x', 'status' => 'queued']);
+        $creation = Creation::create(['user_id' => $this->user->id, 'type' => 'poster', 'formats' => ['1:1'], 'prompt' => 'x', 'status' => 'queued']);
         RunCreation::dispatchSync($creation);
 
         $this->assertSame('failed', $creation->fresh()->status);
@@ -384,7 +405,7 @@ class CreationTest extends TestCase
     public function test_owner_only_access_list_retry_and_delete(): void
     {
         Queue::fake();
-        $creation = Creation::create(['user_id' => $this->user->id, 'type' => 'poster', 'formats' => ['feed_square'], 'prompt' => 'Хуучин бриф', 'status' => 'done']);
+        $creation = Creation::create(['user_id' => $this->user->id, 'type' => 'poster', 'formats' => ['1:1'], 'prompt' => 'Хуучин бриф', 'status' => 'done']);
 
         $this->actingAs(User::factory()->create())->getJson("/api/v1/creations/{$creation->public_id}")->assertNotFound();
         $this->actingAs($this->user)->getJson('/api/v1/creations')->assertJsonPath('data.0.id', $creation->public_id);
@@ -399,7 +420,7 @@ class CreationTest extends TestCase
     public function test_admin_sees_internal_log(): void
     {
         $creation = Creation::create([
-            'user_id' => $this->user->id, 'type' => 'poster', 'formats' => ['feed_square'], 'prompt' => 'x', 'status' => 'done',
+            'user_id' => $this->user->id, 'type' => 'poster', 'formats' => ['1:1'], 'prompt' => 'x', 'status' => 'done',
             'assets' => [['id' => 'img_1', 'kind' => 'image', 'source' => 'generated', 'provider' => 'gemini', 'path' => 'a.png', 'prompt' => 'p']],
             'steps' => [['type' => 'tool', 'name' => 'generate_image']],
         ]);

@@ -10,9 +10,15 @@ class OpenAIProvider implements ImageProvider
 {
     private const SIZES = [
         '1:1' => '1024x1024',
+        '3:4' => '1024x1536',
+        '2:3' => '1024x1536',
         '4:5' => '1024x1536',
         '9:16' => '1024x1536',
+        '4:3' => '1536x1024',
+        '3:2' => '1536x1024',
+        '5:4' => '1536x1024',
         '16:9' => '1536x1024',
+        '21:9' => '1536x1024',
     ];
 
     public function __construct(private array $config, private int $timeout) {}
