@@ -53,6 +53,8 @@ Route::prefix('api/v1')->group(function () {
             Route::post('skills', [SkillController::class, 'store']);
             Route::post('skills/import', [SkillController::class, 'import']);
             Route::get('skills/{name}', [SkillController::class, 'show']);
+            Route::put('skills/bundled/{name}', [SkillController::class, 'updateBundled']);
+            Route::delete('skills/bundled/{name}', [SkillController::class, 'resetBundled']);
             Route::put('skills/{skill}', [SkillController::class, 'update']);
             Route::delete('skills/{skill}', [SkillController::class, 'destroy']);
         });

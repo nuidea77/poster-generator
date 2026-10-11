@@ -91,10 +91,37 @@ class SkillTest extends TestCase
 
         $this->putJson("/api/v1/admin/skills/{$id}", ['name' => 'my-brand', 'description' => 'Our brand rules', 'content' => 'z', 'enabled' => false])->assertOk();
         $this->assertStringNotContainsString('my-brand', app(SkillLibrary::class)->prompt());
-        $this->getJson('/api/v1/admin/skills/my-brand')->assertNotFound();
+        $this->assertNull(app(SkillLibrary::class)->get('my-brand'));
+        $this->getJson('/api/v1/admin/skills/my-brand')->assertOk()->assertJsonPath('content', 'z'); // still editable
 
         $this->deleteJson("/api/v1/admin/skills/{$id}")->assertNoContent();
         $this->assertSame(0, Skill::count());
+    }
+
+    public function test_admin_can_edit_disable_and_reset_a_bundled_skill(): void
+    {
+        $admin = User::factory()->create();
+        $admin->forceFill(['is_admin' => true])->save();
+        $this->actingAs($admin);
+        $library = app(SkillLibrary::class);
+        $original = $library->get('poster-design');
+
+        $this->putJson('/api/v1/admin/skills/bundled/poster-design', ['description' => 'Edited', 'content' => '# Our poster rules', 'enabled' => true])->assertOk();
+        $this->assertSame('# Our poster rules', $library->get('poster-design'));
+        $this->getJson('/api/v1/admin/skills')->assertJsonFragment(['name' => 'poster-design', 'source' => 'bundled', 'overridden' => true, 'description' => 'Edited']);
+        $this->assertCount(1, array_filter($library->index(), fn ($s) => $s['name'] === 'poster-design'));
+
+        // Switched off: the agent no longer sees it, the editor still loads its text.
+        $this->putJson('/api/v1/admin/skills/bundled/poster-design', ['description' => 'Edited', 'content' => '# Our poster rules', 'enabled' => false])->assertOk();
+        $this->assertNull($library->get('poster-design'));
+        $this->assertStringNotContainsString('`poster-design`', $library->prompt());
+        $this->getJson('/api/v1/admin/skills/poster-design')->assertOk()->assertJsonPath('content', '# Our poster rules')->assertJsonPath('original', $original);
+
+        $this->deleteJson('/api/v1/admin/skills/bundled/poster-design')->assertNoContent();
+        $this->assertSame($original, $library->get('poster-design'));
+        $this->assertSame(0, Skill::count());
+
+        $this->putJson('/api/v1/admin/skills/bundled/not-a-skill', ['description' => 'x', 'content' => 'y'])->assertNotFound();
     }
 
     public function test_agent_lists_skills_and_loads_them_on_demand(): void

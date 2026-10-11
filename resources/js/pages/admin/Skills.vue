@@ -6,7 +6,7 @@ import { api } from '../../lib/api';
 
 const skills = ref([]);
 const viewing = ref(null); // { name, content }
-const editing = ref(null); // { id?, name, description, content, enabled }
+const editing = ref(null); // { id?, name, description, content, enabled, bundled }
 const error = ref('');
 const saving = ref(false);
 const importing = ref(false);
@@ -56,11 +56,13 @@ async function load() {
 async function view(s) {
     error.value = '';
     try {
-        viewing.value = { ...(await api.get(`/admin/skills/${s.name}`)), origin: s.origin, description: s.description };
+        viewing.value = { ...(await api.get(`/admin/skills/${s.name}`)), skill: s, origin: s.origin, description: s.description };
     } catch (e) {
         error.value = e.message;
     }
 }
+
+const isBundled = (s) => s.source === 'bundled';
 
 function startNew() {
     editing.value = { name: '', description: '', content: template, enabled: true };
@@ -68,18 +70,28 @@ function startNew() {
 }
 
 async function edit(s) {
-    const { content } = await api.get(`/admin/skills/${s.name}`);
-    editing.value = { id: s.id, name: s.name, description: s.description, content, enabled: s.enabled };
-    viewing.value = null;
+    error.value = '';
+    try {
+        const { content } = await api.get(`/admin/skills/${s.name}`);
+        editing.value = { id: s.id, name: s.name, description: s.description, content, enabled: s.enabled, bundled: isBundled(s) };
+        viewing.value = null;
+    } catch (e) {
+        error.value = e.message;
+    }
 }
+
+// Bundled skills are saved as an edit (override) of the same name; custom ones as their own row.
+const put = (s, body) => (isBundled(s) ? api.put(`/admin/skills/bundled/${s.name}`, body) : api.put(`/admin/skills/${s.id}`, { name: s.name, ...body }));
 
 async function save() {
     error.value = '';
     saving.value = true;
     try {
         const e = editing.value;
-        if (e.id) await api.put(`/admin/skills/${e.id}`, e);
-        else await api.post('/admin/skills', e);
+        const body = { name: e.name, description: e.description, content: e.content, enabled: e.enabled };
+        if (e.bundled || e.id) await put({ ...e, source: e.bundled ? 'bundled' : 'custom' }, body);
+        else await api.post('/admin/skills', body);
+        notice.value = `"${e.name}" хадгалагдлаа.`;
         editing.value = null;
         await load();
     } catch (err) {
@@ -90,13 +102,28 @@ async function save() {
 }
 
 async function toggle(s) {
-    await api.put(`/admin/skills/${s.id}`, { name: s.name, description: s.description, content: (await api.get(`/admin/skills/${s.name}`)).content, enabled: !s.enabled });
+    error.value = '';
+    try {
+        const { content } = await api.get(`/admin/skills/${s.name}`);
+        await put(s, { description: s.description, content, enabled: !s.enabled });
+        await load();
+        if (viewing.value?.name === s.name) await view(skills.value.find((x) => x.name === s.name));
+    } catch (e) {
+        error.value = e.message;
+    }
+}
+
+async function reset(s) {
+    if (!confirm(`"${s.name}"-ийн засварыг устгаад анхны хувилбар руу буцаах уу?`)) return;
+    await api.delete(`/admin/skills/bundled/${s.name}`);
     await load();
+    if (viewing.value?.name === s.name) await view(skills.value.find((x) => x.name === s.name));
 }
 
 async function remove(s) {
     if (!confirm(`"${s.name}" skill-ийг устгах уу?`)) return;
     await api.delete(`/admin/skills/${s.id}`);
+    if (viewing.value?.name === s.name) viewing.value = null;
     await load();
 }
 </script>
@@ -126,24 +153,27 @@ async function remove(s) {
                         <Icon name="book" size="20" :class="s.source === 'custom' ? 'text-lime' : 'text-zinc-300'" />
                         <span class="flex gap-1">
                             <span v-if="isClaude(s)" class="badge bg-orange-500/20 text-orange-300">Claude skill</span>
+                            <span v-if="s.overridden" class="badge bg-sky-500/20 text-sky-300">Засварласан</span>
                             <span class="badge" :class="s.source === 'custom' ? 'badge-new' : 'badge-dark'">{{ s.source === 'custom' ? 'Custom' : 'Bundled' }}</span>
                         </span>
                     </div>
                     <div class="text-[15px] font-semibold">{{ s.name }}</div>
                     <div class="mt-1 line-clamp-2 text-sm text-zinc-400">{{ s.description }}</div>
                     <div v-if="s.origin" class="mt-2 line-clamp-1 text-[11px] text-muted">{{ s.origin }}</div>
-                    <div v-if="s.source === 'custom'" class="mt-3 flex gap-1 opacity-0 transition group-hover:opacity-100">
+                    <div class="mt-3 flex gap-1">
+                        <span class="btn btn-ghost btn-sm gap-1 px-2" title="Засах" @click.stop="edit(s)"><Icon name="edit" size="12" /> Засах</span>
                         <span class="btn btn-ghost btn-sm px-2" :title="s.enabled ? 'Идэвхгүй болгох' : 'Идэвхжүүлэх'" @click.stop="toggle(s)"><Icon :name="s.enabled ? 'pause' : 'play'" size="12" /></span>
-                        <span class="btn btn-ghost btn-sm px-2" @click.stop="edit(s)"><Icon name="edit" size="12" /></span>
-                        <span class="btn btn-ghost btn-sm px-2 text-red-300" @click.stop="remove(s)"><Icon name="trash" size="12" /></span>
+                        <span v-if="s.overridden" class="btn btn-ghost btn-sm px-2" title="Анхны хувилбар руу буцаах" @click.stop="reset(s)"><Icon name="refresh" size="12" /></span>
+                        <span v-if="!isBundled(s)" class="btn btn-ghost btn-sm px-2 text-red-300" title="Устгах" @click.stop="remove(s)"><Icon name="trash" size="12" /></span>
                     </div>
                 </button>
             </div>
 
             <div class="lg:sticky lg:top-20 lg:self-start">
                 <div v-if="editing" class="panel space-y-3">
-                    <div class="text-sm font-semibold">{{ editing.id ? 'Skill засах' : 'Шинэ skill' }}</div>
-                    <div><label class="label">Нэр</label><input v-model="editing.name" class="field" placeholder="my-brand (жижиг үсэг, зураас)" /></div>
+                    <div class="text-sm font-semibold">{{ editing.id || editing.bundled ? 'Skill засах' : 'Шинэ skill' }}</div>
+                    <p v-if="editing.bundled" class="rounded-xl bg-white/5 p-2 text-[11px] text-zinc-400">Системийн skill. Засвар тусад нь хадгалагдана, хүссэн үедээ анхны хувилбар руу буцааж болно.</p>
+                    <div><label class="label">Нэр</label><input v-model="editing.name" class="field" :readonly="editing.bundled" :class="{ 'opacity-60': editing.bundled }" placeholder="my-brand (жижиг үсэг, зураас)" /></div>
                     <div><label class="label">Хэзээ ашиглах</label><input v-model="editing.description" class="field" placeholder="Агент үүнийг уншаад ачаалах эсэхээ шийднэ" /></div>
                     <div><label class="label">Агуулга (Markdown)</label><textarea v-model="editing.content" rows="16" class="field resize-y font-mono text-xs" /></div>
                     <div class="flex gap-2">
@@ -158,6 +188,12 @@ async function remove(s) {
                     </div>
                     <p v-if="viewing.description" class="mb-1 text-xs text-zinc-400">{{ viewing.description }}</p>
                     <p v-if="viewing.origin" class="mb-3 text-[11px] text-muted">Эх сурвалж: {{ viewing.origin }}</p>
+                    <div class="mb-3 flex flex-wrap gap-1.5">
+                        <button class="btn btn-lime btn-sm gap-1" @click="edit(viewing.skill)"><Icon name="edit" size="12" /> Засах</button>
+                        <button class="btn btn-ghost btn-sm gap-1" @click="toggle(viewing.skill)"><Icon :name="viewing.skill.enabled ? 'pause' : 'play'" size="12" /> {{ viewing.skill.enabled ? 'Идэвхгүй болгох' : 'Идэвхжүүлэх' }}</button>
+                        <button v-if="viewing.skill.overridden" class="btn btn-ghost btn-sm gap-1" @click="reset(viewing.skill)"><Icon name="refresh" size="12" /> Анхных руу буцаах</button>
+                        <button v-if="!isBundled(viewing.skill)" class="btn btn-ghost btn-sm gap-1 text-red-300" @click="remove(viewing.skill)"><Icon name="trash" size="12" /> Устгах</button>
+                    </div>
                     <pre class="max-h-[70vh] overflow-auto font-mono text-xs leading-relaxed whitespace-pre-wrap text-zinc-300 scroll-thin">{{ viewing.content }}</pre>
                 </div>
                 <div v-else class="panel grid min-h-[40vh] place-items-center text-center text-sm text-muted">Skill сонгож агуулгыг нь харна, эсвэл шинээр нэмнэ.</div>

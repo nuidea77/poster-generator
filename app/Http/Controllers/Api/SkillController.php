@@ -22,9 +22,35 @@ class SkillController extends Controller
 
     public function show(string $name): JsonResponse
     {
-        $content = $this->skills->get($name) ?? abort(404);
+        $source = $this->skills->source($name) ?? abort(404);
 
-        return response()->json(['name' => $name, 'content' => $content]);
+        return response()->json(['name' => $name] + $source);
+    }
+
+    /**
+     * Edit a bundled skill: saved as a DB override of the same name.
+     */
+    public function updateBundled(Request $request, string $name): JsonResponse
+    {
+        $bundled = $this->skills->bundled()[$name] ?? abort(404);
+        $data = $request->validate([
+            'description' => ['required', 'string', 'max:500'],
+            'content' => ['required', 'string', 'max:200000'],
+            'enabled' => ['sometimes', 'boolean'],
+        ]);
+
+        return response()->json(Skill::updateOrCreate(['name' => $name], $data + ['origin' => $bundled['origin'] ?: null]));
+    }
+
+    /**
+     * Drop the edit and go back to the bundled file.
+     */
+    public function resetBundled(string $name): Response
+    {
+        isset($this->skills->bundled()[$name]) || abort(404);
+        Skill::where('name', $name)->delete();
+
+        return response()->noContent();
     }
 
     public function store(Request $request): JsonResponse
@@ -71,7 +97,7 @@ class SkillController extends Controller
 
     private function rules(?Skill $skill = null): array
     {
-        $bundled = array_column(array_filter($this->skills->index(), fn ($s) => $s['source'] === 'bundled'), 'name');
+        $bundled = array_keys($this->skills->bundled());
 
         return [
             'name' => ['required', 'string', 'max:64', 'regex:/^[a-z0-9][a-z0-9-]*$/', Rule::notIn($bundled), Rule::unique('skills', 'name')->ignore($skill)],
