@@ -179,7 +179,8 @@ class CreativeAgent
         } else {
             $reel = $creation->reelFormat();
             $orientation = $reel['width'] > $reel['height'] ? 'horizontal' : 'vertical';
-            $lines[] = "Deliverable: REEL — {$orientation} {$reel['aspect']} video ({$reel['width']}×{$reel['height']}) assembled from AI video clips in the order you give. First-frame images must be generated at {$reel['aspect']} too. No fixed length: choose what the story needs (at most ".config('creations.reel.max_seconds').' s).';
+            $lines[] = "Deliverable: REEL — {$orientation} {$reel['aspect']} video ({$reel['width']}×{$reel['height']}) assembled from AI video clips in the order you give. First-frame images must be generated at {$reel['aspect']} too.";
+            $lines[] = sprintf('Length: the client ordered a %d s reel. The delivered clips must add up to %d–%d s; plan the storyboard and clip lengths for that.', ...$this->reelLength($creation));
         }
 
         if (array_filter($creation->product ?? [])) {
@@ -267,7 +268,7 @@ class CreativeAgent
                 ]);
         } else {
             $tools[] = $this->tool('deliver_reel',
-                'Deliver the reel: clip asset ids in playback order. The reel is exactly as long as the clips together (at most '.config('creations.reel.max_seconds').' s).',
+                vsprintf('Deliver the reel: clip asset ids in playback order. The reel is exactly as long as the clips together, which must be %2$d–%3$d s (the client ordered %1$d s).', $this->reelLength($creation)),
                 ['clip_ids' => ['type' => 'array', 'items' => ['type' => 'string']]]);
         }
 
@@ -467,6 +468,17 @@ class CreativeAgent
         return ['summary' => "{$key} ← {$asset['id']}", 'content' => "Delivered {$key} ({$format['width']}×{$format['height']})."];
     }
 
+    /**
+     * @return array{0: int, 1: int, 2: int} ordered, min and max seconds
+     */
+    private function reelLength(Creation $creation): array
+    {
+        $ordered = $creation->reelDuration();
+        $tolerance = config('creations.reel.duration_tolerance');
+
+        return [$ordered, max(1, $ordered - $tolerance), $ordered + $tolerance];
+    }
+
     private function deliverReel(Creation $creation, array $in): array
     {
         $ids = array_values($in['clip_ids'] ?? []);
@@ -482,14 +494,18 @@ class CreativeAgent
             $total += (int) ($asset['duration'] ?? 0);
         }
 
-        $max = config('creations.reel.max_seconds');
+        [$ordered, $min, $max] = $this->reelLength($creation);
 
         if (! $ids) {
             throw new AiException('Pass at least one clip.');
         }
 
         if ($total > $max) {
-            throw new AiException("Clips add up to {$total} s; a reel can be at most {$max} s. Drop some clips and deliver again.");
+            throw new AiException("Clips add up to {$total} s; this reel must be at most {$max} s (ordered {$ordered} s). Drop or shorten clips and deliver again.");
+        }
+
+        if ($total < $min) {
+            throw new AiException("Clips add up to {$total} s; this reel must be at least {$min} s (ordered {$ordered} s). Add clips and deliver again.");
         }
 
         $creation->update(['reel_clips' => $ids]);

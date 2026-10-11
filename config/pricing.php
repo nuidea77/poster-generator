@@ -45,7 +45,8 @@ return [
     'credits' => [
         'poster' => (int) env('CREDITS_POSTER', 12),            // first format
         'poster_extra_format' => (int) env('CREDITS_POSTER_EXTRA', 3),
-        'reel' => (int) env('CREDITS_REEL', 120),
+        // Per reel length in seconds (see docs/PRICING.md §3).
+        'reel' => [15 => 80, 30 => 140, 45 => 210, 60 => 270],
     ],
 
     // Hard cap on image + video spend per job (USD). The agent is told the
@@ -53,7 +54,8 @@ return [
     'media_budget' => [
         'poster' => 0.75,                // 3 GPT high images (1 + 2 retries)
         'poster_extra_format' => 0.25,   // 1 more image
-        'reel' => 14.00,                 // 4 GPT high stills + 32 s of Veo standard
+        // 4 GPT high stills ($1) + 1.3 × length of Veo standard ($0.40/s).
+        'reel' => [15 => 8.80, 30 => 16.60, 45 => 24.40, 60 => 32.20],
     ],
 
 ];

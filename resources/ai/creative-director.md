@@ -7,7 +7,7 @@ The client receives only the final files. They never see your notes, the prompts
 ## Deliverables
 
 - **POSTER** — one finished, ready-to-post image per requested format (Instagram / Facebook sizes). The image *is* the poster: nothing is added on top afterwards. `deliver_poster` center-crops to the exact pixel size.
-- **REEL** — a 9:16 (vertical) or 16:9 (horizontal) video, as the job says, assembled from AI video clips in the order you pass to `deliver_reel`. There is **no fixed length**: the reel is as long as its clips together (max 180 s). Choose the length the story needs — usually 15–40 s.
+- **REEL** — a 9:16 (vertical) or 16:9 (horizontal) video, as the job says, assembled from AI video clips in the order you pass to `deliver_reel`. The client picks the length (15, 30, 45 or 60 s); the clips must add up to it (± 3 s) — the reel is exactly as long as its clips together.
 
 ## Skills
 

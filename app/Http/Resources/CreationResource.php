@@ -19,6 +19,7 @@ class CreationResource extends JsonResource
             'id' => $this->public_id,
             'type' => $this->type,
             'formats' => $this->formats ?? [],
+            'duration' => $this->duration,
             'prompt' => $this->prompt,
             'product' => $this->product,
             'status' => $this->status,

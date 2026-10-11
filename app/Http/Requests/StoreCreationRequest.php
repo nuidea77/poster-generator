@@ -22,6 +22,7 @@ class StoreCreationRequest extends FormRequest
             'type' => ['required', Rule::in([Creation::POSTER, Creation::REEL])],
             'formats' => ['required_if:type,poster', 'array', 'min:1', ...($reel ? ['max:1'] : [])],
             'formats.*' => ['distinct', Rule::in(array_keys(config($reel ? 'creations.reel.formats' : 'creations.poster_formats')))],
+            'duration' => ['nullable', 'integer', Rule::in(array_keys(config('creations.reel.durations')))],
             'prompt' => ['required', 'string', 'min:5', 'max:3000'],
             'product' => ['nullable', 'array'],
             'product.name' => ['nullable', 'string', 'max:150'],

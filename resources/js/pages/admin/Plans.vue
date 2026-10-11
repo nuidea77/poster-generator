@@ -43,7 +43,7 @@ async function save(p) {
             <h1 class="display text-3xl">Багц, үнэ</h1>
             <button class="btn btn-lime ml-auto" @click="add">+ Багц</button>
         </div>
-        <p class="mb-4 text-sm text-muted">Үнэ 0 бол үнэгүй багц: шинэ хэрэглэгч бүр кредитийг нь нэг удаа авна, хугацаагүй. Төлбөртэй багцын кредит тухайн хугацаанд хүчинтэй. Бүтээлийн үнэ: постер {{ prices.poster }} (+{{ prices.poster_extra_format }}/хэмжээ), reels {{ prices.reel }} кредит. 1 кредитийн үнэ ≥ {{ money(floor) }} байвал хамгийн үнэтэй модель (Veo, GPT high) ашигласан муу тохиолдолд ч ашиг 2 дахин байна (docs/PRICING.md).</p>
+        <p class="mb-4 text-sm text-muted">Үнэ 0 бол үнэгүй багц: шинэ хэрэглэгч бүр кредитийг нь нэг удаа авна, хугацаагүй. Төлбөртэй багцын кредит тухайн хугацаанд хүчинтэй. Бүтээлийн үнэ: постер {{ prices.poster }} (+{{ prices.poster_extra_format }}/хэмжээ), reels {{ Object.entries(prices.reel).map(([s, c]) => `${s} сек ${c}`).join(', ') }} кредит. 1 кредитийн үнэ ≥ {{ money(floor) }} байвал хамгийн үнэтэй модель (Veo, GPT high) ашигласан муу тохиолдолд ч ашиг 2 дахин байна (docs/PRICING.md).</p>
         <p v-if="error" class="mb-3 rounded-xl bg-red-950 p-3 text-sm text-red-200">{{ error }}</p>
 
         <div class="grid gap-4 md:grid-cols-3">

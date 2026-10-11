@@ -79,8 +79,13 @@ class CreationTest extends TestCase
             ->assertJsonPath('data.plan', ['name' => 'Үнэгүй', 'free' => true])
             ->assertJsonPath('data.subscribed', false);
 
+        // Reels are priced by length; 15 s is the default.
         $this->actingAs($user)->postJson('/api/v1/creations', ['type' => 'reel', 'prompt' => 'Кофены reels'])
-            ->assertStatus(402)->assertJsonPath('needed', 120);
+            ->assertStatus(402)->assertJsonPath('needed', 80);
+        $this->actingAs($user)->postJson('/api/v1/creations', ['type' => 'reel', 'duration' => 60, 'prompt' => 'Кофены reels'])
+            ->assertStatus(402)->assertJsonPath('needed', 270);
+        $this->actingAs($user)->postJson('/api/v1/creations', ['type' => 'reel', 'duration' => 20, 'prompt' => 'Кофены reels'])
+            ->assertStatus(422)->assertJsonValidationErrors('duration');
         $this->actingAs($user)->postJson('/api/v1/creations', ['formats' => ['1:1', '9:16']] + $poster)
             ->assertStatus(402)->assertJsonPath('needed', 15);
 
@@ -414,8 +419,6 @@ class CreationTest extends TestCase
 
     public function test_reel_delivery_needs_clips_and_respects_the_cap(): void
     {
-        config(['creations.reel.max_seconds' => 8]);
-
         Http::fake([
             'api.anthropic.com/*' => Http::sequence()
                 ->push($this->turn([['deliver_reel', ['clip_ids' => []]]]))
@@ -423,7 +426,7 @@ class CreationTest extends TestCase
                 ->push($this->turn([['finish', ['summary' => 'x']]])),
         ]);
 
-        $creation = Creation::create(['user_id' => $this->user->id, 'type' => 'reel', 'prompt' => 'x', 'status' => 'queued', 'assets' => [
+        $creation = Creation::create(['user_id' => $this->user->id, 'type' => 'reel', 'duration' => 15, 'prompt' => 'x', 'status' => 'queued', 'assets' => [
             ['id' => 'vid_1', 'kind' => 'video', 'duration' => 5],
             ['id' => 'vid_2', 'kind' => 'video', 'duration' => 5],
         ]]);
@@ -431,7 +434,7 @@ class CreationTest extends TestCase
         $creation->refresh();
 
         $this->assertStringContainsString('at least one clip', $creation->steps[0]['error']);
-        $this->assertStringContainsString('at most 8 s', $creation->steps[1]['error']);
+        $this->assertStringContainsString('at least 12 s (ordered 15 s)', $creation->steps[1]['error']);
         $this->assertSame('failed', $creation->status);
     }
 

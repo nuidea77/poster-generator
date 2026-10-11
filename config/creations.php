@@ -35,9 +35,16 @@ return [
             '16:9' => ['label' => '16:9', 'hint' => 'YouTube · Facebook видео', 'width' => 1920, 'height' => 1080],
         ],
         'fps' => 30,
-        // No fixed length: the reel is as long as the clips the agent delivers.
-        // Cap at Instagram's reel limit.
-        'max_seconds' => (int) env('REEL_MAX_SECONDS', 180),
+        // Lengths the customer can pick (seconds => what it suits); the first
+        // is the default. Each has its own credit price and media budget in
+        // config/pricing.php. The delivered clips must add up to it ± tolerance.
+        'durations' => [
+            15 => 'Богино, анхаарал татах',
+            30 => 'Ихэнх reels-д тохирно',
+            45 => 'Дэлгэрэнгүй танилцуулга',
+            60 => 'Урт, түүх өгүүлэх',
+        ],
+        'duration_tolerance' => 3,
     ],
 
     'uploads' => [

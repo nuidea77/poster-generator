@@ -1,6 +1,6 @@
 # Poster Studio
 
-Laravel 13 + Vue 3 SPA (vue-router, served by Laravel) + Tailwind 4. Subscription service that makes Instagram/Facebook posters and reels (reel length = sum of the clips, max 180 s). Requirements: `docs/SRS.md`.
+Laravel 13 + Vue 3 SPA (vue-router, served by Laravel) + Tailwind 4. Subscription service that makes Instagram/Facebook posters and reels (customer picks the reel length 15/30/45/60 s, priced per length; clips must add up to it ± 3 s). Requirements: `docs/SRS.md`.
 
 - Flow: `POST /api/v1/creations` → `RunCreation` job → `CreativeAgent` (Claude Fable + tools) → posters cropped by `PosterFormatter` / reel assembled by `ReelAssembler` (ffmpeg) → `outputs`.
 - Fable picks the image (GPT Image, Gemini) and video (Seedance, Veo via Gemini API) provider per call; video providers declare their clip lengths in `durations()`. Never expose provider/model names to customers: customer responses go through `CreationResource`; internals (`assets`, `steps`, `summary`, `error_detail`) only via `AdminCreationResource`. A feature test checks for leaks.

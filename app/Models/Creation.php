@@ -28,7 +28,7 @@ class Creation extends Model
     public const ACTIVE = [self::QUEUED, self::RUNNING, self::ASSEMBLING];
 
     protected $fillable = [
-        'user_id', 'type', 'credits', 'charges', 'formats', 'prompt', 'product', 'status', 'stage', 'progress',
+        'user_id', 'type', 'credits', 'charges', 'formats', 'duration', 'prompt', 'product', 'status', 'stage', 'progress',
         'inputs', 'assets', 'steps', 'outputs', 'reel_clips', 'summary', 'error_detail',
         'model', 'input_tokens', 'output_tokens', 'cache_read_tokens', 'cache_write_tokens', 'cost_usd', 'started_at', 'finished_at',
     ];
@@ -91,6 +91,16 @@ class Creation extends Model
         $aspect = isset($formats[$this->formats[0] ?? '']) ? $this->formats[0] : array_key_first($formats);
 
         return ['aspect' => $aspect] + $formats[$aspect];
+    }
+
+    /**
+     * Reel length in seconds the customer picked (older reels: the shortest).
+     */
+    public function reelDuration(): int
+    {
+        $durations = config('creations.reel.durations');
+
+        return isset($durations[$this->duration]) ? (int) $this->duration : array_key_first($durations);
     }
 
     public function addStep(array $step): void

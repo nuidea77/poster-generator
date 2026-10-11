@@ -55,7 +55,7 @@ class MeController extends Controller
                 ->values(),
             'reel' => [
                 'formats' => collect(config('creations.reel.formats'))->map(fn ($f, $key) => ['id' => $key] + $f)->values(),
-                'max_seconds' => config('creations.reel.max_seconds'),
+                'durations' => collect(config('creations.reel.durations'))->map(fn ($hint, $s) => ['id' => $s, 'label' => "{$s} сек", 'hint' => $hint])->values(),
             ],
             'uploads' => config('creations.uploads'),
             'plans' => Plan::where('is_active', true)->orderBy('sort')->get(['id', 'slug', 'name', 'price', 'period_days', 'credits', 'features']),

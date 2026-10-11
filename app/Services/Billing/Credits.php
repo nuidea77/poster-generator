@@ -19,13 +19,13 @@ class Credits
     /** Never expires. */
     private const FREE_YEARS = 100;
 
-    public function price(string $type, int $formats = 1): int
+    public function price(Creation $creation): int
     {
         $c = config('pricing.credits');
 
-        return $type === Creation::REEL
-            ? $c['reel']
-            : $c['poster'] + max(0, $formats - 1) * $c['poster_extra_format'];
+        return $creation->type === Creation::REEL
+            ? $c['reel'][$creation->reelDuration()]
+            : $c['poster'] + max(0, count($creation->formats ?? []) - 1) * $c['poster_extra_format'];
     }
 
     /**
@@ -36,7 +36,7 @@ class Credits
         $b = config('pricing.media_budget');
 
         return $creation->type === Creation::REEL
-            ? $b['reel']
+            ? $b['reel'][$creation->reelDuration()]
             : $b['poster'] + max(0, count($creation->formats ?? []) - 1) * $b['poster_extra_format'];
     }
 

@@ -30,6 +30,7 @@ class CreationService
             'formats' => $data['type'] === Creation::POSTER
                 ? array_values(array_unique($data['formats']))
                 : [$data['formats'][0] ?? array_key_first(config('creations.reel.formats'))],
+            'duration' => $data['type'] === Creation::REEL ? (int) ($data['duration'] ?? array_key_first(config('creations.reel.durations'))) : null,
             'prompt' => $data['prompt'],
             'product' => array_filter($data['product'] ?? [], 'filled') ?: null,
         ]);
@@ -79,6 +80,7 @@ class CreationService
         $creation = $this->createCharged($source->user, [
             'type' => $source->type,
             'formats' => $source->formats,
+            'duration' => $source->duration,
             'prompt' => $source->prompt,
             'product' => $source->product,
         ]);
@@ -106,7 +108,7 @@ class CreationService
     {
         return DB::transaction(function () use ($user, $attributes) {
             $creation = Creation::create($attributes + ['user_id' => $user->id, 'status' => Creation::QUEUED, 'stage' => 'queued']);
-            $this->credits->charge($user, $creation, $this->credits->price($creation->type, count($creation->formats ?? [])));
+            $this->credits->charge($user, $creation, $this->credits->price($creation));
 
             return $creation;
         });

@@ -18,6 +18,7 @@ const form = reactive({
     type: 'poster',
     formats: ['4:5'],
     reelFormat: meta.reel.formats[0].id,
+    duration: meta.reel.durations[0].id,
     prompt: '',
     product: { name: '', price: '', description: '' },
 });
@@ -30,7 +31,7 @@ const busy = ref(false);
 
 // Price in credits, charged when the job starts (refunded if it fails). credits null = unlimited (admin).
 const prices = meta.credit_prices;
-const cost = computed(() => (form.type === 'reel' ? prices.reel : prices.poster + Math.max(0, form.formats.length - 1) * prices.poster_extra_format));
+const cost = computed(() => (form.type === 'reel' ? prices.reel[form.duration] : prices.poster + Math.max(0, form.formats.length - 1) * prices.poster_extra_format));
 const balance = computed(() => session.user.credits);
 const blocked = computed(() => balance.value !== null && balance.value < cost.value);
 const error = ref('');
@@ -54,6 +55,7 @@ const types = [
     { id: 'reel', label: 'Reels', icon: 'video' },
 ];
 const typeLabel = computed(() => types.find((t) => t.id === form.type).label);
+const durationLabel = computed(() => `${form.duration} сек`);
 
 // Phone layout: attachments and settings live in bottom sheets.
 const attachOpen = ref(false);
@@ -141,6 +143,7 @@ async function submit() {
     data.append('type', form.type);
     data.append('prompt', form.prompt);
     (form.type === 'poster' ? form.formats : [form.reelFormat]).forEach((f) => data.append('formats[]', f));
+    if (form.type === 'reel') data.append('duration', form.duration);
     Object.entries(form.product).forEach(([k, v]) => v.trim() && data.append(`product[${k}]`, v.trim()));
     if (logo.value?.file) {
         data.append('logo', logo.value.file);
@@ -178,7 +181,7 @@ async function submit() {
             </h1>
             <p class="mt-4 max-w-xl text-base text-zinc-400">
                 <template v-if="form.type === 'poster'">Юу сурталчлахаа бичээд, лого, бүтээгдэхүүнийхээ зургийг нэмнэ үү. Бэлэн постер хэдэн минутад гарна.</template>
-                <template v-else>Босоо 9:16 эсвэл хэвтээ 16:9, бэлэн видео. Урт нь санаанаасаа хамаарна, ихэвчлэн 15–40 секунд. Бүтээхэд 10–20 минут болно. Хуудсаа хааж болно, бэлэн болмогц "Миний бүтээлүүд"-д гарна.</template>
+                <template v-else>Босоо 9:16 эсвэл хэвтээ 16:9, 15–60 секундын бэлэн видео. Урт нь сонгосон хугацаагаар гарна. Бүтээхэд 10–20 минут болно. Хуудсаа хааж болно, бэлэн болмогц "Миний бүтээлүүд"-д гарна.</template>
             </p>
 
             <div class="mt-6 flex flex-wrap justify-center gap-2">
@@ -235,7 +238,7 @@ async function submit() {
                 </button>
                 <button type="button" class="chip min-w-0" @click="openSettings('format')">
                     <Icon :name="form.type === 'poster' ? 'image' : 'video'" size="14" />
-                    <span class="truncate">{{ typeLabel }} · {{ formatLabel }}</span>
+                    <span class="truncate">{{ typeLabel }} · {{ formatLabel }}<template v-if="form.type === 'reel'"> · {{ durationLabel }}</template></span>
                 </button>
                 <button type="button" class="chip w-9 shrink-0 justify-center px-0" :class="{ 'chip-active': productFilled }" aria-label="Тохиргоо" @click="openSettings('type')">
                     <Icon name="sliders" size="15" />
@@ -279,6 +282,24 @@ async function submit() {
                 <ChipMenu :label="formatLabel" :icon="form.type === 'poster' ? 'grid' : 'video'" width="w-72">
                     <div class="px-2 pt-1 pb-2 text-xs text-muted">Хэмжээ</div>
                     <FormatOptions :options="formatOptions" :picked="isPicked" @pick="toggleFormat" />
+                </ChipMenu>
+                <ChipMenu v-if="form.type === 'reel'" :label="durationLabel" icon="clock" width="w-72">
+                    <div class="px-2 pt-1 pb-2 text-xs text-muted">Үргэлжлэх хугацаа</div>
+                    <button
+                        v-for="d in meta.reel.durations"
+                        :key="d.id"
+                        type="button"
+                        class="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left text-sm transition hover:bg-white/5"
+                        :class="form.duration === d.id ? 'bg-white/5 text-fg' : 'text-zinc-300'"
+                        @click="form.duration = d.id"
+                    >
+                        <span class="flex-1">
+                            <span class="block font-semibold">{{ d.label }}</span>
+                            <span class="block text-[11px] text-muted">{{ d.hint }}</span>
+                        </span>
+                        <span class="text-xs text-zinc-400">{{ prices.reel[d.id] }} кредит</span>
+                        <Icon v-if="form.duration === d.id" name="check" size="14" />
+                    </button>
                 </ChipMenu>
             </div>
         </Composer>
@@ -330,6 +351,31 @@ async function submit() {
                         <span class="sheet-chevron"><Icon name="chevron" size="12" :class="{ 'rotate-180': expanded === 'format' }" /></span>
                     </button>
                     <div v-if="expanded === 'format'" class="pb-2"><FormatOptions :options="formatOptions" :picked="isPicked" @pick="toggleFormat" /></div>
+                </div>
+                <div v-if="form.type === 'reel'">
+                    <button type="button" class="sheet-row w-full" @click="expanded = expanded === 'duration' ? '' : 'duration'">
+                        <Icon name="clock" size="16" class="text-zinc-400" />
+                        <span class="flex-1 text-left text-sm font-semibold">Үргэлжлэх хугацаа</span>
+                        <span class="text-sm font-semibold">{{ durationLabel }}</span>
+                        <span class="sheet-chevron"><Icon name="chevron" size="12" :class="{ 'rotate-180': expanded === 'duration' }" /></span>
+                    </button>
+                    <div v-if="expanded === 'duration'" class="pb-2">
+                        <button
+                            v-for="d in meta.reel.durations"
+                            :key="d.id"
+                            type="button"
+                            class="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left text-sm transition hover:bg-white/5"
+                            :class="form.duration === d.id ? 'bg-white/5 text-fg' : 'text-zinc-300'"
+                            @click="form.duration = d.id"
+                        >
+                            <span class="flex-1">
+                                <span class="block font-semibold">{{ d.label }}</span>
+                                <span class="block text-[11px] text-muted">{{ d.hint }}</span>
+                            </span>
+                            <span class="text-xs text-zinc-400">{{ prices.reel[d.id] }} кредит</span>
+                            <Icon v-if="form.duration === d.id" name="check" size="14" />
+                        </button>
+                    </div>
                 </div>
                 <div>
                     <button type="button" class="sheet-row w-full" @click="expanded = expanded === 'product' ? '' : 'product'">
