@@ -198,7 +198,7 @@ class TextOverlay
             $footerTop = null;
             if (isset($blocks['footer'])) {
                 $group = $zoneHeight($blocks['footer']) - end($blocks['footer'])['gap'];
-                $padY = (int) round(min($w, $h) * 0.035);
+                $padY = (int) round(min($w, $h) * 0.028);
                 $bandBottom = $still && $h <= $w * 1.5 ? $h : (int) round($h * ($still ? 0.87 : 0.8));
                 $bandTop = $bandBottom - $group - 2 * $padY;
                 $footerTop = $bandTop + $padY;
@@ -399,13 +399,33 @@ class TextOverlay
                         $right => $w - $margin - $width,
                         default => (int) round($cx - $width / 2),
                     };
-                    $this->placed[] = ['text' => $b['text'], 'panel' => $pad > 0 || $position === 'footer', 'rect' => [$x0, $y, $x0 + $width, $y + $b['height']], 'color' => $this->hex($item['color'] ?? ''), 'position' => $position, 'shrunk' => $size < (int) round(min($w, $h) * (self::SIZES[$item['role'] ?? ''] ?? self::SIZES['subtitle']) * 0.75)];
+                    $this->placed[] = ['text' => $b['text'], 'panel' => $pad > 0 || $position === 'footer', 'rect' => [$x0, $y, $x0 + $width, $y + $b['height']], 'color' => $this->hex($item['color'] ?? ''), 'position' => $position, 'row' => $b['rowNo'], 'shrunk' => $size < (int) round(min($w, $h) * (self::SIZES[$item['role'] ?? ''] ?? self::SIZES['subtitle']) * 0.75)];
                     $rowGap = max($same ? $row['gap'] : 0, $b['gap']);
                     $row = ['y' => $rowStart, 'gap' => $rowGap, 'end' => $rowStart + $rowH[$b['rowNo']] + $rowGap];
                     $y = $row['end'];
                 }
 
                 $floor = $y + (int) round(min($w, $h) * 0.02);
+            }
+
+            // Footer rows read as one strip: a thin divider between neighbouring facts.
+            $footerRows = [];
+            foreach ($this->placed as $p) {
+                if ($p['position'] === 'footer') {
+                    $footerRows[$p['row']][] = $p;
+                }
+            }
+            foreach ($footerRows as $facts) {
+                usort($facts, fn ($a, $b) => $a['rect'][0] <=> $b['rect'][0]);
+                for ($k = 1; $k < count($facts); $k++) {
+                    [$left, $right] = [$facts[$k - 1]['rect'], $facts[$k]['rect']];
+                    if ($right[0] - $left[2] < 28) {
+                        continue;
+                    }
+                    $line = (int) round(min($left[3] - $left[1], $right[3] - $right[1]) * 0.75);
+                    $mid = (int) round(($left[1] + $left[3] + $right[1] + $right[3]) / 4);
+                    $filters[] = 'drawbox=x='.intdiv($left[2] + $right[0], 2).':y='.($mid - intdiv($line, 2)).":w=2:h={$line}:color=0x{$facts[$k]['color']}@0.35:t=fill";
+                }
             }
 
             if (! $filters) {

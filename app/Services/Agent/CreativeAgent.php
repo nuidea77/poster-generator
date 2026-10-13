@@ -649,8 +649,8 @@ class CreativeAgent
         $cramped = array_column(array_filter($this->text->placed, fn ($p) => $p['position'] === 'footer' && $p['shrunk']), 'text');
         if ($footerRows > 2 || count($footer) > 6) {
             $content .= ' LAYOUT — the footer holds '.count($footer).' facts in '.$footerRows.' rows; keep it to 2 rows (up to 3 short facts per row with same_line; the phone bold on the right). Drop the weakest fact or move it to a pill.';
-        } elseif (count($footer) <= 3 && $footerRows > 1) {
-            $content .= ' LAYOUT — the footer\'s '.count($footer).' facts fit one row: put them side by side (same_line on the 2nd and 3rd, the phone last on the right) instead of '.$footerRows.' rows.';
+        } elseif (count($footer) <= 4 && $footerRows > 1 && ! $cramped) {
+            $content .= ' LAYOUT — the footer\'s '.count($footer).' facts fit one strip: put them in one row (same_line on all but the first, all small, the phone bold last on the right) instead of '.$footerRows.' rows.';
         } elseif ($cramped) {
             $content .= ' LAYOUT — footer facts had to shrink to fit their row ("'.implode('", "', $cramped).'"): shorten them (address without the district, "07:30–22:00" not "Цагийн хуваарь 07:30–22:00") or move one to the other row.';
         }

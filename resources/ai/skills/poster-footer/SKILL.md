@@ -15,15 +15,20 @@ The footer is where the customer acts: it must be **found in one glance and read
 - The visual must leave the foot free: "the bottom 15% is a plain area / simple surface; the product ends above it".
 
 ## 2. The default footer
-Unless the brief or the style clearly calls for another pattern, use **pattern 2**: `footer_style: pill`, `footer_color` = the brand's main colour (or its dark tone), white text, every fact with `icon_style: circle` (white discs, `icon_color` = the footer colour), one row of 2–3 facts with the phone bold on the right. It is the most finished-looking footer and the studio's house style.
+Unless the brief or the style clearly calls for another pattern, use the **contact strip**: `footer_style: pill`, `footer_color` = the brand's main or dark tone, white text, **one row of 3–4 short facts, all `small`**, every fact with a circle icon (the default in the footer), the phone `bold_sans` last on the right. The tool draws thin dividers between the facts. It is compact (one line, ~7% of the height), calm and reads like the professional posters — the studio's house style.
+
+- **One row is the goal.** Shorten facts until they fit (`Их тойруу 15`, `07:30–22:00`, `8800-3344`, `Хүргэлттэй`). add_text warns when a row had to shrink — then drop the weakest fact, don't add a row.
+- **Two rows only** for 5–6 facts or an unavoidable long address; then the phone may be `subtitle` bold on the right of row 2.
+- The phone is bold, not huge: in a one-row strip all facts keep the same size.
 
 **Footer colour ≠ CTA colour.** The CTA pill takes the accent (orange, lime, yellow); the footer takes the brand's main or dark tone (violet, navy, deep green, near-black). Two blocks of the same colour stacked at the bottom merge into one blob. Keep a clear gap between the CTA and the footer.
 
 ```
-add_text(footer_style: pill, footer_color: "4C1D95", items: [
-  footer · small · web · circle · icon_color 4C1D95 · "orgilmedia.mn"
-  footer · small · instagram · circle · same_line · "@orgilmedia"
-  footer · small bold · phone · circle · same_line · "9911-4567"
+add_text(footer_style: pill, footer_color: "3B1F0E", items: [
+  footer · small · location · "Их тойруу 15"
+  footer · small · clock · same_line · "07:30–22:00"
+  footer · small · delivery · same_line · "Хүргэлттэй"
+  footer · small · bold_sans · phone · same_line · "8800-3344"
 ])
 ```
 
