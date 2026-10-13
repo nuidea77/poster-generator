@@ -57,6 +57,27 @@ class VertexTest extends TestCase
         $this->assertCount(1, collect(Http::recorded())->filter(fn ($p) => str_contains($p[0]->url(), 'oauth2'))); // token cached
     }
 
+    public function test_fable_can_run_through_vertex_with_a_service_account(): void
+    {
+        config([
+            'ai.agent.via' => 'vertex', 'ai.agent.model' => 'claude-fable-5-1', 'ai.agent.fallbacks' => true,
+            'ai.vertex' => ['project' => 'my-proj', 'location' => 'us-central1', 'image_location' => 'global', 'claude_location' => 'global', 'credentials' => $this->serviceAccount(), 'api_key' => null],
+        ]);
+        Http::fake([
+            'oauth2.googleapis.com/token' => Http::response(['access_token' => 'ya29.tok', 'expires_in' => 3600]),
+            'aiplatform.googleapis.com/*' => Http::response(['content' => [['type' => 'text', 'text' => 'hi']], 'stop_reason' => 'end_turn', 'usage' => ['input_tokens' => 1, 'output_tokens' => 1]]),
+        ]);
+
+        $reply = (new \ReflectionMethod(\App\Services\Agent\CreativeAgent::class, 'claude'))
+            ->invoke(app(\App\Services\Agent\CreativeAgent::class), 'system', [], [['role' => 'user', 'content' => [['type' => 'text', 'text' => 'hi']]]]);
+
+        $this->assertSame('end_turn', $reply['stop_reason']);
+        Http::assertSent(fn (Request $r) => $r->url() === 'https://aiplatform.googleapis.com/v1/projects/my-proj/locations/global/publishers/anthropic/models/claude-fable-5-1:rawPredict'
+            && $r->hasHeader('Authorization', 'Bearer ya29.tok')
+            && $r['anthropic_version'] === 'vertex-2023-10-16' && ! isset($r['model']) && ! isset($r['fallbacks']));
+        Http::assertNotSent(fn (Request $r) => str_contains($r->url(), 'api.anthropic.com'));
+    }
+
     public function test_a_pinned_image_provider_is_the_only_one_offered_until_paused(): void
     {
         config(['ai.providers.gemini.key' => 'k', 'ai.providers.gemini_pro.key' => 'k', 'ai.providers.gemini_pro.via' => 'gemini_api', 'ai.only.image' => 'gemini_pro']);

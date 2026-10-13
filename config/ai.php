@@ -35,6 +35,10 @@ return [
         'timeout' => (int) env('AI_AGENT_TIMEOUT', 900),
         // Сервер талын refusal fallback (зөвхөн Claude API). Bedrock/Vertex дээр false болго.
         'fallbacks' => (bool) env('AI_AGENT_FALLBACKS', true),
+        // Fable-ийг хаанаас дуудах: anthropic (Claude API) эсвэл vertex (Google Cloud, service account шаардана).
+        'via' => env('AI_AGENT_VIA', 'anthropic'),
+        // Vertex дээрх загварын нэр өөр байвал (жишээ нь хувилбарын дагавартай); хоосон бол `model`.
+        'vertex_model' => env('AI_AGENT_VERTEX_MODEL'),
     ],
 
     // Гадны AI provider-ууд: `kind` нь image эсвэл video, agent аль нэгийг нь дуудлага бүрт сонгоно.
@@ -112,6 +116,7 @@ return [
         'image_location' => env('VERTEX_IMAGE_LOCATION', 'global'), // Gemini image загварууд
         'credentials' => env('VERTEX_CREDENTIALS'),                 // service-account JSON key-ийн зам (эсвэл JSON өөрөө)
         'api_key' => env('VERTEX_API_KEY'),                         // express mode, зөвхөн Gemini зураг
+        'claude_location' => env('VERTEX_CLAUDE_LOCATION', 'global'), // Claude (Fable) загварын бүс
     ],
 
 ];

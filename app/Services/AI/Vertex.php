@@ -49,6 +49,14 @@ class Vertex
         return $this->host($location)."/v1/projects/{$this->project()}/locations/{$location}/publishers/google/models/{$model}:generateContent";
     }
 
+    /** Vertex Model Garden дээрх Claude (Anthropic) загварын rawPredict URL. */
+    public function anthropicUrl(string $model): string
+    {
+        $location = ($this->config['claude_location'] ?? '') ?: 'global';
+
+        return $this->host($location)."/v1/projects/{$this->project()}/locations/{$location}/publishers/anthropic/models/{$model}:rawPredict";
+    }
+
     /** Veo-д зориулсан бүсийн загварын URL (predictLongRunning, fetchPredictOperation). */
     public function modelUrl(string $model, string $method): string
     {

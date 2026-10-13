@@ -5,6 +5,7 @@ namespace App\Services\Agent;
 use App\Models\Creation;
 use App\Services\AI\AiManager;
 use App\Services\AI\Exceptions\AiException;
+use App\Services\AI\Vertex;
 use App\Services\Billing\CostMeter;
 use App\Services\Billing\Credits;
 use App\Services\Media\IconSet;
@@ -170,9 +171,22 @@ class CreativeAgent
             $body['fallbacks'] = 'default';
         }
 
-        $response = Http::timeout($agent['timeout'])
-            ->withHeaders($headers)
-            ->post(rtrim($cfg['base_url'], '/').'/v1/messages', $body);
+        if (($agent['via'] ?? 'anthropic') === 'vertex') {
+            // Vertex дээр: загвар URL-д, anthropic_version биед; service account-ийн token-оор нэвтэрнэ.
+            // Server-side fallback нь зөвхөн Claude API-д байдаг тул энд хасна.
+            $vertex = Vertex::fromConfig();
+            if (! $vertex->ready(true)) {
+                throw new AiException('Claude via Vertex needs a service account: set VERTEX_CREDENTIALS.');
+            }
+            unset($body['model'], $body['fallbacks']);
+            $body['anthropic_version'] = 'vertex-2023-10-16';
+            $response = $vertex->authorize(Http::timeout($agent['timeout']))
+                ->post($vertex->anthropicUrl($agent['vertex_model'] ?: $agent['model']), $body);
+        } else {
+            $response = Http::timeout($agent['timeout'])
+                ->withHeaders($headers)
+                ->post(rtrim($cfg['base_url'], '/').'/v1/messages', $body);
+        }
 
         if ($response->failed()) {
             throw new AiException('Claude: '.($response->json('error.message') ?? $response->body()));
