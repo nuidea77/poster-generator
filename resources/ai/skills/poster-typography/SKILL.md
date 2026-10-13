@@ -55,11 +55,11 @@ Craft:
 - **Scale:** hook ≈ 3× the facts; one element clearly dominates; never two equally big lines.
 - **Alignment:** one axis — all centred (events, greetings, short headlines) or all left on the 7% edge (retail, corporate, long headlines). Never mix within a zone.
 - **Line length:** ≤ 18 characters per headline line on 9:16 / 4:5, ≤ 28 on 16:9; break with `\n` at word boundaries, balanced. Letter-spacing cannot be set — air comes from size and margins.
-- **Colour:** one brand colour + one accent; the accent marks only the offer, the price pill, the CTA and the starred word. The headline is the most contrasted thing: deep brown / near-black on light warm photos, white on dark. Pastel or cream text on a beige photo reads weak — add_text measures contrast and warns.
+- **Colour:** one brand colour + one accent; the accent marks only the offer, the price pill, the CTA and the starred word. The headline is the most contrasted thing: deep brown / near-black on light warm photos, white on dark. Pastel or cream text on a beige photo reads weak.
 - **Legibility on photos:** calm area first; else a `scrim`, a band or a panel.
 
 ### Two-tone headline
-Wrap **one** key word in stars and pass `accent_color`: `Мөрөөдлөө *бодит* болго`, `Таны бизнес *харагдахгүй* байна уу?`, `*15* ЖИЛИЙН ОЙ`. Same font, only the colour changes; never star a whole line; at most two starred runs on a long headline. The accent word must contrast as strongly as the rest: on light backgrounds a deep accent (burnt orange `C2410C`, deep red, teal, cobalt), on dark ones a bright one (amber, lime, yellow) — yellow on cream disappears (add_text warns).
+Wrap **one** key word in stars and pass `accent_color`: `Мөрөөдлөө *бодит* болго`, `Таны бизнес *харагдахгүй* байна уу?`, `*15* ЖИЛИЙН ОЙ`. Same font, only the colour changes; never star a whole line; at most two starred runs on a long headline. The accent word must contrast as strongly as the rest: on light backgrounds a deep accent (burnt orange `C2410C`, deep red, teal, cobalt), on dark ones a bright one (amber, lime, yellow) — yellow on cream disappears.
 
 ## 4. A number as the hero (anniversary, %, year, count)
 The number alone in a `display` item (about twice a title), the word under it as its own item: `15` → `ЖИЛИЙН ОЙ` → name → wish. Digits in `condensed` or `bold_sans`; the number takes the accent colour (gold for anniversaries), no box; centred in the calmest large area, ~25–35% of the frame height; the visual must leave that space. One display item per poster.
@@ -73,7 +73,7 @@ The number alone in a `display` item (about twice a title), the word under it as
 ## 6. The add_text call
 1. **Visual** — generated with no text, with calm zones matching the layout ("the top third is calm empty sky for the headline; the bottom 15% is a plain surface"). End the prompt with "No text, no letters, no numbers, no logos."
 2. **Items** in reading order: `text`, `role`, `position` (`top`, `center`, `lower_third`, `bottom`, `footer`), `align`, `same_line`, `font`, `color`, `box`, `box_color`, `box_shape`, `icon`, `icon_style`; on images `start`/`end`/`animation` = 0, 0, `none`. Call-level: `scrim`, `scrim_color`, `footer_style`, `footer_color`.
-3. **Read the returned poster and its warnings** (detailed area under a line, low contrast, footer layout): treat them as true unless clearly intended. Fix by calling `add_text` again **on the same clean visual** (never on the texted image).
+3. **Read the returned poster yourself**: text over the product or a face, weak contrast, cramped facts. Fix by calling `add_text` again **on the same clean visual** (never on the texted image).
 4. Deliver the texted image. Several ratios: each ratio's clean visual, then add_text on each, same choices.
 
 Logos are never typed or drawn — `add_logo` with the client's file (`logo-placement` for order and corner). Without a logo, the brand name may be a `small` line.

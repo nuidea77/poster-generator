@@ -65,7 +65,7 @@ Rows of 3–4 work best when the **visual already has matching spots** (round ph
 - **Air:** at least a third of the poster is calm background. Don't fill every zone.
 - **Facts are elements, not sentences:** chips, pills, rows, a checklist — 1–5 words each.
 - **Pills and chips hold one short phrase** (≤ 25 characters). A sentence ("Дараа төлбөрт багцаа ахиулаад хожих боломж") is a plain `subtitle`, never a glass/pill.
-- **Panels never cover the product.** A glass chip or pill on the phone/bottle/face hides it as much as plain text does — add_text warns about it; move the element to a calm zone.
+- **Panels never cover the product.** A glass chip or pill on the phone/bottle/face hides it as much as plain text does; move the element to a calm zone.
 - **Badges that sit together match:** a price pill and an offer pill in one row share the role (both `price` or both `subtitle`) and the accent colour family — the offer is never a small pale chip beside a big bold price.
 - **Steps are steps:** a step flow holds only the actions in order (`Апп` → `Багц шилжих`); a deadline or date is its own element (a CTA pill or a fact), not the last step.
 - **Same element, same style:** all chips glass, all CTAs accent pills, all captions bold small; same in every ratio.

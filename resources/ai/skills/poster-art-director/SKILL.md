@@ -13,7 +13,7 @@ The client is a shop owner or page admin, not a designer. They write two sentenc
 2. **Design read + style** → one line, three dials, one style.
 3. **Picture + layout** → what the visual shows and where every block sits.
 4. **Visual** → one English prompt with empty zones; review it.
-5. **Words** → one complete `add_text` call; read the warnings.
+5. **Words** → one complete `add_text` call; look at the result.
 6. **Logo** → `add_logo`.
 7. **Critique and fix** → at most two rounds.
 8. **Other ratios** → derived from the approved one; deliver each.
@@ -55,7 +55,7 @@ Every item in reading order, real strings, nothing invented (`poster-typography`
 - **Offer & price** — the strongest after the headline: a big plain number, or **one** accent shape (`box: true`). At most 2 filled shapes on the poster besides the footer (`poster-design` §1).
 - **CTA** — `subtitle` pill with `icon: arrow`, accent colour.
 - **Contacts** — every contact fact (address, phone, social, web, hours) with `position: footer`; its look is yours to design for this poster (`footer_style` open/band/pill, `footer_color`, rows via `same_line`, icons).
-Then check it against the quality bar (`poster-design` §8), read its warnings (detail under a line, low contrast, footer layout) and fix them on the **clean visual**.
+Then check it against the quality bar (`poster-design` §8), look closely (text over the product or a face, weak contrast, cramped facts) and fix it on the **clean visual**.
 
 ## 6. Logo
 `add_logo` — the client's file, pixel-exact; corner and size per `logo-placement`, never in the headline's zone or on the contacts. Without a logo the brand name is the kicker line.

@@ -713,9 +713,6 @@ class CreativeAgent
 
         $base = $this->exactFrame($asset);
         $tmp = $this->text->burn($base ?? MediaStore::absolute($asset['path']), $in['items'], (float) ($asset['duration'] ?? 0), $still, $asset['reserved'] ?? [], (string) ($in['scrim'] ?? 'none'), (string) ($in['scrim_color'] ?? '000000'), (string) ($in['footer_color'] ?? ''), (string) ($in['footer_style'] ?? 'open'), (bool) ($in['footer_dividers'] ?? false));
-        $busy = $still ? $this->text->busyLines($base ?? MediaStore::absolute($asset['path'])) : [];
-        $faint = $still ? $this->text->lowContrastLines($base ?? MediaStore::absolute($asset['path'])) : [];
-        $stripOverSubject = $still ? $this->text->footerOverDetail($base ?? MediaStore::absolute($asset['path'])) : 0.0;
         $file = MediaStore::put("creations/{$creation->public_id}/work", file_get_contents($tmp), $still ? 'image/png' : 'video/mp4');
         @unlink($tmp);
         $base && @unlink($base);
@@ -729,46 +726,7 @@ class CreativeAgent
         ]);
 
         $content = "`{$new}` = `{$asset['id']}` with the text set in real fonts (letters exactly as given). Deliver `{$new}` instead of `{$asset['id']}`.";
-        if ($busy) {
-            // Measured, not guessed: these lines cover a detailed part of the picture (product, face, hair, texture).
-            $content .= ' WARNING — measured on the clean visual, these lines sit on a detailed area (likely the product, a face or busy texture): "'.implode('", "', $busy).'". '
-                .'Look closely; unless that is intended, call add_text again on `'.$asset['id'].'` with them in a calmer zone, fewer or shorter lines in that zone (a panel or scrim does not stop it covering the product). If you can see the lines sit only on busy background (not the product, a face or the main subject) and a scrim or panel keeps them readable, that is fine — otherwise move them or regenerate the visual with an empty band for the facts.';
-        }
-
-        // Counted, not judged: layout rules the agent tends to skip.
-        $cramped = array_column(array_filter($this->text->placed, fn ($p) => $p['position'] === 'footer' && $p['shrunk']), 'text');
-        // The footer's design is the agent's; only unreadable (shrunk) facts are reported.
-        if ($cramped) {
-            $content .= ' LAYOUT — footer facts had to shrink to fit their row ("'.implode('", "', $cramped).'"): shorten them (address without the district, "07:30–22:00" not "Цагийн хуваарь 07:30–22:00") so the one row reads at full size, or drop the weakest fact.';
-        }
-
-        if ($stripOverSubject >= 0.35) {
-            $content .= ' LAYOUT — the footer strip covers a detailed part of the picture ('.round($stripOverSubject * 100).'% of it) — likely the bottom of the product. If the product is cut, make the visual again with the product ending above the bottom 15% (a plain surface there); a cropped table or background under the strip is fine.';
-        }
-        // Boxes on every line make a flyer, not a design (poster-design §1).
-        $boxes = collect($in['items'])->filter(fn ($it) => ! empty($it['box']) && ($it['position'] ?? '') !== 'footer')->count();
-        if ($still && $boxes > 2) {
-            $content .= " DESIGN — {$boxes} filled boxes/pills outside the footer: it reads like a template flyer. Keep at most 2 (the offer and the CTA); set the rest as plain type on a calm area.";
-        }
-        // Font chaos and mixed alignment are the classic amateur tells (poster-design §1).
-        $fonts = collect($in['items'])->map(fn ($it) => $it['font'] ?? 'bold_sans')->unique()->values();
-        if ($still && $fonts->count() > 2) {
-            $content .= ' DESIGN — '.$fonts->count().' fonts ('.$fonts->implode(', ').'): keep 2 at most, one for the headline and `sans` for the rest.';
-        }
-        $aligns = collect($in['items'])->filter(fn ($it) => ($it['position'] ?? '') !== 'footer' && empty($it['same_line']))->pluck('align')->filter()->unique();
-        if ($still && $aligns->count() > 1) {
-            $content .= ' DESIGN — mixed alignment ('.$aligns->implode(', ').') in the content: put the headline, offer, benefits and CTA on one axis.';
-        }
-        // A poster without an action: every ad except a pure greeting gets a CTA pill.
-        if ($still && $creation->type === Creation::POSTER && ! collect($in['items'])->contains(fn ($it) => ($it['icon'] ?? '') === 'arrow')) {
-            $content .= ' CTA — there is no call to action. Unless this is a pure greeting, add one (`Захиалах`, `Бүртгүүлэх`, `Залгах`) in a form that suits this layout — a button, an underlined line, a word next to the phone.';
-        }
-
-        if ($faint) {
-            // Measured: text colour against the picture (and scrim) behind it.
-            $content .= ' WARNING — low contrast, measured: "'.implode('", "', $faint).'" is too close in brightness to the area behind it and will be hard to read on a phone. '
-                .'Call add_text again on `'.$asset['id'].'` with a darker colour on light areas (or white on dark ones), a `scrim` in that zone, or a pill/glass panel.';
-        }
+        // No design hints: the layout is the agent's call (it reviews the returned image itself).
 
         // Polishing loops cost more than they give: from the 4th layout on the same visual the
         // measured hints stop and the agent is told to deliver.

@@ -19,7 +19,7 @@ Look at the returned poster the way a customer scrolling Instagram would, then l
 
 ## 3. Visual hierarchy
 - Reading order: hook → offer/price → CTA → facts. One clearly dominant element; no two equally loud ones.
-- Whitespace: text has room; nothing touches an edge; the product is not covered (add_text warnings).
+- Whitespace: text has room; nothing touches an edge; the product is not covered.
 - Typography: ≤ 2 fonts, sizes in clear steps, line breaks balanced.
 
 ## 4. Consistency
@@ -28,8 +28,8 @@ Look at the returned poster the way a customer scrolling Instagram would, then l
 - Several ratios: the same choices in each.
 
 ## 5. Legibility and correctness
-- Contrast: headline strongest; no pale text on pale areas (add_text contrast warning).
-- Phone-size test: the smallest fact still readable (≥ `small`, not shrunk — footer warning).
+- Contrast: headline strongest; no pale text on pale areas.
+- Phone-size test: the smallest fact still readable (≥ `small`, not shrunk).
 - Image: no model-drawn letters/logos, faces and hands natural, product true to the reference, culture correct (`mongolian-culture`).
 
 ## 6. Severity and fixes
