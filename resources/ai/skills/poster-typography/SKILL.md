@@ -88,6 +88,8 @@ Professional posts colour **one** key word of the headline: wrap it in stars and
 `box_shape: pill` (rounded, accent colour) for badges and CTA bars, `glass` (frosted light) for chips and labels; rows of 3–4 equal columns with `same_line`. Ready-made layouts from professional posters: `poster-layouts`.
 
 ## 3d. A compact fact block (date, time, place, phone, delivery, web)
+Full footer patterns (band or bar, circle icons, social rows, label + number): `poster-footer`.
+
 **Default: the footer band.** Put the contact facts in `position: footer` — they sit on a full-width colour band at the very foot of the poster (`footer_color` on the add_text call: the brand's dark colour — deep teal, navy, espresso brown — or `141414`; text white). The band keeps the facts off the product, gives them perfect contrast, and looks like the professional posters. Lay it out in **2 rows**, each with 2 or 3 short facts (`same_line`): a row of 3 is justified — first on the left edge, the middle centred, the last on the right:
 ```
 footer · small · calendar "10.20–11.20"          footer · small · clock "07:30–22:00"   (same_line)

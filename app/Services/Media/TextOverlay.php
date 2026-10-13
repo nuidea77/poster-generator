@@ -277,7 +277,7 @@ class TextOverlay
                     if ($icon) {
                         $box = imagettfbbox($size * 0.75, 0, resource_path('fonts/'.self::FONTS[$b['font']]), $b['text']);
                         $textW = $box[2] - $box[0];
-                        $iconPx = (int) round($size * 0.95);
+                        $iconPx = (int) round($size * (($item['icon_style'] ?? 'plain') === 'circle' ? 1.3 : 0.95));
                         $lead = $iconPx + (int) round($size * 0.35);
                         $iconX = match (true) {
                             $left => $margin,
@@ -290,7 +290,11 @@ class TextOverlay
                             $iconX += $pad + $textW + (int) round($size * 0.35);
                         }
                         $width = $lead + $textW + 2 * $pad;
-                        File::put("{$dir}/i{$i}.png", app(IconSet::class)->png($icon, $iconPx, $this->hex($item['color'] ?? '')));
+                        // icon_style circle: the icon sits in a disc of the text colour, the glyph in the
+                        // colour behind it (the panel / band, else dark or white for contrast).
+                        $disc = ($item['icon_style'] ?? 'plain') === 'circle';
+                        $glyph = $disc ? $this->hex($item['icon_color'] ?? ($this->light($item['color'] ?? '') ? '1F2937' : 'FFFFFF')) : $this->hex($item['color'] ?? '');
+                        File::put("{$dir}/i{$i}.png", app(IconSet::class)->png($icon, $iconPx, $glyph, $disc ? $this->hex($item['color'] ?? '') : null));
                         $icons[] = ["i{$i}.png", $iconX, $top + (int) round($size * 0.37 - $iconPx / 2), $still ? null : "between(t,{$start},{$end})"];
                     }
                     if ($b['shape'] !== 'rect') {
@@ -298,7 +302,7 @@ class TextOverlay
                         $fontFile = resource_path('fonts/'.self::FONTS[$b['font']]);
                         $textW = max(array_map(fn ($line) => ($bb = imagettfbbox($size * 0.75, 0, $fontFile, $line)) ? $bb[2] - $bb[0] : 0, explode("\n", $b['text'])));
                         $padX = (int) round($size * ($b['shape'] === 'card' ? 0.9 : 0.7));
-                        $iconPx = (int) round($size * 0.95);
+                        $iconPx = (int) round($size * (($item['icon_style'] ?? 'plain') === 'circle' ? 1.3 : 0.95));
                         $lead = $icon ? $iconPx + (int) round($size * 0.35) : 0;
                         $width = $lead + $textW + 2 * $padX;
                         $panelX = match (true) {
@@ -327,7 +331,7 @@ class TextOverlay
                     }
 
                     $style = match (true) {
-                        $b['shape'] !== 'rect' => '',
+                        $b['shape'] !== 'rect', $position === 'footer' => '', // on its own panel or band: no shadow
                         // Small lines get a soft dark panel so they stay readable over busy footage.
                         $soft => ":box=1:boxcolor=black@0.38:boxborderw={$pad}:shadowcolor=black@0.4:shadowx=0:shadowy=1",
                         $pad > 0 => ":box=1:boxcolor={$this->color($item['box_color'] ?? '', '000000')}@0.82:boxborderw={$pad}",

@@ -12,6 +12,7 @@ use App\Services\Agent\CreativeAgent;
 use App\Services\AI\AiManager;
 use App\Services\AI\Exceptions\AiException;
 use App\Services\Billing\BillingService;
+use App\Services\Media\IconSet;
 use App\Services\Media\LogoOverlay;
 use App\Services\Media\ReelAssembler;
 use App\Services\Media\TextOverlay;
@@ -917,6 +918,15 @@ class CreationTest extends TestCase
         $this->assertGreaterThan(200, $accentAmber);          // the starred word is amber
         $this->assertEqualsWithDelta($a0, $b0, 3);             // and the line sits where the plain one does
         $this->assertEqualsWithDelta($a1, $b1, 4);
+    }
+
+    public function test_a_circle_icon_is_a_disc_with_the_glyph_cut_in_another_colour(): void
+    {
+        $img = imagecreatefromstring(app(IconSet::class)->png('phone', 100, '4C1D95', 'FFFFFF'));
+        $rgba = fn (int $x, int $y) => [imagecolorat($img, $x, $y) >> 16 & 0xFF, imagecolorat($img, $x, $y) >> 8 & 0xFF, imagecolorat($img, $x, $y) & 0xFF, imagecolorat($img, $x, $y) >> 24 & 0x7F];
+        $this->assertSame(127, $rgba(2, 2)[3]);                       // outside the disc: transparent
+        $this->assertSame([255, 255, 255, 0], $rgba(50, 8));          // the white disc
+        $this->assertEqualsWithDelta(0x4C, $rgba(39, 50)[0], 30);     // the phone outline in violet inside it
     }
 
     public function test_placeholder_text_calls_are_refused(): void

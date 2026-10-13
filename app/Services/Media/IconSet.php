@@ -10,7 +10,7 @@ namespace App\Services\Media;
  */
 class IconSet
 {
-    public const NAMES = ['phone', 'location', 'clock', 'calendar', 'web', 'mail', 'star', 'check', 'heart', 'gift', 'delivery', 'percent', 'arrow'];
+    public const NAMES = ['phone', 'location', 'clock', 'calendar', 'web', 'mail', 'star', 'check', 'heart', 'gift', 'delivery', 'percent', 'arrow', 'instagram', 'facebook', 'chat', 'user'];
 
     private \GdImage $img;
 
@@ -20,9 +20,35 @@ class IconSet
 
     private float $u;
 
-    /** @return string PNG data, $px square */
-    public function png(string $name, int $px, string $hex): string
+    /**
+     * @param  string|null  $circle  hex of a filled circle behind the icon (footer "icon in a circle"
+     *                               style); the glyph then takes $hex and is drawn smaller inside it
+     * @return string PNG data, $px square
+     */
+    public function png(string $name, int $px, string $hex, ?string $circle = null): string
     {
+        if ($circle !== null) {
+            $disc = imagecreatetruecolor($px * 4, $px * 4);
+            imagesavealpha($disc, true);
+            imagealphablending($disc, false);
+            imagefill($disc, 0, 0, imagecolorallocatealpha($disc, 0, 0, 0, 127));
+            [$r, $g, $b] = sscanf(preg_match('/^[0-9a-fA-F]{6}$/', $circle) ? $circle : 'FFFFFF', '%02x%02x%02x');
+            imagefilledellipse($disc, $px * 2, $px * 2, $px * 4, $px * 4, imagecolorallocatealpha($disc, $r, $g, $b, 0));
+            $out = imagecreatetruecolor($px, $px);
+            imagesavealpha($out, true);
+            imagealphablending($out, false);
+            imagefill($out, 0, 0, imagecolorallocatealpha($out, 0, 0, 0, 127));
+            imagecopyresampled($out, $disc, 0, 0, 0, 0, $px, $px, $px * 4, $px * 4);
+            $inner = (int) round($px * 0.56);
+            $glyph = imagecreatefromstring($this->png($name, $inner, $hex));
+            imagealphablending($out, true);
+            imagecopy($out, $glyph, (int) round(($px - $inner) / 2), (int) round(($px - $inner) / 2), 0, 0, $inner, $inner);
+            ob_start();
+            imagepng($out);
+
+            return (string) ob_get_clean();
+        }
+
         $k = 4;
         $S = max(8, $px) * $k;
         $this->img = imagecreatetruecolor($S, $S);
@@ -47,6 +73,10 @@ class IconSet
             'gift' => $this->gift(),
             'delivery' => $this->delivery(),
             'percent' => $this->percent(),
+            'instagram' => $this->instagram(),
+            'facebook' => $this->facebook(),
+            'chat' => $this->chat(),
+            'user' => $this->user(),
             default => $this->arrow(),
         };
 
@@ -156,6 +186,42 @@ class IconSet
         $this->ring(27, 27, 16, 8);
         $this->ring(73, 73, 16, 8);
         $this->line([[80, 14], [20, 86]], 9);
+    }
+
+    /** Generic camera-square glyph (social link), not the brand's logo artwork. */
+    private function instagram(): void
+    {
+        $this->roundRect(8, 8, 92, 92, 24, $this->ink);
+        $this->roundRect(17, 17, 83, 83, 16, $this->clear);
+        $this->ring(50, 50, 19, 8);
+        $this->circle(71, 29, 5, $this->ink);
+    }
+
+    /** A lower-case "f" in a disc (social link). */
+    private function facebook(): void
+    {
+        $this->circle(50, 50, 46, $this->ink);
+        $this->rect(48, 30, 60, 92, $this->clear);
+        $this->roundRect(48, 22, 72, 36, 7, $this->clear);
+        $this->rect(48, 22, 60, 36, $this->clear);
+        $this->rect(38, 46, 70, 57, $this->clear);
+        $this->rect(60, 30, 72, 36, $this->ink);
+    }
+
+    /** Speech bubble (chat, WhatsApp, Messenger). */
+    private function chat(): void
+    {
+        $this->circle(50, 46, 40, $this->ink);
+        $this->poly([[18, 66], [36, 78], [12, 92]], $this->ink);
+        foreach ([33, 50, 67] as $x) {
+            $this->circle($x, 46, 6, $this->clear);
+        }
+    }
+
+    private function user(): void
+    {
+        $this->circle(50, 30, 20, $this->ink);
+        $this->roundRect(14, 56, 86, 96, 28, $this->ink);
     }
 
     private function arrow(): void
