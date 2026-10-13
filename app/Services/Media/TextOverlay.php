@@ -277,7 +277,7 @@ class TextOverlay
                     if ($icon) {
                         $box = imagettfbbox($size * 0.75, 0, resource_path('fonts/'.self::FONTS[$b['font']]), $b['text']);
                         $textW = $box[2] - $box[0];
-                        $iconPx = (int) round($size * (($item['icon_style'] ?? 'plain') === 'circle' ? 1.3 : 0.95));
+                        $iconPx = (int) round($size * (($item['icon_style'] ?? ($position === 'footer' ? 'circle' : 'plain')) === 'circle' ? 1.3 : 0.95));
                         $lead = $iconPx + (int) round($size * 0.35);
                         $iconX = match (true) {
                             $left => $margin,
@@ -292,8 +292,8 @@ class TextOverlay
                         $width = $lead + $textW + 2 * $pad;
                         // icon_style circle: the icon sits in a disc of the text colour, the glyph in the
                         // colour behind it (the panel / band, else dark or white for contrast).
-                        $disc = ($item['icon_style'] ?? 'plain') === 'circle';
-                        $glyph = $disc ? $this->hex($item['icon_color'] ?? ($this->light($item['color'] ?? '') ? '1F2937' : 'FFFFFF')) : $this->hex($item['color'] ?? '');
+                        $disc = ($item['icon_style'] ?? ($position === 'footer' ? 'circle' : 'plain')) === 'circle'; // footer icons default to discs
+                        $glyph = $disc ? $this->hex($item['icon_color'] ?? ($position === 'footer' ? ($footerColor ?: ($footerStyle === 'pill' ? 'FFFFFF' : '141414')) : ($this->light($item['color'] ?? '') ? '1F2937' : 'FFFFFF'))) : $this->hex($item['color'] ?? '');
                         File::put("{$dir}/i{$i}.png", app(IconSet::class)->png($icon, $iconPx, $glyph, $disc ? $this->hex($item['color'] ?? '') : null));
                         $icons[] = ["i{$i}.png", $iconX, $top + (int) round($size * 0.37 - $iconPx / 2), $still ? null : "between(t,{$start},{$end})"];
                     }

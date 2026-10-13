@@ -14,12 +14,23 @@ The footer is where the customer acts: it must be **found in one glance and read
 - Sizes: facts `small`; the **phone `subtitle` bold** (it is the action). Pairs keep their own sizes; a row is centred vertically.
 - The visual must leave the foot free: "the bottom 15% is a plain area / simple surface; the product ends above it".
 
-## 2. Seven footer patterns (from professional posters)
+## 2. The default footer
+Unless the brief or the style clearly calls for another pattern, use **pattern 2**: `footer_style: pill`, `footer_color` = the brand's main colour (or its dark tone), white text, every fact with `icon_style: circle` (white discs, `icon_color` = the footer colour), one row of 2–3 facts with the phone bold on the right. It is the most finished-looking footer and the studio's house style.
+
+```
+add_text(footer_style: pill, footer_color: "4C1D95", items: [
+  footer · small · web · circle · icon_color 4C1D95 · "orgilmedia.mn"
+  footer · small · instagram · circle · same_line · "@orgilmedia"
+  footer · small bold · phone · circle · same_line · "9911-4567"
+])
+```
+
+## 2b. Seven footer patterns (from professional posters)
 | # | Pattern | Recipe | When |
 |---|---|---|---|
 | 1 | **Brand band, address + big phone** (clinic) | `band`, brand-dark colour; row 1: `location` address left (small, may be 2 short lines) · `phone` number right (subtitle bold) | clinics, services, shops with one address |
 | 2 | **Circle-icon row** (agency, Nashville / LoftyFly) | `pill` or `band` in the brand colour; one row of 3: `web` · `mail` · `phone`, all `icon_style: circle`, white discs, `icon_color` = strip colour | agencies, B2B, online services |
-| 3 | **White contact bar** (app / fintech, myOTCplug) | `pill`, `footer_color: FFFFFF`, dark text; one row of 3: `web` · `instagram` handle · `phone` (plain icons in the brand colour) | apps, online shops, light/colourful posters |
+| 3 | **White contact bar** (app / fintech, myOTCplug) | `pill`, `footer_color: FFFFFF`, dark text; one row of 3: `web` · `instagram` handle · `phone`; icons as brand-colour discs (`icon_style: circle`, text/disc colour = brand, `icon_color: FFFFFF`) — or the text dark and the discs in the brand colour via a second colour on the icon | apps, online shops, light/colourful posters |
 | 4 | **Social row** (school / community, WhatsApp channel) | row 1: a small accent pill label (`Мэдээлэл авах`) · `instagram` / `facebook` handle · `phone`; no heavy band — a calm dark bottom or a light `band` | communities, schools, NGOs, channels |
 | 5 | **Label + number** (eye-clinic "FOR MORE INFO") | the label as its own `small` item above, then the number `subtitle` bold with `phone`/`chat` icon — both in the footer, the label row first: `Захиалга, лавлах:` / `7711-5566` | when the phone is the only fact |
 | 6 | **Brand + link** (Nürnberg) | the logo with `add_logo` `bottom_left` small; the website as a glass pill (`box_shape: glass`) on the right in the footer | premium, health, minimal series |
