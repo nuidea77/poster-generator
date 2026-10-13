@@ -67,10 +67,13 @@ class TextOverlay
             $list = array_values($items);
             // Rows: an item with same_line joins the previous item's row. 2 items sit on the two
             // text edges; 3+ items share the width in equal columns (steps, gifts, features).
-            [$rowOf, $rowSize, $r] = [[], [], -1];
+            [$rowOf, $rowSize, $rowLen, $r] = [[], [], [], -1];
+            // Room an item needs in a row: its characters (+ icon) at its role's size.
+            $len = fn ($it) => (max(4, mb_strlen((string) ($it['text'] ?? ''))) + (($it['icon'] ?? 'none') !== 'none' ? 2 : 0)) * (self::SIZES[$it['role'] ?? ''] ?? self::SIZES['subtitle']);
             foreach ($list as $j => $it) {
                 $r += empty($it['same_line']) || $j === 0 ? 1 : 0;
                 $rowSize[$r] = ($rowSize[$r] ?? 0) + 1;
+                $rowLen[$r] = ($rowLen[$r] ?? 0) + $len($it);
                 $rowOf[$j] = [$r, $rowSize[$r] - 1];
             }
 
@@ -93,7 +96,9 @@ class TextOverlay
                 $columns = $rowSize[$rowNo];
                 $same = $column > 0;
                 $paired = $columns > 1;
-                $share = 1 / $columns;
+                // A pair splits the width by text length (a long address next to a short phone);
+                // rows of 3+ get equal columns.
+                $share = $columns === 2 ? $len($item) / $rowLen[$rowNo] : 1 / $columns;
                 $align = in_array($item['align'] ?? '', ['left', 'right', 'center'], true) ? $item['align'] : 'center';
                 if ($columns === 2 && $align === 'center') {
                     $align = $same ? 'right' : 'left';
@@ -104,7 +109,7 @@ class TextOverlay
                 $longest = max(array_map('mb_strlen', explode("\n", $text)));
                 $caps = mb_strtoupper($text) === $text ? 1.12 : 1.0;
                 $size = (int) round(min($w, $h) * (self::SIZES[$item['role'] ?? ''] ?? self::SIZES['subtitle']));
-                $size = (int) min($size, floor($w * 0.84 * $share / max(1, $longest * self::WIDTH[$font] * $caps)));
+                $size = (int) min($size, floor($w * (0.84 * $share - ($paired ? 0.02 : 0)) / max(1, $longest * self::WIDTH[$font] * $caps)));
                 // Then measure the real glyphs (wide serif capitals beat the estimate): the widest
                 // line plus its panel must stay inside 86% of the width.
                 $fontFile = resource_path('fonts/'.self::FONTS[$font]);
@@ -116,7 +121,7 @@ class TextOverlay
                 }
                 $panel = ! empty($item['box']) || $shape === 'glass';
                 $boxed = $panel ? ($shape === 'rect' ? 0.7 : 1.4) : 0.0;
-                $size = (int) max(8, min($size, floor($w * ($paired ? 0.86 / $columns - 0.03 : 0.86) / max(0.01, $widest / 100 + $boxed + ($paired && ($item['icon'] ?? 'none') !== 'none' ? 1.3 : 0)))));
+                $size = (int) max(8, min($size, floor($w * ($paired ? 0.86 * $share - 0.03 : 0.86) / max(0.01, $widest / 100 + $boxed + ($paired && ($item['icon'] ?? 'none') !== 'none' ? 1.3 : 0)))));
                 $soft = ! $still && ! $panel && in_array($item['role'] ?? '', ['subtitle', 'small'], true); // soft dark panel on footage
                 $pad = (int) round($size * ($panel ? 0.35 : ($soft ? 0.4 : 0)));
                 $lines = substr_count($text, "\n") + 1;
@@ -135,8 +140,8 @@ class TextOverlay
                     $rowMin[$key] = min($rowMin[$key] ?? PHP_INT_MAX, $b['size']);
                 }
                 foreach ($set as $k => $b) {
-                    // Same role in one row → one size (a footer's address and bold phone keep their own).
-                    $size = $b['columns'] > 1 ? $rowMin[$b['rowNo'].':'.($b['item']['role'] ?? '')] : $b['size'];
+                    // Rows of 3+: same role → one size. Pairs keep their own sizes.
+                    $size = $b['columns'] > 2 ? $rowMin[$b['rowNo'].':'.($b['item']['role'] ?? '')] : $b['size'];
                     $pad = (int) round($size * $b['ems']['pad']);
                     $blocks[$position][$k] = ['size' => $size, 'pad' => $pad,
                         'width' => (int) round($size * $b['ems']['width']) + 2 * $pad,
@@ -253,9 +258,9 @@ class TextOverlay
                     };
                     $common = "expansion=none:fontsize={$size}:fontcolor={$this->color($item['color'] ?? '', 'FFFFFF')}:x={$x}:alpha='{$alpha}'{$style}";
 
-                    // drawtext centres a multi-line text as one block, leaving its lines flush left
-                    // inside it; centred text is drawn line by line on a shared baseline grid.
-                    $lines = $left ? [$b['text']] : explode("\n", $b['text']);
+                    // Every line is drawn on its own on a shared baseline grid: drawtext would centre
+                    // a block with its lines flush left, and some fonts (Oswald) space lines far apart.
+                    $lines = explode("\n", $b['text']);
                     foreach ($lines as $k => $line) {
                         File::put("{$dir}/t{$i}_{$k}.txt", $line);
                         $lineY = count($lines) === 1 ? $yExpr : "({$yExpr})+".($k * (int) round($size * 1.4) + (int) round($size * 0.92)).'-ascent';
