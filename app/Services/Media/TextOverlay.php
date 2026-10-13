@@ -65,6 +65,15 @@ class TextOverlay
             $blocks = [];
 
             $list = array_values($items);
+            // Rows: an item with same_line joins the previous item's row. 2 items sit on the two
+            // text edges; 3+ items share the width in equal columns (steps, gifts, features).
+            [$rowOf, $rowSize, $r] = [[], [], -1];
+            foreach ($list as $j => $it) {
+                $r += empty($it['same_line']) || $j === 0 ? 1 : 0;
+                $rowSize[$r] = ($rowSize[$r] ?? 0) + 1;
+                $rowOf[$j] = [$r, $rowSize[$r] - 1];
+            }
+
             foreach ($list as $i => $item) {
                 $text = $this->clean($item['text'] ?? '');
                 if ($text === '') {
@@ -80,12 +89,16 @@ class TextOverlay
 
                 // same_line: this item shares the row with the previous one (e.g. phone left, delivery right);
                 // each of the pair gets half the width, and a centred pair is split left / right.
-                $same = ! empty($item['same_line']) && $i > 0;
-                $paired = $same || ! empty($list[$i + 1]['same_line'] ?? false);
-                $share = $paired ? 0.5 : 1.0;
+                [$rowNo, $column] = $rowOf[$i];
+                $columns = $rowSize[$rowNo];
+                $same = $column > 0;
+                $paired = $columns > 1;
+                $share = 1 / $columns;
                 $align = in_array($item['align'] ?? '', ['left', 'right', 'center'], true) ? $item['align'] : 'center';
-                if ($paired && $align === 'center') {
+                if ($columns === 2 && $align === 'center') {
                     $align = $same ? 'right' : 'left';
+                } elseif ($columns > 2) {
+                    $align = 'column'; // centred in its own column
                 }
 
                 $longest = max(array_map('mb_strlen', explode("\n", $text)));
@@ -96,19 +109,43 @@ class TextOverlay
                 // line plus its panel must stay inside 86% of the width.
                 $fontFile = resource_path('fonts/'.self::FONTS[$font]);
                 $widest = max(array_map(fn ($line) => ($box = imagettfbbox(100 * 0.75, 0, $fontFile, $line)) ? $box[2] - $box[0] : 0, explode("\n", $text)));
-                $boxed = ! empty($item['box']) ? 0.7 : 0.0;
-                $size = (int) max(8, min($size, floor($w * ($paired ? 0.4 : 0.86) / max(0.01, $widest / 100 + $boxed + ($paired && ($item['icon'] ?? 'none') !== 'none' ? 1.3 : 0)))));
-                $soft = ! $still && empty($item['box']) && in_array($item['role'] ?? '', ['subtitle', 'small'], true); // soft dark panel on footage
-                $pad = (int) round($size * (! empty($item['box']) ? 0.35 : ($soft ? 0.4 : 0)));
+                // Panel shape: rect (drawtext box), pill (rounded, box colour) or glass (frosted light pill).
+                $shape = in_array($item['box_shape'] ?? 'rect', ['pill', 'glass'], true) ? $item['box_shape'] : 'rect';
+                if ($shape === 'pill' && empty($item['box'])) {
+                    $shape = 'rect';
+                }
+                $panel = ! empty($item['box']) || $shape === 'glass';
+                $boxed = $panel ? ($shape === 'rect' ? 0.7 : 1.4) : 0.0;
+                $size = (int) max(8, min($size, floor($w * ($paired ? 0.86 / $columns - 0.03 : 0.86) / max(0.01, $widest / 100 + $boxed + ($paired && ($item['icon'] ?? 'none') !== 'none' ? 1.3 : 0)))));
+                $soft = ! $still && ! $panel && in_array($item['role'] ?? '', ['subtitle', 'small'], true); // soft dark panel on footage
+                $pad = (int) round($size * ($panel ? 0.35 : ($soft ? 0.4 : 0)));
                 $lines = substr_count($text, "\n") + 1;
                 $position = in_array($item['position'] ?? '', ['top', 'center', 'lower_third', 'bottom'], true) ? $item['position'] : 'lower_third';
 
                 $display = ($item['role'] ?? '') === 'display'; // big digits/caps: no descenders, sits tight on the next line
-                $blocks[$position][] = compact('i', 'item', 'text', 'font', 'size', 'pad', 'soft', 'same', 'align') + ['width' => (int) min($w * 0.9, $longest * self::WIDTH[$font] * $caps * $size) + 2 * $pad, 'height' => (int) round($size * ($display ? 0.9 : 1.2) * $lines + $size * 0.2 * ($lines - 1)) + 2 * $pad, 'gap' => (int) round($size * ($display ? 0.12 : 0.3))];
+                $blocks[$position][] = compact('i', 'item', 'text', 'font', 'size', 'pad', 'soft', 'same', 'align', 'shape', 'column', 'columns', 'rowNo')
+                    + ['ems' => ['pad' => $pad / max(1, $size), 'line' => ($display ? 0.9 : 1.2) * $lines + 0.2 * ($lines - 1), 'gap' => $display ? 0.12 : 0.3, 'width' => min($w * 0.9 / max(1, $size), $longest * self::WIDTH[$font] * $caps)]];
+            }
+
+            // Items in one row share one size (the smallest), then every block gets its box.
+            foreach ($blocks as $position => $set) {
+                $rowMin = [];
+                foreach ($set as $b) {
+                    $rowMin[$b['rowNo']] = min($rowMin[$b['rowNo']] ?? PHP_INT_MAX, $b['size']);
+                }
+                foreach ($set as $k => $b) {
+                    $size = $b['columns'] > 1 ? $rowMin[$b['rowNo']] : $b['size'];
+                    $pad = (int) round($size * $b['ems']['pad']);
+                    $blocks[$position][$k] = ['size' => $size, 'pad' => $pad,
+                        'width' => (int) round($size * $b['ems']['width']) + 2 * $pad,
+                        'height' => (int) round($size * $b['ems']['line']) + 2 * $pad,
+                        'gap' => (int) round($size * $b['ems']['gap'])] + $b;
+                }
             }
 
             $filters = [];
             $icons = []; // [file, x, y, enable]
+            $panels = []; // rounded panels drawn under the text: [file, x, y, enable]
             $floor = 0;
 
             foreach (['top', 'center', 'lower_third', 'bottom'] as $position) {
@@ -152,10 +189,12 @@ class TextOverlay
                     $left = $b['align'] === 'left';
                     $right = $b['align'] === 'right';
                     $margin = (int) round($w * 0.07);
+                    // Centre of this item: the frame, or its column in a row of 3+.
+                    $cx = $b['align'] === 'column' ? (int) round($margin + ($w - 2 * $margin) * ($b['column'] + 0.5) / $b['columns']) : (int) round($w / 2);
                     $x = match (true) {
                         $left => (string) ($margin + $pad),
                         $right => 'w-text_w-'.($margin + $pad),
-                        default => '(w-text_w)/2',
+                        default => "{$cx}-text_w/2",
                     };
                     $width = $b['width'];
 
@@ -169,14 +208,41 @@ class TextOverlay
                         $iconX = match (true) {
                             $left => $margin,
                             $right => $w - $margin - ($lead + $textW + 2 * $pad),
-                            default => (int) round(($w - $lead - $textW - 2 * $pad) / 2),
+                            default => (int) round($cx - ($lead + $textW + 2 * $pad) / 2),
                         };
                         $x = (string) ($iconX + $lead + $pad);
                         $width = $lead + $textW + 2 * $pad;
                         File::put("{$dir}/i{$i}.png", app(IconSet::class)->png($icon, $iconPx, $this->hex($item['color'] ?? '')));
                         $icons[] = ["i{$i}.png", $iconX, $top + (int) round($size * 0.37 - $iconPx / 2), $still ? null : "between(t,{$start},{$end})"];
                     }
+                    if ($b['shape'] !== 'rect') {
+                        // Rounded pill / frosted glass panel, measured from the real glyphs; an icon sits inside it.
+                        $fontFile = resource_path('fonts/'.self::FONTS[$b['font']]);
+                        $textW = max(array_map(fn ($line) => ($bb = imagettfbbox($size * 0.75, 0, $fontFile, $line)) ? $bb[2] - $bb[0] : 0, explode("\n", $b['text'])));
+                        $padX = (int) round($size * 0.7);
+                        $iconPx = (int) round($size * 0.95);
+                        $lead = $icon ? $iconPx + (int) round($size * 0.35) : 0;
+                        $width = $lead + $textW + 2 * $padX;
+                        $panelX = match (true) {
+                            $left => $margin,
+                            $right => $w - $margin - $width,
+                            default => (int) round($cx - $width / 2),
+                        };
+                        $multi = str_contains($b['text'], "\n");
+                        $x = match (true) {
+                            ! $multi || $left => (string) ($panelX + $padX + $lead),
+                            $right => ($panelX + $width - $padX).'-text_w',
+                            default => "{$cx}-text_w/2",
+                        };
+                        if ($icon) {
+                            $icons[array_key_last($icons)][1] = $panelX + $padX;
+                        }
+                        File::put("{$dir}/p{$i}.png", $this->panel($width, $b['height'], $b['shape'], $this->hex($item['box_color'] ?? ''), $multi ? (int) round($size * 0.6) : null));
+                        $panels[] = ["p{$i}.png", $panelX, $y, $still ? null : "between(t,{$start},{$end})"];
+                    }
+
                     $style = match (true) {
+                        $b['shape'] !== 'rect' => '',
                         // Small lines get a soft dark panel so they stay readable over busy footage.
                         $soft => ":box=1:boxcolor=black@0.38:boxborderw={$pad}:shadowcolor=black@0.4:shadowx=0:shadowy=1",
                         $pad > 0 => ":box=1:boxcolor={$this->color($item['box_color'] ?? '', '000000')}@0.82:boxborderw={$pad}",
@@ -193,10 +259,10 @@ class TextOverlay
                         $lineY = count($lines) === 1 ? $yExpr : "({$yExpr})+".($k * (int) round($size * 1.4) + (int) round($size * 0.92)).'-ascent';
                         $filters[] = "drawtext=fontfile=f{$i}.ttf:textfile=t{$i}_{$k}.txt:line_spacing=".round($size * 0.2).":y='{$lineY}':{$common}";
                     }
-                    $x0 = match (true) {
+                    $x0 = $b['shape'] !== 'rect' ? $panelX : match (true) {
                         $left => $margin,
                         $right => $w - $margin - $width,
-                        default => (int) round(($w - $width) / 2),
+                        default => (int) round($cx - $width / 2),
                     };
                     $this->placed[] = ['text' => $b['text'], 'panel' => $pad > 0, 'rect' => [$x0, $y, $x0 + $width, $y + $b['height']]];
                     $rowY = $y;
@@ -227,6 +293,12 @@ class TextOverlay
                 $inputs = [...$inputs, ...$image('scrim.png')];
                 $graph[] = "{$label}[{$n}:v]overlay=0:0{$end}[s]";
                 [$label, $n] = ['[s]', $n + 1];
+            }
+
+            foreach ($panels as $k => [$file, $px, $py, $enable]) {
+                $inputs = [...$inputs, ...$image($file)];
+                $graph[] = "{$label}[{$n}:v]overlay={$px}:{$py}".($enable ? ":enable='{$enable}'" : '')."{$end}[p{$k}]";
+                [$label, $n] = ["[p{$k}]", $n + 1];
             }
 
             $graph[] = $label.implode(',', $filters).'[t0]';
@@ -348,6 +420,46 @@ class TextOverlay
 
         ob_start();
         imagepng($img);
+
+        return (string) ob_get_clean();
+    }
+
+    /**
+     * A rounded panel: pill (box colour, 92% opaque, fully round ends) or glass (frosted
+     * white with a light rim). Drawn 3x and scaled down for smooth edges.
+     */
+    private function panel(int $w, int $h, string $shape, string $hex, ?int $radius = null): string
+    {
+        $k = 3;
+        $big = imagecreatetruecolor($w * $k, $h * $k);
+        imagesavealpha($big, true);
+        imagealphablending($big, false);
+        imagefill($big, 0, 0, imagecolorallocatealpha($big, 0, 0, 0, 127));
+        [$r, $g, $b] = $shape === 'glass' ? [255, 255, 255] : sscanf($hex, '%02x%02x%02x');
+        $r0 = min((int) floor($h / 2), $radius ?? (int) floor($h / 2)) * $k;
+        $shapeAt = function (int $inset, int $color) use ($big, $w, $h, $k, $r0) {
+            [$W, $H, $rr] = [$w * $k - 2 * $inset, $h * $k - 2 * $inset, max(1, $r0 - $inset)];
+            imagefilledrectangle($big, $inset + $rr, $inset, $inset + $W - $rr - 1, $inset + $H - 1, $color);
+            imagefilledrectangle($big, $inset, $inset + $rr, $inset + $W - 1, $inset + $H - $rr - 1, $color);
+            foreach ([[$rr, $rr], [$W - $rr - 1, $rr], [$rr, $H - $rr - 1], [$W - $rr - 1, $H - $rr - 1]] as [$cx, $cy]) {
+                imagefilledellipse($big, $inset + $cx, $inset + $cy, 2 * $rr, 2 * $rr, $color);
+            }
+        };
+
+        if ($shape === 'glass') {
+            $shapeAt(0, imagecolorallocatealpha($big, 255, 255, 255, 30));           // light rim
+            $shapeAt(2 * $k, imagecolorallocatealpha($big, 255, 255, 255, 64));      // frosted fill ~50%
+        } else {
+            $shapeAt(0, imagecolorallocatealpha($big, $r, $g, $b, 10));
+        }
+
+        $out = imagecreatetruecolor($w, $h);
+        imagesavealpha($out, true);
+        imagealphablending($out, false);
+        imagefill($out, 0, 0, imagecolorallocatealpha($out, 0, 0, 0, 127));
+        imagecopyresampled($out, $big, 0, 0, 0, 0, $w, $h, $w * $k, $h * $k);
+        ob_start();
+        imagepng($out);
 
         return (string) ob_get_clean();
     }

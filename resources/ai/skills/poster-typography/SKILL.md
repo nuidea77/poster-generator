@@ -74,6 +74,9 @@ When the message is a number — `15` years, `-30%`, `2026`, `100` guests, `1-р
 - **The visual** must leave that space: ask for "a large calm, evenly toned area in the top half for a big number" and keep the scene simple; for anniversaries a sense of occasion (warm glow, subtle sparkle, confetti-like snow, dawn light), not a plain landscape.
 - One display item per poster; `-30%` on a sale poster can be the display item, the price row then stays `price`.
 
+## 3c-bis. Pills, chips, rows
+`box_shape: pill` (rounded, accent colour) for badges and CTA bars, `glass` (frosted light) for chips and labels; rows of 3–4 equal columns with `same_line`. Ready-made layouts from professional posters: `poster-layouts`.
+
 ## 3d. A compact fact block (date, time, place, phone, delivery, web)
 Facts support the hook; they must not eat the poster. A tall stack of centred fact lines (one per line, each with an icon) looks like a form and pushes the picture away.
 

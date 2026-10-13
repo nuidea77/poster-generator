@@ -761,6 +761,38 @@ class CreationTest extends TestCase
         $this->assertLessThan(0.034 * 1080 * 1.25, $phone[3] - $phone[1]); // small facts stay small (line = 1.2 × size)
     }
 
+    public function test_rows_of_three_share_columns_and_pills_are_drawn_under_the_text(): void
+    {
+        if (! Process::run([config('ai.ffmpeg'), '-version'])->successful()) {
+            $this->markTestSkipped('ffmpeg not installed');
+        }
+
+        $bg = imagecreatetruecolor(1080, 1080);
+        imagefill($bg, 0, 0, imagecolorallocate($bg, 230, 230, 230));
+        $file = sys_get_temp_dir().'/bg-'.uniqid().'.png';
+        imagepng($bg, $file);
+        $item = fn (string $t, bool $same, string $shape = 'rect', bool $box = false) => ['text' => $t, 'role' => 'small', 'position' => 'center', 'align' => 'center', 'same_line' => $same, 'font' => 'bold_sans', 'color' => '111111', 'box' => $box, 'box_color' => '22C55E', 'box_shape' => $shape, 'start' => 0, 'end' => 0, 'animation' => 'none', 'icon' => 'none'];
+        $overlay = app(TextOverlay::class);
+        $out = $overlay->burn($file, [$item('ЭХО', false), $item('РЕНТГЕН ШИНЖИЛГЭЭ', true), $item('ҮЗЛЭГ', true), $item('Бэлэг авах', false, 'pill', true)], 0, true);
+        $img = imagecreatefrompng($out);
+        @unlink($file);
+        @unlink($out);
+
+        [$a, $b, $c, $pill] = array_column($overlay->placed, 'rect');
+        $this->assertSame([$a[1], $a[3]], [$b[1], $b[3]]);   // one row, one size
+        $this->assertSame($a[1], $c[1]);
+        $column = (1080 - 2 * 76) / 3;
+        foreach ([$a, $b, $c] as $k => $r) {
+            $this->assertEqualsWithDelta(76 + $column * ($k + 0.5), ($r[0] + $r[2]) / 2, 3); // centred in its column
+        }
+
+        // The pill: green fill left of the text, rounded (the corner stays background).
+        $green = fn (int $x, int $y) => (imagecolorat($img, $x, $y) >> 8 & 0xFF) > 150 && (imagecolorat($img, $x, $y) >> 16 & 0xFF) < 100;
+        $midY = (int) (($pill[1] + $pill[3]) / 2);
+        $this->assertTrue($green($pill[0] + 12, $midY));
+        $this->assertFalse($green($pill[0] + 1, $pill[1] + 1));
+    }
+
     public function test_wide_serif_capitals_keep_clear_of_the_edges(): void
     {
         if (! Process::run([config('ai.ffmpeg'), '-version'])->successful()) {
