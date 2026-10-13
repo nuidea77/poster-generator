@@ -283,6 +283,12 @@ class TextOverlay
                     $group = $zoneHeight($blocks['bottom']);
                     $y = max($floor, min($y, $bottomLimit - $group));
                 }
+                // The lower third must end above the bottom zone and the footer too: with an open
+                // footer nothing else stops a CTA pill from landing on the contact row.
+                if ($position === 'lower_third' && isset($blocks['lower_third'])) {
+                    $below = isset($blocks['bottom']) ? $zoneHeight($blocks['bottom']) : 0;
+                    $y = max($floor, min($y, $bottomLimit - $below - $zoneHeight($blocks['lower_third'])));
+                }
                 if ($position === 'footer' && $footerTop !== null) {
                     $y = $footerTop;
                 }
