@@ -10,7 +10,10 @@ use App\Services\Billing\Credits;
 use App\Services\Media\MediaStore;
 use App\Services\Media\PosterFormatter;
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\Pool;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
+use Throwable;
 
 /**
  * Claude Fable runs the creative job: it reads the brief and the client's
@@ -59,6 +62,7 @@ class CreativeAgent
 
             $results = [];
             $finished = false;
+            $images = $this->generateImagesAtOnce($creation, $response['content']);
 
             foreach ($response['content'] as $block) {
                 if ($block['type'] === 'text' && trim($block['text']) !== '') {
@@ -72,7 +76,7 @@ class CreativeAgent
                 $input = is_array($block['input'] ?? null) ? $block['input'] : [];
 
                 try {
-                    $result = $this->call($creation, $block['name'], $input);
+                    $result = array_key_exists($block['id'], $images) ? $this->settled($images[$block['id']]) : $this->call($creation, $block['name'], $input);
                     $results[] = ['type' => 'tool_result', 'tool_use_id' => $block['id'], 'content' => $result['content']];
                     $creation->addStep(['type' => 'tool', 'name' => $block['name'], 'input' => $input, 'result' => $result['summary']]);
                 } catch (AiException|ConnectionException $e) {
@@ -224,7 +228,7 @@ class CreativeAgent
 
         if ($images) {
             $tools[] = $this->tool('generate_image',
-                'Generate one image with the chosen image model. Returns the image so you can review it, plus its asset id. Pass reference_image_ids to keep the real logo/product faithful.',
+                'Generate one image with the chosen image model. Returns the image so you can review it, plus its asset id. Pass reference_image_ids to keep the real logo/product faithful. Several generate_image calls in the same turn run in parallel — request independent images together.',
                 [
                     'provider' => ['type' => 'string', 'enum' => $images],
                     'prompt' => ['type' => 'string', 'description' => 'Detailed English visual prompt.'],
@@ -320,13 +324,90 @@ class CreativeAgent
 
     private function generateImage(Creation $creation, array $in): array
     {
+        $job = $this->prepareImage($creation, $in);
+
+        return $this->storeImage($creation, $job, $job['provider']->generateImage($job['prompt'], $job['aspect'], $job['references']));
+    }
+
+    /**
+     * When Fable asks for several images in one turn, request them all at once
+     * (Http::pool) instead of one after another. Results are keyed by
+     * tool_use id: the tool result, or the exception to report for that call.
+     *
+     * @return array<string, array|Throwable>
+     */
+    private function generateImagesAtOnce(Creation $creation, array $content): array
+    {
+        $blocks = array_filter($content, fn ($b) => ($b['type'] ?? null) === 'tool_use' && $b['name'] === 'generate_image');
+
+        if (count($blocks) < 2) {
+            return [];
+        }
+
+        $jobs = $out = [];
+        $reserved = 0.0;
+
+        foreach ($blocks as $block) {
+            try {
+                $jobs[$block['id']] = $this->prepareImage($creation, is_array($block['input'] ?? null) ? $block['input'] : [], $reserved);
+                $reserved += $jobs[$block['id']]['cost'];
+            } catch (AiException $e) {
+                $out[$block['id']] = $e;
+            }
+        }
+
+        $responses = $jobs ? Http::pool(fn (Pool $pool) => array_map(
+            fn ($id) => $jobs[$id]['provider']->imageRequest($pool->as($id), $jobs[$id]['prompt'], $jobs[$id]['aspect'], $jobs[$id]['references']),
+            array_keys($jobs),
+        )) : [];
+
+        foreach ($jobs as $id => $job) {
+            try {
+                $response = $responses[$id] ?? null;
+
+                if (! $response instanceof Response) {
+                    throw new AiException('Image request failed: '.($response instanceof Throwable ? $response->getMessage() : 'no response'));
+                }
+
+                $out[$id] = $this->storeImage($creation, $job, $job['provider']->parseImage($response));
+            } catch (AiException|ConnectionException $e) {
+                $out[$id] = $e;
+            }
+        }
+
+        return $out;
+    }
+
+    private function settled(array|Throwable $result): array
+    {
+        return $result instanceof Throwable ? throw $result : $result;
+    }
+
+    /**
+     * Validate one generate_image call and reserve its cost ($reserved = cost of
+     * images already accepted in the same turn).
+     */
+    private function prepareImage(Creation $creation, array $in, float $reserved = 0.0): array
+    {
+        $provider = $this->ai->image((string) ($in['provider'] ?? ''));
         $cost = $this->cost->image($in['provider']);
-        $this->guardBudget($creation, $cost);
+        $this->guardBudget($creation, $cost + $reserved);
 
-        $aspect = in_array($in['aspect'] ?? null, self::ASPECTS, true) ? $in['aspect'] : '1:1';
-        $references = array_map(fn ($id) => $this->readAsset($creation, $id, 'image'), $in['reference_image_ids'] ?? []);
+        return [
+            'in' => $in,
+            'provider' => $provider,
+            'cost' => $cost,
+            'aspect' => in_array($in['aspect'] ?? null, self::ASPECTS, true) ? $in['aspect'] : '1:1',
+            'references' => array_map(fn ($id) => $this->readAsset($creation, $id, 'image'), $in['reference_image_ids'] ?? []),
+            'prompt' => trim((string) ($in['prompt'] ?? '')).' High quality, professional, no watermark.',
+        ];
+    }
 
-        $image = $this->ai->image($in['provider'])->generateImage(trim($in['prompt']).' High quality, professional, no watermark.', $aspect, $references);
+    private function storeImage(Creation $creation, array $job, array $image): array
+    {
+        $in = $job['in'];
+        $aspect = $job['aspect'];
+        $cost = $job['cost'];
         $file = MediaStore::put("creations/{$creation->public_id}/work", $image['data'], $image['mime']);
 
         $id = $creation->addAsset([

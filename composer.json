@@ -73,7 +73,7 @@
         ],
         "serve": [
             "Composer\\Config::disableProcessTimeout",
-            "npx concurrently -k -n web,queue -c blue,magenta \"cd public && php -d upload_max_filesize=200M -d post_max_size=200M -d max_execution_time=600 -S 127.0.0.1:8000 ../vendor/laravel/framework/src/Illuminate/Foundation/resources/server.php\" \"php artisan queue:work --tries=1 --timeout=3600\""
+            "npx concurrently -k -n web,q1,q2,q3 -c blue,magenta,magenta,magenta \"cd public && php -d upload_max_filesize=200M -d post_max_size=200M -d max_execution_time=600 -S 127.0.0.1:8000 ../vendor/laravel/framework/src/Illuminate/Foundation/resources/server.php\" \"php artisan queue:work --tries=1 --timeout=3600\" \"php artisan queue:work --tries=1 --timeout=3600\" \"php artisan queue:work --tries=1 --timeout=3600\""
         ]
     },
     "extra": {

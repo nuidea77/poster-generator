@@ -418,6 +418,37 @@ class CreationTest extends TestCase
         @unlink($clip);
     }
 
+    public function test_images_asked_for_in_one_turn_are_generated_together_within_budget(): void
+    {
+        $image = ['data' => [['b64_json' => base64_encode(self::png(1024, 1536))]]];
+        $ask = fn (string $purpose) => ['generate_image', ['provider' => 'openai', 'prompt' => "still {$purpose}", 'aspect' => '9:16', 'reference_image_ids' => [], 'purpose' => $purpose]];
+
+        Http::fake([
+            'api.anthropic.com/*' => Http::sequence()
+                ->push($this->turn([$ask('a'), $ask('b'), $ask('c'), $ask('d')])) // 4 × $0.25 > the $0.75 poster budget
+                ->push($this->turn([['deliver_poster', ['format' => '1:1', 'image_id' => 'img_2']]]))
+                ->push($this->turn([['finish', ['summary' => 'ok']]])),
+            'api.openai.com/v1/images/generations' => Http::response($image),
+        ]);
+
+        $creation = Creation::create(['user_id' => $this->user->id, 'type' => 'poster', 'formats' => ['1:1'], 'prompt' => 'x', 'status' => 'queued']);
+        RunCreation::dispatchSync($creation);
+        $creation->refresh();
+
+        $this->assertSame('done', $creation->status, (string) $creation->error_detail);
+        $this->assertSame(['still a', 'still b', 'still c'], array_column($creation->assets, 'prompt'));
+        $this->assertSame(['img_1', 'img_2', 'img_3'], array_column($creation->assets, 'id'));
+        $this->assertEqualsWithDelta(0.75, array_sum(array_column($creation->assets, 'cost')), 0.0001);
+        $this->assertCount(3, collect(Http::recorded())->filter(fn ($p) => str_ends_with($p[0]->url(), '/images/generations')));
+
+        // Fable gets one result per call, in order: three images and one budget refusal.
+        $results = collect(Http::recorded())->map(fn ($p) => $p[0])->filter(fn ($r) => str_contains($r->url(), 'anthropic.com'))->values()[1]['messages'][2]['content'];
+        $this->assertSame(['toolu_0_generate_image', 'toolu_1_generate_image', 'toolu_2_generate_image', 'toolu_3_generate_image'], array_column($results, 'tool_use_id'));
+        $this->assertStringContainsString('`img_2`', $results[1]['content'][0]['text']);
+        $this->assertTrue($results[3]['is_error']);
+        $this->assertStringContainsString('Over the media budget', $results[3]['content']);
+    }
+
     public function test_veo_request_uses_the_shape_the_api_accepts(): void
     {
         // The live API rejects `inlineData` images and string durations (both shown in Google's docs).

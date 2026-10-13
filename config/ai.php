@@ -19,7 +19,7 @@ return [
 
     'agent' => [
         'model' => env('AI_AGENT_MODEL', 'claude-fable-5-1'),
-        'effort' => env('AI_AGENT_EFFORT', 'high'),
+        'effort' => env('AI_AGENT_EFFORT', 'medium'), // low | medium | high; medium is faster and cheaper, high for the most careful art direction
         'max_steps' => (int) env('AI_AGENT_MAX_STEPS', 30),
         'timeout' => (int) env('AI_AGENT_TIMEOUT', 900),
         // Server-side refusal fallback (Claude API only). Set false on Bedrock/Vertex.

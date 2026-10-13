@@ -4,6 +4,9 @@ namespace App\Services\AI\Providers;
 
 use App\Services\AI\Contracts\ImageProvider;
 use App\Services\AI\Exceptions\AiException;
+use GuzzleHttp\Promise\PromiseInterface;
+use Illuminate\Http\Client\PendingRequest;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 
 class GeminiProvider implements ImageProvider
@@ -12,20 +15,34 @@ class GeminiProvider implements ImageProvider
 
     public function generateImage(string $prompt, string $aspect, array $references = []): array
     {
+        return $this->parseImage($this->imageRequest(Http::createPendingRequest(), $prompt, $aspect, $references));
+    }
+
+    public function imageRequest(PendingRequest $http, string $prompt, string $aspect, array $references = []): Response|PromiseInterface
+    {
         $parts = array_map(fn (array $ref) => [
             'inlineData' => ['mimeType' => $ref['mime'], 'data' => base64_encode($ref['data'])],
         ], $references);
         $parts[] = ['text' => $prompt];
 
-        $response = $this->generateContent($this->config['image_model'], [
-            'contents' => [['role' => 'user', 'parts' => $parts]],
-            'generationConfig' => [
-                'responseModalities' => ['IMAGE'],
-                'imageConfig' => ['aspectRatio' => $aspect],
-            ],
-        ]);
+        return $http->timeout($this->timeout)
+            ->withHeaders(['x-goog-api-key' => $this->config['key']])
+            ->post(rtrim($this->config['base_url'], '/')."/models/{$this->config['image_model']}:generateContent", [
+                'contents' => [['role' => 'user', 'parts' => $parts]],
+                'generationConfig' => [
+                    'responseModalities' => ['IMAGE'],
+                    'imageConfig' => ['aspectRatio' => $aspect],
+                ],
+            ]);
+    }
 
-        foreach ($response['candidates'][0]['content']['parts'] ?? [] as $part) {
+    public function parseImage(Response $response): array
+    {
+        if ($response->failed()) {
+            throw new AiException('Gemini: '.($response->json('error.message') ?? $response->body()));
+        }
+
+        foreach ($response->json('candidates.0.content.parts') ?? [] as $part) {
             if (isset($part['inlineData']['data'])) {
                 return [
                     'data' => base64_decode($part['inlineData']['data']),
@@ -35,18 +52,5 @@ class GeminiProvider implements ImageProvider
         }
 
         throw new AiException('Gemini image: no image returned.');
-    }
-
-    private function generateContent(string $model, array $payload): array
-    {
-        $response = Http::timeout($this->timeout)
-            ->withHeaders(['x-goog-api-key' => $this->config['key']])
-            ->post(rtrim($this->config['base_url'], '/')."/models/{$model}:generateContent", $payload);
-
-        if ($response->failed()) {
-            throw new AiException('Gemini: '.($response->json('error.message') ?? $response->body()));
-        }
-
-        return $response->json();
     }
 }

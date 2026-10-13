@@ -4,6 +4,9 @@ namespace App\Services\AI\Providers;
 
 use App\Services\AI\Contracts\ImageProvider;
 use App\Services\AI\Exceptions\AiException;
+use GuzzleHttp\Promise\PromiseInterface;
+use Illuminate\Http\Client\PendingRequest;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 
 class OpenAIProvider implements ImageProvider
@@ -25,6 +28,11 @@ class OpenAIProvider implements ImageProvider
 
     public function generateImage(string $prompt, string $aspect, array $references = []): array
     {
+        return $this->parseImage($this->imageRequest(Http::createPendingRequest(), $prompt, $aspect, $references));
+    }
+
+    public function imageRequest(PendingRequest $http, string $prompt, string $aspect, array $references = []): Response|PromiseInterface
+    {
         $params = [
             'model' => $this->config['image_model'],
             'prompt' => $prompt,
@@ -33,18 +41,25 @@ class OpenAIProvider implements ImageProvider
             'n' => 1,
         ];
 
-        if ($references) {
-            // Reference images go through the edits endpoint (multipart).
-            $client = $this->client();
-            foreach ($references as $i => $ref) {
-                $ext = $ref['mime'] === 'image/jpeg' ? 'jpg' : ($ref['mime'] === 'image/webp' ? 'webp' : 'png');
-                $client = $client->attach('image[]', $ref['data'], "ref{$i}.{$ext}", ['Content-Type' => $ref['mime']]);
-            }
-            $response = $client->post('/images/edits', $params);
-        } else {
-            $response = $this->client()->post('/images/generations', $params);
+        $http = $http->timeout($this->timeout)
+            ->baseUrl(rtrim($this->config['base_url'], '/'))
+            ->withToken($this->config['key']);
+
+        if (! $references) {
+            return $http->post('/images/generations', $params);
         }
 
+        // Reference images go through the edits endpoint (multipart).
+        foreach ($references as $i => $ref) {
+            $ext = $ref['mime'] === 'image/jpeg' ? 'jpg' : ($ref['mime'] === 'image/webp' ? 'webp' : 'png');
+            $http = $http->attach('image[]', $ref['data'], "ref{$i}.{$ext}", ['Content-Type' => $ref['mime']]);
+        }
+
+        return $http->post('/images/edits', $params);
+    }
+
+    public function parseImage(Response $response): array
+    {
         if ($response->failed()) {
             throw new AiException('OpenAI image: '.($response->json('error.message') ?? $response->body()));
         }
@@ -60,12 +75,5 @@ class OpenAIProvider implements ImageProvider
         }
 
         throw new AiException('OpenAI image: empty response.');
-    }
-
-    private function client()
-    {
-        return Http::timeout($this->timeout)
-            ->baseUrl(rtrim($this->config['base_url'], '/'))
-            ->withToken($this->config['key']);
     }
 }

@@ -80,7 +80,7 @@ composer serve   # http://127.0.0.1:8000 — вэб + queue worker (--timeout=36
 ```
 
 Production:
-- `php artisan queue:work --timeout=3600 --tries=1` (Supervisor). Reels нэг job-д 10–25 минут болно.
+- `php artisan queue:work --timeout=3600 --tries=1` (Supervisor, **`numprocs=4`** эсвэл түүнээс олон). Нэг worker нэг удаад нэг бүтээл хийдэг; reels 5–10 минут болдог тул ганц worker байвал бусад хэрэглэгч дараалалд хүлээнэ. Хэрэглэгч бүр зэрэг ≤2 бүтээл (`CREATIONS_MAX_ACTIVE`).
 - `php artisan schedule:run` cron-оор минут бүр. Гацсан бүтээл, хугацаа дууссан нэхэмжлэхийг цэвэрлэнэ.
 - php-fpm: `public/.user.ini` upload 200MB.
 
