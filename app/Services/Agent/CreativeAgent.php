@@ -214,7 +214,7 @@ class CreativeAgent
     ];
 
     /** poster-design §4-ийн composition map-ууд; харилцагчийн постеруудад ээлжилнэ. */
-    public const MAPS = ['hero_type', 'split', 'frame_arch', 'bottom_heavy', 'centred_icon', 'diagonal', 'grid', 'full_bleed'];
+    public const MAPS = ['hero_type', 'split', 'frame_arch', 'bottom_heavy', 'centred_icon', 'diagonal', 'grid', 'full_bleed', 'radial', 'axial', 'product_callouts'];
 
     /**
      * Харилцагчийн сүүлийн постерууд ямар байсныг (map, style, palette, font) болон

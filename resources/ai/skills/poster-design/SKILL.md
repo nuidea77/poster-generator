@@ -101,8 +101,22 @@ E CENTRED ICON    F DIAGONAL        G GRID/TILES      H FULL-BLEED MOOD
 - **F Diagonal** — dynamic split or motion (sport, sale, energy).
 - **G Grid/tiles** — 3–6 products or features in painted tiles (menu, catalogue, packages).
 - **H Full-bleed mood** — one atmospheric image, minimal type (premium, concerts, real estate).
+- **I Radial** — rays, rings or a burst painted from one focal point (the product, a face, a number); type sits between the rays or around the centre. Energy, launches, events.
+- **J Axial** — one strong diagonal (or vertical) axis painted across the frame — a band, a beam of light, a road, a ribbon; the subject and the type hang off that axis. Type stays horizontal (the tool cannot rotate it); the axis carries the movement.
+- **K Product + callouts** — the product dead centre and large; 2–4 short feature callouts (`small`, with icons) left and right of it at its height, headline above, price/offer and footer below (tech, gadgets, cosmetics). A variant: headline and description in a left column, the product big on the right.
+
+**Grid types behind these maps:** column grid (text on 1–2 shared column edges — most posters), modular grid (equal tiles — G), hierarchical grid (blocks sized by importance — A, D), radial (I), axial (J). Name the grid you use; every block must sit on it.
 
 **Variety:** the brief lists the client's last posters (map, style, palette, type, footer). Make each new one clearly different in map, style, palette, headline treatment and footer — a feed of look-alikes is a failure. Report your choices in `deliver_poster`'s `design` so the next poster can differ from this one.
+
+## 4b. Design formulas (systems, not guesses)
+- **Type scale:** each step ≈ 1.25–1.6× the one below (small → subtitle → title → display). The tool's roles already follow a scale — don't fake a size between them by shrinking a title; pick the role.
+- **Line height:** body lines 1.4–1.6× the size (the tool sets ~1.4); stacked headlines tight (~1.0–1.1).
+- **Spacing:** margins and gaps are multiples of one unit (≈ 2% of the width): gap inside a group 1 unit, between groups 3–4 units, margins 3–4 units. Equal gaps for equal relations.
+- **Contrast ratio:** small text ≥ 4.5:1 against what is behind it, large headlines ≥ 3:1.
+- **Nested corners:** a pill inside a rounded card has a smaller radius (inner radius = outer − padding); never the same radius.
+- **Optical alignment:** round shapes and triangles look smaller — let them overshoot the line slightly; trust the eye after the maths.
+- **Consistency:** repeat the same choices for the same job (one button style, one icon style, one label style) — a system reads as professional.
 
 ## 5. Type on the picture (add_text)
 - **Scale contrast:** the hero element (headline or number) is `display`/`title`, everything else `subtitle`/`small`. Two-tone accent on **one** word.
