@@ -13,18 +13,23 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
 
+// Хэрэглэгчийн өөрийн бүтээлүүд: жагсаах, эхлүүлэх, харах, дахин оролдох, устгах.
 class CreationController extends Controller
 {
+    // Бүтээлийн бизнес логикийг CreationService-д даатгана.
     public function __construct(private CreationService $creations) {}
 
+    // Хэрэглэгчийн бүтээлүүдийг төрөл, төлөвөөр шүүж хуудаслана.
     public function index(Request $request): AnonymousResourceCollection
     {
-        $query = $request->user()->creations()->latest()->orderByDesc('id'); // same-second jobs keep their order across pages
+        $query = $request->user()->creations()->latest()->orderByDesc('id'); // нэг секундэд үүссэн ажлууд хуудас хооронд дарааллаа хадгална
 
+        // Төрлөөр шүүх: зөвхөн poster эсвэл reel.
         if (in_array($request->query('type'), [Creation::POSTER, Creation::REEL], true)) {
             $query->where('type', $request->query('type'));
         }
 
+        // Төлөвөөр шүүх: дууссан, алдаатай, эсвэл явж буй.
         match ($request->query('status')) {
             'done' => $query->where('status', Creation::DONE),
             'failed' => $query->where('status', Creation::FAILED),
@@ -35,6 +40,7 @@ class CreationController extends Controller
         return CreationResource::collection($query->paginate(24));
     }
 
+    // Шинэ бүтээл эхлүүлнэ; ажил дараалалд орох тул 202 буцаана.
     public function store(StoreCreationRequest $request): JsonResponse
     {
         $creation = $this->creations->start(
@@ -48,6 +54,7 @@ class CreationController extends Controller
         return (new CreationResource($creation->refresh()))->response()->setStatusCode(202);
     }
 
+    // Нэг бүтээлийг эзэнд нь (эсвэл админд) харуулна.
     public function show(Request $request, Creation $creation): CreationResource
     {
         $this->authorizeOwner($request, $creation);
@@ -55,6 +62,7 @@ class CreationController extends Controller
         return new CreationResource($creation);
     }
 
+    // Алдаатай бүтээлийг дахин ажиллуулна.
     public function retry(Request $request, Creation $creation): JsonResponse
     {
         $this->authorizeOwner($request, $creation);
@@ -62,17 +70,20 @@ class CreationController extends Controller
         return (new CreationResource($this->creations->retry($creation)->refresh()))->response()->setStatusCode(202);
     }
 
+    // Бүтээл болон түүний файлуудыг устгана; ажиллаж байгаа бол 409.
     public function destroy(Request $request, Creation $creation): Response
     {
         $this->authorizeOwner($request, $creation);
         abort_if($creation->isActive(), 409, 'Бүтээл ажиллаж байна.');
 
+        // Файлуудыг эхлээд, дараа нь мөрийг устгана.
         MediaStore::deleteDirectory("creations/{$creation->public_id}");
         $creation->delete();
 
         return response()->noContent();
     }
 
+    // Эзэн эсвэл админ биш бол 404 (бүтээл байгааг ч илчлэхгүй).
     private function authorizeOwner(Request $request, Creation $creation): void
     {
         abort_unless($creation->user_id === $request->user()->id || $request->user()->is_admin, 404);

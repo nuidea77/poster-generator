@@ -13,8 +13,10 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
 
+// Session-д суурилсан бүртгүүлэх, нэвтрэх, гарах.
 class AuthController extends Controller
 {
+    // Шинэ хэрэглэгч бүртгэж, үнэгүй credit олгоод шууд нэвтрүүлнэ.
     public function register(Request $request): JsonResponse
     {
         $data = $request->validate([
@@ -32,6 +34,7 @@ class AuthController extends Controller
         return (new MeResource($user))->response()->setStatusCode(201);
     }
 
+    // Имэйл, нууц үгээр нэвтрүүлж, session-ийг шинэчилнэ (session fixation-оос сэргийлнэ).
     public function login(Request $request): MeResource
     {
         $credentials = $request->validate([
@@ -48,6 +51,7 @@ class AuthController extends Controller
         return new MeResource($request->user());
     }
 
+    // Гаргаж, session болон CSRF token-ийг хүчингүй болгоно.
     public function logout(Request $request): Response
     {
         Auth::guard('web')->logout();

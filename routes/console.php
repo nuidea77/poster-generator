@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schedule;
 
+// Бүртгэлтэй хэрэглэгчид админ эрх олгоно (is_admin = true).
 Artisan::command('app:make-admin {email}', function (string $email) {
     $user = User::where('email', $email)->first();
 
@@ -23,10 +24,13 @@ Artisan::command('app:make-admin {email}', function (string $email) {
     $this->info("{$email} is now an admin.");
 })->purpose('Grant admin rights to a registered user');
 
+// Үнийн тайлан: нэгж өртгөөс гаргасан credit үнэ, дууссан job-уудын бодит өртөг, орлого ба алдагдал.
 Artisan::command('pricing:report {--days= : Only jobs from the last N days}', function (CostMeter $meter) {
+    // USD ба төгрөгийг форматлах туслах функцууд.
     $usd = fn (float $v) => '$'.number_format($v, 2);
     $mnt = fn (int $v) => number_format($v).'₮';
 
+    // 1. Үнийн жагсаалт: хамгийн үнэтэй загвараар тооцсон typical / worst өртөг ба margin.
     $this->info('Price book (most expensive models; 1 credit = '.$mnt(config('pricing.credit_mnt')).')');
     $this->table(
         ['Job', 'Typical (Fable + media)', 'Worst (Fable + media)', 'Media budget', 'Credits', 'Revenue', '× typical', '× worst'],
@@ -42,6 +46,7 @@ Artisan::command('pricing:report {--days= : Only jobs from the last N days}', fu
         ], $meter->priceBook()),
     );
 
+    // 2. CostMeter-ийн бүртгэсэн бодит өртөг (дууссан job-ууд).
     $actuals = $meter->actuals();
     $this->info('Real cost of finished jobs (recorded by CostMeter)');
     $actuals
@@ -50,6 +55,7 @@ Artisan::command('pricing:report {--days= : Only jobs from the last N days}', fu
         ], $actuals))
         : $this->line('  No finished jobs yet.');
 
+    // 3. Орлого ба алдагдал (--days өгвөл сүүлийн N хоног): амжилтгүй, төлбөргүй, өртгөөс доош job-ууд.
     $l = $meter->losses($this->option('days') ? (int) $this->option('days') : null);
     $this->info('Revenue and losses'.($l['days'] ? " (last {$l['days']} days)" : ' (all time)'));
     $this->table(['', 'Jobs', '₮', 'Fable', 'Media'], [
@@ -60,15 +66,18 @@ Artisan::command('pricing:report {--days= : Only jobs from the last N days}', fu
         ['Unpaid (admin / free credits)', $l['unpaid']['jobs'], $mnt($l['unpaid']['cost_mnt']), $usd($l['unpaid']['claude_usd']), $usd($l['unpaid']['media_usd'])],
         ['Finished below cost', $l['underwater']['jobs'], $mnt($l['underwater']['lost_mnt']), '', ''],
     ]);
+    // Амжилтгүй job-уудын шалтгаан тус бүрийн тоо, өртөг.
     foreach ($l['failed']['reasons'] as $r) {
         $this->line("  {$r['jobs']}× {$mnt($r['cost_mnt'])}  {$r['reason']}");
     }
 })->purpose('Show credit prices derived from unit costs, real job costs and losses');
 
+// Студийн skill-үүдийг Claude Agent Skill болгон экспортлоно (claude.ai-д zip, --install бол Claude Code-д).
 Artisan::command('skills:export {--to= : Folder for the skill folders and zips} {--install : Also copy them into ~/.claude/skills for Claude Code}', function (ClaudeSkillExporter $exporter) {
     $to = $this->option('to') ?: storage_path('app/claude-skills');
     $written = $exporter->export($to);
 
+    // --install: хуучин хувилбарыг устгаад ~/.claude/skills руу хуулна (Windows-д USERPROFILE).
     if ($this->option('install')) {
         $home = rtrim((string) (getenv('USERPROFILE') ?: getenv('HOME')), '\\/').'/.claude/skills';
         foreach ($written as $skill) {
@@ -81,8 +90,9 @@ Artisan::command('skills:export {--to= : Folder for the skill folders and zips} 
     $this->info(count($written)." skills exported to {$to} (one .zip per skill for claude.ai)");
 })->purpose('Export the studio skills as Claude Agent Skills');
 
-// Fail creations whose worker died (job timeout + margin) so users are not left waiting.
+// Worker нь унасан бүтээлүүдийг (job timeout + нөөц хугацаа) failed болгоно, хэрэглэгч хүлээгээд үлдэхгүй.
 Schedule::call(function () {
+    // Удаан шинэчлэгдээгүй идэвхтэй бүтээлийг failed болгож credit-ийг буцаана.
     Creation::whereIn('status', Creation::ACTIVE)
         ->where('updated_at', '<', now()->subSeconds(config('creations.job_timeout') + 600))
         ->each(function (Creation $creation) {
@@ -90,6 +100,7 @@ Schedule::call(function () {
             app(Credits::class)->refund($creation);
         });
 
+    // Хугацаа нь дууссан төлөгдөөгүй QPay нэхэмжлэхийг expired болгоно.
     Payment::where('status', Payment::PENDING)
         ->where('created_at', '<', now()->subHours(config('qpay.invoice_ttl_hours')))
         ->update(['status' => Payment::EXPIRED]);

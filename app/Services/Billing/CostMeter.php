@@ -7,13 +7,15 @@ use App\Models\Payment;
 use App\Models\Subscription;
 
 /**
- * API list prices (config/pricing.php) turned into USD per call. Used to
- * enforce each job's media budget, to set credit prices and to report real
- * cost and margin.
+ * API-ын жагсаалтын үнийг (config/pricing.php) дуудлага бүрийн USD болгоно.
+ * Ажил бүрийн media төсвийг хязгаарлах, credit үнийг тогтоох, бодит зардал
+ * болон ашгийн хувийг тайлагнахад ашиглана.
  */
 class CostMeter
 {
     /**
+     * Claude (Fable)-ийн token хэрэглээний USD зардал (үнэ нь 1M token тутамд).
+     *
      * @param  array{input_tokens?: int, output_tokens?: int, cache_creation_input_tokens?: int, cache_read_input_tokens?: int}  $usage
      */
     public function claude(array $usage): float
@@ -26,26 +28,35 @@ class CostMeter
             + ($usage['cache_read_input_tokens'] ?? 0) * $p['cache_read']) / 1_000_000;
     }
 
+    /**
+     * Нэг зураг үүсгэх USD зардал (тохиргоонд байхгүй бол 0.25).
+     */
     public function image(string $provider): float
     {
         return (float) config("pricing.costs.image.{$provider}", 0.25);
     }
 
+    /**
+     * Видеоны USD зардал = секунд × секундын үнэ (тохиргоонд байхгүй бол 0.4).
+     */
     public function video(string $provider, int $seconds): float
     {
         return $seconds * (float) config("pricing.costs.video_second.{$provider}", 0.4);
     }
 
+    /**
+     * USD-г ханшаар төгрөг (₮) болгоно.
+     */
     public function mnt(float $usd): int
     {
         return (int) round($usd * config('pricing.usd_mnt'));
     }
 
-    // ---------------------------------------------------------------- price book
+    // ---------------------------------------------------------------- үнийн жагсаалт
 
     /**
-     * Estimated API cost of one job part (USD), split into Fable and media,
-     * priced with the most expensive image and video models.
+     * Ажлын нэг хэсгийн тооцоолсон API зардал (USD), Fable болон media-д хуваасан,
+     * хамгийн үнэтэй зураг, видео загвараар тооцсон.
      *
      * @param  'poster'|'poster_extra_format'|'reel'  $part
      * @param  'typical'|'worst'  $case
@@ -56,6 +67,7 @@ class CostMeter
         $e = config("pricing.estimates.{$part}.{$case}");
         $tokens = $e['claude'];
 
+        // Reel-ийн урттай хамт өсөх token-уудыг нэмнэ.
         foreach ($e['claude_per_second'] ?? [] as $key => $perSecond) {
             $tokens[$key] = ($tokens[$key] ?? 0) + $perSecond * $seconds;
         }
@@ -67,9 +79,9 @@ class CostMeter
     }
 
     /**
-     * Credits for one job part: enough that revenue covers the worst case ×
-     * margin.worst and the typical case × margin.typical. Prices of 50+ credits
-     * are rounded up to a multiple of 5.
+     * Ажлын нэг хэсгийн credit үнэ: орлого нь хамгийн муу тохиолдол × margin.worst
+     * болон ердийн тохиолдол × margin.typical хоёуланг нөхөхүйц байна. 50 ба түүнээс
+     * дээш credit-ийн үнийг 5-ын үржвэр хүртэл дээш бүхэлчилнэ.
      */
     public function credits(string $part, int $seconds = 0): int
     {
@@ -84,7 +96,7 @@ class CostMeter
     }
 
     /**
-     * Hard cap on image + video spend (USD): the worst case's media.
+     * Зураг + видеоны зардлын (USD) хатуу дээд хязгаар: хамгийн муу тохиолдлын media.
      */
     public function budget(string $part, int $seconds = 0): float
     {
@@ -92,7 +104,7 @@ class CostMeter
     }
 
     /**
-     * Credit prices the customer sees: poster, extra size, and reels per length.
+     * Хэрэглэгчид харагдах credit үнэ: постер, нэмэлт хэмжээ, reel-ийн урт тус бүр.
      *
      * @return array{poster: int, poster_extra_format: int, reel: array<int, int>}
      */
@@ -106,7 +118,7 @@ class CostMeter
     }
 
     /**
-     * Price book rows for the admin report and `pricing:report`.
+     * Админы тайлан болон `pricing:report`-д зориулсан үнийн жагсаалтын мөрүүд.
      *
      * @return list<array<string, mixed>>
      */
@@ -118,6 +130,7 @@ class CostMeter
             $rows[] = ['part' => 'reel', 'label' => "Reels {$s} сек", 'seconds' => $s];
         }
 
+        // Мөр бүрт тооцоолсон зардал, credit үнэ, орлого, ашгийн харьцааг нэмнэ.
         return array_map(function (array $row) {
             $typical = $this->estimate($row['part'], 'typical', $row['seconds']);
             $worst = $this->estimate($row['part'], 'worst', $row['seconds']);
@@ -137,15 +150,15 @@ class CostMeter
     }
 
     /**
-     * What finished jobs really cost (recorded per call while they ran), grouped
-     * by kind; compared with the price book.
+     * Дууссан ажлуудын бодит зардал (ажиллах үед дуудлага бүрээр бүртгэсэн),
+     * төрлөөр нь бүлэглэж үнийн жагсаалттай харьцуулна.
      *
      * @return list<array<string, mixed>>
      */
     public function actuals(?int $days = null): array
     {
-        // Every finished job counts, admin tests and free credits too: the margin is
-        // the job's list price (what a customer pays for it) over its real cost.
+        // Админы тест, үнэгүй credit-ээр хийсэн ч бүх дууссан ажлыг тооцно: ашгийн харьцаа нь
+        // ажлын жагсаалтын үнийг (хэрэглэгч төлөх дүн) бодит зардалд нь хуваасан утга.
         return $this->since($days)->where('status', Creation::DONE)->where('cost_usd', '>', 0)
             ->get(['type', 'duration', 'formats', 'credits', 'cost_usd', 'assets', 'input_tokens', 'output_tokens', 'cache_read_tokens', 'cache_write_tokens'])
             ->groupBy(fn (Creation $c) => $this->kind($c))
@@ -162,7 +175,7 @@ class CostMeter
                     'avg_claude_usd' => round(($cost - $media->sum()) / $jobs->count(), 4),
                     'avg_media_usd' => round($media->avg(), 4),
                     'max_usd' => round($jobs->max('cost_usd'), 4),
-                    // What the price book assumes for a typical job of this kind.
+                    // Энэ төрлийн ердийн ажилд үнийн жагсаалтын таамагласан зардал.
                     'estimate_usd' => $first->type === Creation::REEL
                         ? $this->estimate('reel', 'typical', $first->reelDuration())['total']
                         : $this->estimate('poster', 'typical')['total'],
@@ -181,7 +194,7 @@ class CostMeter
             ->all();
     }
 
-    /** Credits a customer is charged for this job (its list price), whoever ran it. */
+    /** Хэн ажиллуулсанаас үл хамааран энэ ажилд хэрэглэгчээс авах credit (жагсаалтын үнэ). */
     public function listCredits(Creation $creation): int
     {
         $extra = max(0, count($creation->formats ?? []) - 1);
@@ -192,8 +205,8 @@ class CostMeter
     }
 
     /**
-     * The latest jobs one by one: tokens, Fable and media cost, list price and
-     * margin, admin tests included, so the real cost of a job is visible.
+     * Сүүлийн ажлууд нэг бүрчлэн: token, Fable болон media зардал, жагсаалтын үнэ,
+     * ашгийн харьцаа (админы тест орно), ингэснээр ажил бүрийн бодит зардал харагдана.
      *
      * @return list<array<string, mixed>>
      */
@@ -230,8 +243,8 @@ class CostMeter
     }
 
     /**
-     * The whole picture in one place: what was made, what it cost (Fable tokens vs
-     * images vs video), the money that came in (paid invoices) and the profit.
+     * Бүх зураглал нэг дор: юу хийсэн, хэд зарцуулсан (Fable token / зураг / видео),
+     * орж ирсэн мөнгө (төлөгдсөн нэхэмжлэх) болон ашиг.
      *
      * @return array<string, mixed>
      */
@@ -239,6 +252,7 @@ class CostMeter
     {
         $jobs = $this->since($days)->whereIn('status', [Creation::DONE, Creation::FAILED])
             ->get(['id', 'type', 'duration', 'formats', 'reel_clips', 'status', 'cost_usd', 'assets', 'input_tokens', 'output_tokens', 'cache_read_tokens', 'cache_write_tokens']);
+        // Зардлыг Fable, зураг, видео гэж задлана; Fable нь нийтээс media-г хассан үлдэгдэл.
         $assets = $jobs->flatMap(fn (Creation $c) => $c->assets ?? []);
         $images = $assets->filter(fn ($a) => ($a['kind'] ?? '') === 'image' && ($a['cost'] ?? 0) > 0);
         $videos = $assets->filter(fn ($a) => ($a['kind'] ?? '') === 'video' && ($a['source'] ?? '') === 'generated' && ($a['cost'] ?? 0) > 0);
@@ -247,6 +261,7 @@ class CostMeter
         $videoUsd = (float) $videos->sum('cost');
         $claudeUsd = max(0, $total - $imageUsd - $videoUsd);
 
+        // Төрөл тус бүрийн амжилттай / амжилтгүй тоо болон зардал.
         $made = fn (string $type) => [
             'done' => $jobs->where('type', $type)->where('status', Creation::DONE)->count(),
             'failed' => $jobs->where('type', $type)->where('status', Creation::FAILED)->count(),
@@ -254,7 +269,7 @@ class CostMeter
             'avg_mnt' => $this->mnt((float) $jobs->where('type', $type)->sum('cost_usd') / max(1, $jobs->where('type', $type)->where('status', Creation::DONE)->count())),
         ];
 
-        // QPAY_FAKE invoices (FAKE-…) are local tests, not money: counted apart.
+        // QPAY_FAKE нэхэмжлэхүүд (FAKE-…) нь локал тест, бодит мөнгө биш тул тусад нь тоолно.
         $paid = Payment::where('status', Payment::PAID)
             ->when($days, fn ($q) => $q->where('paid_at', '>=', now()->subDays($days)))
             ->get(['amount', 'invoice_id']);
@@ -282,8 +297,8 @@ class CostMeter
             'cash_mnt' => $cash,
             'test_payments' => ['count' => $fake->count(), 'mnt' => (int) $fake->sum('amount')],
             'profit_mnt' => $cash - $spent,
-            // As if every job (admin tests included) had been paid at list price;
-            // failed jobs are refunded, so they earn nothing but still cost.
+            // Бүх ажлыг (админы тест орно) жагсаалтын үнээр төлсөн гэж үзвэл;
+            // амжилтгүй ажлын credit буцаагддаг тул орлого өгөхгүй ч зардал гарсаар байна.
             'as_customer' => (function () use ($jobs, $spent) {
                 $done = $jobs->where('status', Creation::DONE);
                 $revenue = (int) $done->sum(fn (Creation $c) => $this->listCredits($c) * config('pricing.credit_mnt'));
@@ -302,11 +317,11 @@ class CostMeter
     }
 
     /**
-     * Money in vs API money out, and where it was lost: failed jobs (credits
-     * refunded, API cost kept), jobs nobody paid for (admin / free credits) and
-     * finished jobs that cost more than they earned. Revenue is what the
-     * customer actually paid for the credits spent (payment amount ÷ the
-     * period's credits); free-tier credits earn nothing.
+     * Орж ирсэн мөнгө ба API-д гарсан мөнгө, мөн хаана алдагдсан нь: амжилтгүй ажил
+     * (credit буцаасан ч API зардал гарсан), хэн ч төлөөгүй ажил (админ / үнэгүй credit),
+     * олсноосоо их зардал гарсан дууссан ажил. Орлого гэдэг нь зарцуулсан credit-д
+     * хэрэглэгчийн бодитоор төлсөн дүн (төлбөрийн дүн ÷ тухайн хугацааны credit);
+     * үнэгүй олголтын credit орлого өгөхгүй.
      *
      * @return array<string, mixed>
      */
@@ -317,6 +332,7 @@ class CostMeter
             ->with('user:id,is_admin')
             ->get(['id', 'user_id', 'type', 'duration', 'status', 'credits', 'charges', 'cost_usd', 'assets', 'error_detail']);
 
+        // Ажлын орлого = хасагдсан credit бүрийг тухайн захиалгын нэг credit-ийн үнээр үржүүлсэн нийлбэр.
         $perCredit = $this->pricePerCredit($jobs);
         $revenue = fn (Creation $c) => (int) round(collect($c->charges ?? [])->sum(fn ($ch) => $ch['credits'] * ($perCredit[$ch['subscription_id']] ?? 0)));
 
@@ -327,10 +343,12 @@ class CostMeter
             'revenue' => $c->status === Creation::DONE ? $revenue($c) : 0,
         ]);
 
+        // Алдагдлын гурван ангилал: амжилтгүй, төлөөгүй, алдагдалтай.
         $failed = $rows->filter(fn ($r) => $r['job']->status === Creation::FAILED && $r['cost'] > 0);
         $unpaid = $rows->filter(fn ($r) => $r['job']->status === Creation::DONE && $r['revenue'] === 0 && $r['cost'] > 0);
         $underwater = $rows->filter(fn ($r) => $r['job']->status === Creation::DONE && $r['revenue'] > 0 && $r['revenue'] < $r['cost']);
 
+        // Ангилал бүрийн нийт тоо, зардал (₮), Fable болон media USD.
         $sum = fn ($set) => [
             'jobs' => $set->count(),
             'cost_mnt' => $set->sum('cost'),
@@ -361,7 +379,7 @@ class CostMeter
     }
 
     /**
-     * ₮ the customer paid per credit, by subscription id (0 for free grants).
+     * Хэрэглэгчийн нэг credit-д төлсөн ₮, захиалгын id-аар (үнэгүй олголт болон FAKE төлбөрт 0).
      *
      * @return array<int, float>
      */
@@ -374,21 +392,33 @@ class CostMeter
             ->all();
     }
 
+    /**
+     * Сүүлийн $days өдрийн ажлуудын query ($days нь null бол бүгд).
+     */
     private function since(?int $days)
     {
         return Creation::query()->when($days, fn ($q) => $q->where('created_at', '>=', now()->subDays($days)));
     }
 
+    /**
+     * Тайланд харагдах ажлын төрлийн нэр (постер эсвэл reel-ийн урт).
+     */
     private function kind(Creation $c): string
     {
         return $c->type === Creation::REEL ? "Reels {$c->reelDuration()} сек" : 'Постер';
     }
 
+    /**
+     * Хамгийн үнэтэй зургийн загварын нэг зургийн үнэ (USD).
+     */
     private function priciestImage(): float
     {
         return (float) max(config('pricing.costs.image'));
     }
 
+    /**
+     * Хамгийн үнэтэй видео загварын нэг секундын үнэ (USD).
+     */
     private function priciestVideoSecond(): float
     {
         return (float) max(config('pricing.costs.video_second'));

@@ -4,9 +4,10 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
+// Бүтээлд reel-ийн урт (duration) баганыг нэмнэ.
 return new class extends Migration
 {
-    // Reel length the customer picked (seconds); priced per length.
+    // Хэрэглэгчийн сонгосон reel-ийн урт (секунд); урт тус бүрээр үнэлнэ.
     public function up(): void
     {
         Schema::table('creations', function (Blueprint $table) {
@@ -14,6 +15,7 @@ return new class extends Migration
         });
     }
 
+    // duration баганыг хасна.
     public function down(): void
     {
         Schema::table('creations', function (Blueprint $table) {

@@ -11,15 +11,20 @@ use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 
+/**
+ * Google Gemini зураг үүсгэгч: Gemini API эсвэл Vertex AI-аар (config-ийн 'via') ажиллана.
+ */
 class GeminiProvider implements ImageProvider
 {
     public function __construct(private array $config, private int $timeout) {}
 
+    // Нэг зургийг шууд (pool-гүй) үүсгэнэ.
     public function generateImage(string $prompt, string $aspect, array $references = []): array
     {
         return $this->parseImage($this->imageRequest(Http::createPendingRequest(), $prompt, $aspect, $references));
     }
 
+    // generateContent хүсэлт илгээнэ: лавлах зургууд inlineData, дараа нь prompt текст.
     public function imageRequest(PendingRequest $http, string $prompt, string $aspect, array $references = []): Response|PromiseInterface
     {
         $parts = array_map(fn (array $ref) => [
@@ -29,6 +34,7 @@ class GeminiProvider implements ImageProvider
 
         $model = $this->config['image_model'];
 
+        // Замаас хамаарч auth ба URL сонгоно: Vertex эсвэл Gemini API key.
         if (($this->config['via'] ?? null) === 'vertex') {
             $vertex = Vertex::fromConfig();
             [$http, $url] = [$vertex->authorize($http), $vertex->generateContentUrl($this->config['vertex_image_model'] ?? $model)];
@@ -46,6 +52,7 @@ class GeminiProvider implements ImageProvider
             ]);
     }
 
+    // Хариунаас эхний inlineData зургийг авна; зураг ирээгүй бол шалтгааныг алдаанд оруулна.
     public function parseImage(Response $response): array
     {
         if ($response->failed()) {
@@ -61,6 +68,7 @@ class GeminiProvider implements ImageProvider
             }
         }
 
+        // Блоклосон шалтгаан, finishReason болон загварын текст хариуг цуглуулна.
         $why = array_filter([
             $response->json('promptFeedback.blockReason'),
             $response->json('candidates.0.finishReason'),

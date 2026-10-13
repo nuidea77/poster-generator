@@ -1,8 +1,8 @@
 <script setup>
 import Icon from './Icon.vue';
 
-// Size choices (ratio outline, label, what it is for, check mark). Used by the
-// desktop size menu and the phone settings sheet.
+// Хэмжээний сонголтууд (харьцааны хүрээ, нэр, зориулалт, сонгосон тэмдэг).
+// Компьютерийн хэмжээний цэс болон утасны тохиргооны sheet-д ашиглагдана.
 defineProps({
     options: { type: Array, required: true },
     picked: { type: Function, required: true },
@@ -10,7 +10,7 @@ defineProps({
 
 defineEmits(['pick']);
 
-// Outline of a ratio icon, fitted in a 14×14 box.
+// Харьцааны дүрсийн хүрээ, 14×14 хайрцагт багтаана (хэмжээгүй бол null).
 const ratioBox = (f) => {
     if (!f.width) return null;
     const m = Math.max(f.width, f.height);
@@ -27,6 +27,7 @@ const ratioBox = (f) => {
         :class="picked(f.id) ? 'bg-white/5 text-fg' : 'text-zinc-300'"
         @click="$emit('pick', f.id)"
     >
+        <!-- Харьцааны дүрс, нэр ба тайлбар, сонгосон бол check -->
         <span class="grid size-7 place-items-center rounded-lg" :class="picked(f.id) ? 'bg-white/10' : ''">
             <span v-if="ratioBox(f)" class="block rounded-[3px] border-[1.5px] border-current" :style="ratioBox(f)" />
             <span v-else class="block size-3.5 rounded-[3px] border-[1.5px] border-dashed border-current" />

@@ -5,11 +5,13 @@ namespace App\Services\Media;
 use App\Services\AI\Exceptions\AiException;
 
 /**
- * Cover-crops an image to the exact pixel size of a poster format.
+ * Зургийг постерын форматын яг пиксел хэмжээнд "cover" байдлаар тайрна.
  */
 class PosterFormatter
 {
     /**
+     * Зургийг хэлбэр алдагдуулахгүйгээр томруулж, илүүдлийг төвөөс нь тайраад JPEG болгоно.
+     *
      * @return array{data: string, mime: string}
      */
     public function fit(string $data, int $width, int $height): array
@@ -20,6 +22,8 @@ class PosterFormatter
             throw new AiException('Image could not be decoded.');
         }
 
+        // Хоёр тэнхлэгийн том масштабыг авч хүрээг бүрэн дүүргэнэ; эх зураг дээрх
+        // тайрах хэсгийн хэмжээ ($cw×$ch) ба төвлөрсөн эхлэл ($cx,$cy)-ийг тооцно.
         $sw = imagesx($src);
         $sh = imagesy($src);
         $scale = max($width / $sw, $height / $sh);
@@ -31,6 +35,7 @@ class PosterFormatter
         $dst = imagecreatetruecolor($width, $height);
         imagecopyresampled($dst, $src, 0, 0, $cx, $cy, $width, $height, $cw, $ch);
 
+        // JPEG-ийг санах ойд бичнэ (чанар 92).
         ob_start();
         imagejpeg($dst, null, 92);
 

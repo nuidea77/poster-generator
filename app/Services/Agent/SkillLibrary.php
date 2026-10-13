@@ -7,15 +7,17 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Skills in the Anthropic Agent Skills layout: a folder per skill with a
- * SKILL.md whose YAML frontmatter carries `name` and `description`.
- * Bundled skills live in resources/ai/skills; users add their own in the DB.
- * A DB row with a bundled skill's name is an admin edit of it (an override):
- * it replaces the file's text until it is reset.
+ * Anthropic Agent Skills бүтэцтэй skill-үүд: skill бүрт нэг хавтас, YAML
+ * frontmatter нь `name`, `description` агуулсан SKILL.md.
+ * Bundled skill-үүд resources/ai/skills-д байна; хэрэглэгчид өөрсдийнхөө skill-ийг DB-д нэмнэ.
+ * Bundled skill-тэй ижил нэртэй DB мөр нь админы засвар (override):
+ * reset хийтэл файлын текстийг орлоно.
  */
 class SkillLibrary
 {
     /**
+     * Bundled ба custom skill-үүдийн жагсаалт (админы засварыг тусгасан).
+     *
      * @return array<int, array{name: string, description: string, origin: ?string, source: string, enabled: bool, overridden: bool, id?: int}>
      */
     public function index(bool $enabledOnly = false): array
@@ -23,6 +25,7 @@ class SkillLibrary
         $rows = Schema::hasTable('skills') ? Skill::orderBy('name')->get()->keyBy('name') : collect();
         $skills = [];
 
+        // Bundled skill-ийн DB мөрийг (override) $rows-оос гаргаж авна; үлдсэн нь custom.
         foreach ($this->bundled() as $name => $parsed) {
             $edit = $rows->pull($name);
             $skills[] = [
@@ -44,12 +47,13 @@ class SkillLibrary
     }
 
     /**
-     * Text the agent loads; null when the skill is unknown or switched off.
+     * Agent-ийн ачаалах текст; skill үл мэдэгдэх эсвэл унтраастай бол null.
      */
     public function get(string $name): ?string
     {
         $row = Schema::hasTable('skills') ? Skill::where('name', $name)->first() : null;
 
+        // DB мөр (override эсвэл custom) файлаас давуу эрхтэй.
         if ($row) {
             return $row->enabled ? $row->content : null;
         }
@@ -58,7 +62,7 @@ class SkillLibrary
     }
 
     /**
-     * Reference files a bundled skill keeps under references/ (loaded on demand).
+     * Bundled skill-ийн references/ дотор хадгалдаг лавлах файлууд (хэрэгтэй үед ачаална).
      *
      * @return list<string>
      */
@@ -69,10 +73,10 @@ class SkillLibrary
             : [];
     }
 
-    /** One reference file of an enabled skill, or null. */
+    /** Идэвхтэй skill-ийн нэг лавлах файл, эсвэл null. */
     public function reference(string $name, string $file): ?string
     {
-        $file = basename(str_replace('\\', '/', $file)); // never leave the skill's folder
+        $file = basename(str_replace('\\', '/', $file)); // skill-ийн хавтсаас хэзээ ч гарахгүй
         if ($this->get($name) === null || ! in_array($file, $this->references($name), true)) {
             return null;
         }
@@ -81,9 +85,9 @@ class SkillLibrary
     }
 
     /**
-     * Text for the admin editor, also for skills that are switched off.
+     * Админы засварлагчид зориулсан текст, унтраастай skill-д ч бас.
      *
-     * @return array{content: string, original: ?string}|null original = the bundled file's text
+     * @return array{content: string, original: ?string}|null original = bundled файлын текст
      */
     public function source(string $name): ?array
     {
@@ -98,12 +102,15 @@ class SkillLibrary
     }
 
     /**
-     * @return array<string, array{name: string, description: string, origin: string, body: string}> by name
+     * resources/ai/skills доторх бүх SKILL.md-ийг задлан уншина.
+     *
+     * @return array<string, array{name: string, description: string, origin: string, body: string}> нэрээр
      */
     public function bundled(): array
     {
         $skills = [];
 
+        // Frontmatter-т name байхгүй бол хавтасны нэрийг ашиглана.
         foreach (File::glob(resource_path('ai/skills/*/SKILL.md')) as $path) {
             $parsed = self::parse(File::get($path));
             $skills[$parsed['name'] ?: basename(dirname($path))] = $parsed;
@@ -113,7 +120,7 @@ class SkillLibrary
     }
 
     /**
-     * Markdown list for the system prompt: name — description.
+     * System prompt-д зориулсан markdown жагсаалт: нэр — тайлбар.
      */
     public function prompt(): string
     {
@@ -126,7 +133,7 @@ class SkillLibrary
     }
 
     /**
-     * Split YAML-ish frontmatter (name, description, origin) from the markdown body.
+     * YAML маягийн frontmatter-ийг (name, description, origin) markdown биеэс салгана.
      *
      * @return array{name: string, description: string, origin: string, body: string}
      */
@@ -136,8 +143,10 @@ class SkillLibrary
         $markdown = str_replace("\r\n", "\n", $markdown);
         $body = $markdown;
 
+        // Файлын эхэнд --- ... --- хүрээтэй frontmatter байвал задлана.
         if (preg_match('/\A---\s*\n(.*?)\n---\s*\n(.*)\z/s', $markdown, $m)) {
             $body = $m[2];
+            // Зөвхөн name/description/origin мөрийг ижил нэртэй хувьсагчид онооно (хашилтыг авна).
             foreach (explode("\n", $m[1]) as $line) {
                 if (preg_match('/^(name|description|origin):\s*(.*)$/', trim($line), $kv)) {
                     ${$kv[1]} = stripcslashes(trim($kv[2], " \"'"));

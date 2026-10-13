@@ -4,9 +4,10 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
+// Захиалгын огноог TIMESTAMP-аас DATETIME болгож өргөсгөнө.
 return new class extends Migration
 {
-    // MySQL TIMESTAMP stops at 2038; the free grant's ends_at is ~100 years out.
+    // MySQL TIMESTAMP 2038 онд дуусдаг; үнэгүй олголтын ends_at ~100 жилийн дараа.
     public function up(): void
     {
         Schema::table('subscriptions', function (Blueprint $table) {
@@ -15,6 +16,7 @@ return new class extends Migration
         });
     }
 
+    // TIMESTAMP руу буцаана.
     public function down(): void
     {
         Schema::table('subscriptions', function (Blueprint $table) {

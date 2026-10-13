@@ -13,10 +13,13 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 
+// QPay төлбөр: эхлүүлэх, төлөв шалгах, callback, локал симуляци.
 class PaymentController extends Controller
 {
+    // Төлбөрийн логикийг BillingService-д даатгана.
     public function __construct(private BillingService $billing) {}
 
+    // Идэвхтэй, төлбөртэй багцад QPay нэхэмжлэл үүсгэнэ.
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
@@ -34,10 +37,12 @@ class PaymentController extends Controller
         return (new PaymentResource($payment->load('plan')))->response()->setStatusCode(201);
     }
 
+    // Өөрийн төлбөрийн төлөвийг QPay-ээс шалгаж буцаана.
     public function show(Request $request, Payment $payment): PaymentResource
     {
         abort_unless($payment->user_id === $request->user()->id, 404);
 
+        // QPay алдаа гарвал хадгалсан төлөвөөр нь буцаана.
         try {
             $payment = $this->billing->refresh($payment);
         } catch (PaymentException $e) {
@@ -48,8 +53,8 @@ class PaymentController extends Controller
     }
 
     /**
-     * QPay calls this after a payment. The token identifies our payment; the
-     * real status always comes from payment/check, never from the request.
+     * Төлбөр хийгдсэний дараа QPay үүнийг дуудна. Token нь манай төлбөрийг таньдаг;
+     * бодит төлөвийг үргэлж payment/check-ээс авна, хүсэлтээс хэзээ ч биш.
      */
     public function callback(string $token): JsonResponse
     {
@@ -67,7 +72,7 @@ class PaymentController extends Controller
     }
 
     /**
-     * Local development only (QPAY_FAKE=true): simulate a successful payment.
+     * Зөвхөн локал хөгжүүлэлтэд (QPAY_FAKE=true): амжилттай төлбөрийг дуурайна.
      */
     public function simulate(Request $request, Payment $payment): PaymentResource
     {

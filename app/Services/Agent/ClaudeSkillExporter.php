@@ -6,19 +6,22 @@ use Illuminate\Support\Facades\File;
 use ZipArchive;
 
 /**
- * Writes the studio's skills (bundled, admin edits and custom ones) as
- * Claude Agent Skills: one folder per skill with a SKILL.md (name +
- * description frontmatter) and its LICENSE, plus a zip per skill for
- * uploading to claude.ai. Names get a prefix so they never clash with the
- * Claude skills some of them were adapted from.
+ * Студийн skill-үүдийг (bundled, админы засвар, custom) Claude Agent Skills
+ * хэлбэрээр бичнэ: skill бүрт SKILL.md (name + description frontmatter) болон
+ * LICENSE бүхий нэг хавтас, мөн claude.ai-д оруулах skill тус бүрийн zip.
+ * Нэрэнд угтвар залгадаг тул зарим нь эх болсон Claude skill-үүдтэй
+ * хэзээ ч давхцахгүй.
  */
 class ClaudeSkillExporter
 {
+    // Экспортолсон skill-ийн нэрийн угтвар.
     public const PREFIX = 'studio-';
 
     public function __construct(private SkillLibrary $skills) {}
 
     /**
+     * Идэвхтэй skill бүрийг $to хавтас руу хавтас + zip болгон бичнэ.
+     *
      * @return list<array{name: string, dir: string, zip: string}>
      */
     public function export(string $to): array
@@ -29,8 +32,8 @@ class ClaudeSkillExporter
         $written = [];
 
         foreach ($skills as $skill) {
-            // Skills taken unchanged from coreyhaines31/marketingskills are installed from
-            // that repo itself; a studio- copy would only duplicate them.
+            // coreyhaines31/marketingskills-ээс өөрчлөлтгүй авсан skill-үүдийг тэр repo-оос
+            // шууд суулгадаг; studio- хуулбар нь зөвхөн давхардал үүсгэнэ.
             if (str_contains((string) $skill['origin'], 'marketingskills')) {
                 continue;
             }
@@ -43,6 +46,7 @@ class ClaudeSkillExporter
             $license = resource_path("ai/skills/{$skill['name']}/LICENSE.txt");
             $hasLicense = $skill['source'] === 'bundled' && File::exists($license);
 
+            // LICENSE нь зөвхөн bundled skill-д байдаг; references/-ийг ч хамт хуулна.
             File::put("{$dir}/SKILL.md", $this->skillMd($name, $skill, $this->skills->source($skill['name'])['content'], $names, $hasLicense));
 
             if ($hasLicense) {
@@ -58,13 +62,17 @@ class ClaudeSkillExporter
         return $written;
     }
 
+    /**
+     * Frontmatter, Poster Studio-гийн тайлбар болон бие бүхий SKILL.md-ийн текстийг угсарна.
+     */
     private function skillMd(string $name, array $skill, string $body, array $names, bool $hasLicense): string
     {
-        // Point cross-references at the exported names.
+        // Бусад skill рүү хийсэн `нэр` холбоосыг экспортолсон (угтвартай) нэр рүү чиглүүлнэ.
         $body = preg_replace_callback('/`('.implode('|', array_map('preg_quote', $names)).')`/', fn ($m) => '`'.self::PREFIX.$m[1].'`', $body);
 
         $front = ['---', "name: {$name}", 'description: '.$this->yaml($skill['description'])];
         if ($hasLicense) {
+            // LICENSE файл "MIT"-ээр эхэлбэл MIT, бусад нь Apache-2.0.
             $spdx = str_starts_with(trim(File::get(resource_path("ai/skills/{$skill['name']}/LICENSE.txt"))), 'MIT') ? 'MIT' : 'Apache-2.0';
             $front[] = "license: {$spdx} (see LICENSE.txt)";
         }
@@ -78,17 +86,20 @@ class ClaudeSkillExporter
         return implode("\n", $front)."\n\n{$note}\n\n".trim($body)."\n";
     }
 
+    /** Текстийг нэг мөрөнд шахаж, YAML-ийн давхар хашилттай string болгоно. */
     private function yaml(string $text): string
     {
         return '"'.str_replace(['\\', '"'], ['\\\\', '\\"'], trim(preg_replace('/\s+/', ' ', $text))).'"';
     }
 
+    /** Skill-ийн хавтсыг claude.ai-д оруулах zip болгоно; zip-ийн замыг буцаана. */
     private function zip(string $dir, string $path, string $name): string
     {
         File::delete($path);
         $zip = new ZipArchive;
         $zip->open($path, ZipArchive::CREATE);
 
+        // Файл бүрийг "<нэр>/..." дотор, Windows-ийн \ -ийг / болгон нэмнэ.
         foreach (File::allFiles($dir) as $file) {
             $zip->addFile($file->getPathname(), "{$name}/".str_replace('\\', '/', $file->getRelativePathname()));
         }

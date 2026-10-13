@@ -4,13 +4,15 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
+// Database queue-ийн хүснэгтүүд (Laravel-ийн анхдагч): RunCreation зэрэг job-ууд энд дараалалд орно.
 return new class extends Migration
 {
     /**
-     * Run the migrations.
+     * Migration-ийг ажиллуулна.
      */
     public function up(): void
     {
+        // Хүлээгдэж буй queue job-ууд.
         Schema::create('jobs', function (Blueprint $table) {
             $table->id();
             $table->string('queue')->index();
@@ -21,6 +23,7 @@ return new class extends Migration
             $table->unsignedInteger('created_at');
         });
 
+        // Bus::batch()-ийн job багцууд.
         Schema::create('job_batches', function (Blueprint $table) {
             $table->string('id')->primary();
             $table->string('name');
@@ -34,6 +37,7 @@ return new class extends Migration
             $table->integer('finished_at')->nullable();
         });
 
+        // Амжилтгүй болсон job-ууд (exception-тай нь).
         Schema::create('failed_jobs', function (Blueprint $table) {
             $table->id();
             $table->string('uuid')->unique();
@@ -48,7 +52,7 @@ return new class extends Migration
     }
 
     /**
-     * Reverse the migrations.
+     * Migration-ийг буцаана: queue хүснэгтүүдийг устгана.
      */
     public function down(): void
     {

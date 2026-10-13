@@ -10,13 +10,17 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
+/**
+ * Багц худалдан авалт: QPay нэхэмжлэх үүсгэх, төлөлтийг шалгах, захиалгыг идэвхжүүлэх.
+ */
 class BillingService
 {
+    // QPay API клиент.
     public function __construct(private QPayClient $qpay) {}
 
     /**
-     * Create a pending payment and its QPay invoice. Reuses an unexpired
-     * pending invoice for the same plan so double-clicks don't create duplicates.
+     * Хүлээгдэж буй төлбөр болон түүний QPay нэхэмжлэхийг үүсгэнэ. Давхар
+     * дарахад давхардал үүсэхгүйн тулд ижил багцын хугацаа нь дуусаагүй хүлээгдэж буй нэхэмжлэхийг дахин ашиглана.
      */
     public function startCheckout(User $user, Plan $plan): Payment
     {
@@ -41,6 +45,7 @@ class BillingService
             'status' => Payment::PENDING,
         ]);
 
+        // Зөвхөн локал орчинд: QPay руу хандахгүй, хуурамч нэхэмжлэх үүсгэнэ.
         if (config('qpay.fake')) {
             $payment->update([
                 'invoice_id' => 'FAKE-'.$payment->sender_invoice_no,
@@ -72,8 +77,8 @@ class BillingService
     }
 
     /**
-     * Ask QPay whether the invoice is paid and activate the subscription if so.
-     * Safe to call repeatedly and concurrently.
+     * Нэхэмжлэх төлөгдсөн эсэхийг QPay-ээс асууж, төлөгдсөн бол захиалгыг идэвхжүүлнэ.
+     * Давтан болон зэрэг дуудахад аюулгүй.
      */
     public function refresh(Payment $payment, bool $force = false): Payment
     {
@@ -81,12 +86,14 @@ class BillingService
             return $payment;
         }
 
+        // Нэхэмжлэхийн хүчинтэй хугацаа өнгөрсөн бол хугацаа дууссан гэж тэмдэглэнэ.
         if ($payment->created_at->lt(now()->subHours(config('qpay.invoice_ttl_hours')))) {
             $payment->update(['status' => Payment::EXPIRED]);
 
             return $payment;
         }
 
+        // QPay руу хэт олон удаа хандахгүйн тулд саяхан шалгасан бол алгасна.
         if (! $force && $payment->checked_at && $payment->checked_at->gt(now()->subSeconds(config('qpay.check_interval')))) {
             return $payment;
         }
@@ -97,6 +104,7 @@ class BillingService
             return $payment;
         }
 
+        // Callback-д итгэхгүй, төлсөн дүнг заавал payment/check-ээр баталгаажуулна.
         $result = $this->qpay->paidAmount($payment->invoice_id);
 
         if ($result['paid'] >= $payment->amount) {
@@ -107,17 +115,20 @@ class BillingService
     }
 
     /**
-     * Mark paid and extend the user's subscription exactly once.
+     * Төлсөн гэж тэмдэглэж, хэрэглэгчийн захиалгыг яг нэг удаа сунгана.
      */
     public function markPaid(Payment $payment, array $raw = []): Subscription
     {
         return DB::transaction(function () use ($payment, $raw) {
+            // Төлбөрийн мөрийг түгжиж, зэрэг дуудалтаас давхар захиалга үүсэхээс сэргийлнэ.
             $payment = Payment::whereKey($payment->id)->lockForUpdate()->firstOrFail();
 
+            // Энэ төлбөрөөр захиалга аль хэдийн үүссэн бол түүнийг буцаана (idempotent).
             if ($existing = Subscription::where('payment_id', $payment->id)->first()) {
                 return $existing;
             }
 
+            // Идэвхтэй төлбөртэй захиалга байвал түүний дуусах өдрөөс, үгүй бол одооноос эхлүүлнэ.
             $plan = $payment->plan;
             $currentEnd = Subscription::where('user_id', $payment->user_id)->paid()->max('ends_at');
             $startsAt = $currentEnd && now()->lt($currentEnd) ? Carbon::parse($currentEnd) : now();
@@ -139,6 +150,9 @@ class BillingService
         });
     }
 
+    /**
+     * Төлбөрийн нууц token агуулсан QPay callback URL.
+     */
     public function callbackUrl(Payment $payment): string
     {
         $base = rtrim(config('qpay.callback_base') ?: config('app.url'), '/');

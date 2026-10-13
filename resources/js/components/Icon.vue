@@ -1,7 +1,8 @@
 <script setup>
-// Small inline icon set (Lucide-style strokes) so the UI needs no icon font.
+// Жижиг inline дүрсийн цуглуулга (Lucide маягийн зураас) — UI-д icon font хэрэггүй.
 defineProps({ name: { type: String, required: true }, size: { type: [Number, String], default: 18 } });
 
+// Дүрс тус бүрийн SVG path (24×24 viewBox).
 const paths = {
     sparkles: 'M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3zM5 17l.8 2.2L8 20l-2.2.8L5 23l-.8-2.2L2 20l2.2-.8L5 17zM19 15l.6 1.4L21 17l-1.4.6L19 19l-.6-1.4L17 17l1.4-.6L19 15z',
     image: 'M3 5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5zM3 16l5-5 4 4 3-3 6 6M15.5 8.5a1.5 1.5 0 1 0 0 .01',

@@ -1,4 +1,5 @@
 <script setup>
+// Багц ба үнийн хуудас: кредитийн үнэ, сар/жилийн багцууд, QPay-ээр худалдан авах.
 import { computed, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { api, date, money } from '../lib/api';
@@ -8,21 +9,28 @@ import PaymentDialog from '../components/PaymentDialog.vue';
 
 const route = useRoute();
 const router = useRouter();
+// Нээлттэй төлбөр (PaymentDialog), худалдан авч буй багцын id, алдаа.
 const payment = ref(null);
 const busy = ref(null);
 const error = ref('');
 
+// Бүтээлийн төрөл тус бүрийн кредитийн үнэ ба нэг кредитийн төгрөгийн үнэ.
 const prices = session.meta.credit_prices;
 const perCredit = (p) => Math.round(p.price / p.credits);
 
-// Paid plans come in monthly and yearly versions with the same name.
+// Төлбөртэй багцууд ижил нэртэй сарын ба жилийн хувилбартай байдаг.
 const isYearly = (p) => p.period_days >= 360;
 const yearly = ref(false);
+// Жилийн багц байгаа эсэх (сар/жил сэлгэгчийг харуулах эсэх).
 const hasYearly = computed(() => session.meta.plans.some((p) => p.price && isYearly(p)));
+// Харагдах багцууд: үнэгүй багц үргэлж, төлбөртэйг нь сонгосон хугацаагаар шүүнэ.
 const visible = computed(() => session.meta.plans.filter((p) => !p.price || isYearly(p) === yearly.value));
+// Жилийн багцын ижил нэртэй сарын хувилбар.
 const monthlyOf = (p) => session.meta.plans.find((m) => m.price && !isYearly(m) && m.name === p.name);
+// Жилээр авахад сараар 12 удаа авахаас хэмнэх дүн.
 const saving = (p) => (monthlyOf(p) ? monthlyOf(p).price * 12 - p.price : 0);
 
+// Багц авах: нэвтрээгүй бол бүртгэл рүү, үнэгүй бол /create руу, үгүй бол QPay нэхэмжлэх үүсгэнэ.
 async function buy(plan) {
     if (!session.user) {
         router.push({ name: 'register', query: { next: plan.price ? '/pricing' : '/create' } });
@@ -43,6 +51,7 @@ async function buy(plan) {
     }
 }
 
+// Төлбөр орсны дараа хэрэглэгчийг шинэчилж, амжилтын мессежийг түр харуулаад цааш шилжинэ.
 async function paid() {
     await refreshUser();
     setTimeout(() => {
@@ -54,6 +63,7 @@ async function paid() {
 
 <template>
     <div class="mx-auto max-w-5xl">
+        <!-- Гарчиг, кредитийн үнэ, одоогийн багцын мэдээлэл -->
         <section class="mx-auto max-w-2xl py-10 text-center">
             <h1 class="display text-4xl leading-[0.95] md:text-6xl">Кредитээр<br /><span class="text-lime">бүтээ.</span></h1>
             <p class="mt-4 text-zinc-400">Бүртгүүлмэгц 1 постер үнэгүй. Дараа нь сар эсвэл жилийн багцаар кредит аваарай. QPay-ээр төлнө.</p>
@@ -69,6 +79,7 @@ async function paid() {
 
         <p v-if="error" class="mb-4 rounded-xl bg-red-950/70 p-3 text-sm text-red-200">{{ error }}</p>
 
+        <!-- Сар / жил сэлгэгч -->
         <div v-if="hasYearly" class="mb-6 flex justify-center">
             <div class="inline-flex rounded-2xl bg-surface-2 p-1">
                 <button class="rounded-xl px-5 py-2 text-sm font-semibold transition" :class="!yearly ? 'bg-lime text-ink' : 'text-zinc-400 hover:text-fg'" @click="yearly = false">Сараар</button>
@@ -76,6 +87,7 @@ async function paid() {
             </div>
         </div>
 
+        <!-- Багцын картууд -->
         <div class="grid gap-4 md:grid-cols-3">
             <div v-for="(p, i) in visible" :key="p.id" class="feature-card flex flex-col" :class="{ 'border-lime/60': i === 1 }">
                 <div class="mb-4 flex items-center justify-between">
@@ -102,6 +114,7 @@ async function paid() {
             </div>
         </div>
 
+        <!-- QPay төлбөрийн цонх -->
         <PaymentDialog v-if="payment" :payment="payment" @close="payment = null" @paid="paid" />
     </div>
 </template>

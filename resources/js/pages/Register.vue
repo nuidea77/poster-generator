@@ -1,4 +1,5 @@
 <script setup>
+// Бүртгүүлэх хуудас: шинэ хэрэглэгч үүсгээд next параметр эсвэл /pricing руу шилжинэ.
 import { reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { api } from '../lib/api';
@@ -12,6 +13,7 @@ const errors = ref({});
 const error = ref('');
 const busy = ref(false);
 
+// Бүртгүүлэх хүсэлт илгээнэ; талбарын алдааг тус бүрд нь, бусад алдааг нийтээр харуулна.
 async function submit() {
     error.value = '';
     errors.value = {};
@@ -30,6 +32,7 @@ async function submit() {
 
 <template>
     <AuthCard title="Бүртгүүлэх" subtitle="Багцаа сонгоод хязгааргүй бүтээгээрэй.">
+        <!-- Бүртгүүлэх форм: нэр, имэйл, нууц үг -->
         <form class="space-y-4" @submit.prevent="submit">
             <div>
                 <label class="label">Нэр / Байгууллага</label>

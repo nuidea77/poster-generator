@@ -1,4 +1,5 @@
 <script setup>
+// Нэг бүтээлийн хуудас: дэлгэрэнгүй мэдээлэл, явц (polling), үр дүнг үзэх/татах, дахин үүсгэх, устгах.
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { api, date } from '../lib/api';
@@ -10,10 +11,13 @@ const router = useRouter();
 const creation = ref(null);
 const error = ref('');
 const busy = ref(false);
+// Polling-ийн timer.
 let timer;
 
+// Бүтээл одоо боловсруулагдаж байгаа эсэх (дараалалд, ажиллаж, угсарч буй).
 const active = computed(() => creation.value && ['queued', 'running', 'assembling'].includes(creation.value.status));
 
+// Бүтээлийг серверээс ачаална; алдаа гарсан эсвэл дууссан бол polling-ийг зогсооно.
 async function load() {
     try {
         creation.value = (await api.get(`/creations/${route.params.id}`)).data;
@@ -24,6 +28,7 @@ async function load() {
     if (creation.value && !active.value) clearInterval(timer);
 }
 
+// Төлөвийг цэвэрлээд ачаална; идэвхтэй бол 3 секунд тутам polling эхлүүлнэ.
 async function start() {
     clearInterval(timer);
     creation.value = null;
@@ -32,11 +37,13 @@ async function start() {
     if (active.value) timer = setInterval(load, 3000);
 }
 
+// Хуудас нээгдэх болон id солигдох (дахин үүсгэсний дараа) үед шинээр ачаална.
 onMounted(start);
 watch(() => route.params.id, (id) => id && start());
 
 onBeforeUnmount(() => clearInterval(timer));
 
+// Ижил брифээр шинэ бүтээл үүсгэж, түүний хуудас руу шилжинэ; кредит/багц дутвал үнийн хуудас руу.
 async function retry() {
     busy.value = true;
     try {
@@ -50,35 +57,43 @@ async function retry() {
     }
 }
 
+// Баталгаажуулаад бүтээлийг устгаж, жагсаалт руу буцна.
 async function remove() {
     if (!confirm('Энэ бүтээлийг устгах уу?')) return;
     await api.delete(`/creations/${creation.value.id}`);
     router.push('/library');
 }
 
+// Огноо ба цагийг "YYYY.MM.DD HH:MM" хэлбэрээр.
 const stamp = (d) => {
     if (!d) return '—';
     const t = new Date(d);
     return `${date(d)} ${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')}`;
 };
+// Бүтээл хийгдэхэд зарцуулсан хугацаа (сек эсвэл мин сек).
 const took = computed(() => {
     const c = creation.value;
     if (!c?.finished_at || !c?.created_at) return null;
     const s = Math.max(0, Math.round((new Date(c.finished_at) - new Date(c.created_at)) / 1000));
     return s < 60 ? `${s} сек` : `${Math.floor(s / 60)} мин ${s % 60} сек`;
 });
+// Төлөв ба оруулсан зургийн үүргийн монгол нэрс.
 const statusLabel = { done: 'Амжилттай', failed: 'Амжилтгүй', queued: 'Дараалалд', running: 'Хийгдэж байна', assembling: 'Хийгдэж байна' };
 const roleLabel = { logo: 'Лого', product: 'Бүтээгдэхүүн', reference: 'Жишээ зураг' };
+// Секундийг м:сс хэлбэрээр.
 const clock = (s) => `${Math.floor(Math.round(s) / 60)}:${String(Math.round(s) % 60).padStart(2, '0')}`;
+// Татах файлын нэр: бүтээлийн id-ийн сүүлийн 6 тэмдэгт, хэмжээ, өргөтгөл (mp4/jpg).
 const fileName = (o) => `poster-studio-${creation.value.id.slice(-6).toLowerCase()}-${o.label.replace(':', 'x')}.${o.kind === 'video' ? 'mp4' : 'jpg'}`;
 </script>
 
 <template>
     <div class="mx-auto max-w-[1200px]">
+        <!-- Алдаа ба ачаалж буй үеийн spinner -->
         <p v-if="error" class="rounded-xl bg-red-950/70 p-3 text-sm text-red-200">{{ error }}</p>
         <div v-if="!creation && !error" class="grid min-h-[50vh] place-items-center"><span class="spinner text-lime" /></div>
 
         <template v-if="creation">
+            <!-- Толгой: буцах холбоос, төрөл, огноо, дахин үүсгэх/устгах -->
             <div class="mb-4 flex flex-wrap items-center gap-2">
                 <RouterLink to="/library" class="btn btn-ghost btn-sm"><Icon name="arrow" size="12" class="rotate-180" /> Миний бүтээлүүд</RouterLink>
                 <span class="badge" :class="creation.type === 'reel' ? 'badge-top' : 'badge-new'">{{ creation.type === 'reel' ? 'Reels' + (creation.outputs[0]?.duration ? ` · ${clock(creation.outputs[0].duration)}` : '') : 'Постер' }}</span>
@@ -91,7 +106,7 @@ const fileName = (o) => `poster-studio-${creation.value.id.slice(-6).toLowerCase
 
             <h1 class="display mb-4 line-clamp-2 text-2xl leading-tight md:text-3xl">{{ creation.prompt }}</h1>
 
-            <!-- Everything about the job: the full brief, settings, times and uploaded files. -->
+            <!-- Ажлын бүх мэдээлэл: бүтэн бриф, тохиргоо, хугацаа, оруулсан файлууд. -->
             <details class="panel mb-6 p-4" open>
                 <summary class="cursor-pointer text-sm font-semibold">Дэлгэрэнгүй мэдээлэл</summary>
                 <div class="mt-3 grid gap-4 md:grid-cols-[2fr_1fr]">
@@ -126,6 +141,7 @@ const fileName = (o) => `poster-studio-${creation.value.id.slice(-6).toLowerCase
                 </div>
             </details>
 
+            <!-- Үр дүнгийн хэсэг: явц / алдаа / бэлэн reels эсвэл постерууд -->
             <div v-if="active" class="panel mx-auto max-w-2xl p-6">
                 <StageProgress :creation="creation" />
                 <p class="mt-5 text-sm text-zinc-400">
@@ -141,6 +157,7 @@ const fileName = (o) => `poster-studio-${creation.value.id.slice(-6).toLowerCase
             </div>
 
             <template v-else>
+                <!-- Reels: видео тоглуулагч ба татах товч; постер: хэмжээ бүрийн зураг ба татах товч -->
                 <div v-if="creation.type === 'reel'" class="mx-auto" :class="creation.outputs[0]?.width > creation.outputs[0]?.height ? 'max-w-3xl' : 'max-w-sm'">
                     <div class="media-card bg-black">
                         <video :src="creation.outputs[0]?.url" :poster="creation.outputs[0]?.thumb_url" :style="{ aspectRatio: `${creation.outputs[0]?.width ?? 9} / ${creation.outputs[0]?.height ?? 16}` }" class="w-full" controls playsinline preload="none" />

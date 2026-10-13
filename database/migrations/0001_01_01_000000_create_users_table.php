@@ -4,13 +4,15 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
+// Хэрэглэгч, нууц үг сэргээх token, session-ий хүснэгтүүд (Laravel-ийн анхдагч).
 return new class extends Migration
 {
     /**
-     * Run the migrations.
+     * Migration-ийг ажиллуулна.
      */
     public function up(): void
     {
+        // Хэрэглэгчид.
         Schema::create('users', function (Blueprint $table) {
             $table->id();
             $table->string('name');
@@ -21,12 +23,14 @@ return new class extends Migration
             $table->timestamps();
         });
 
+        // Нууц үг сэргээх token (имэйл тус бүрд нэг).
         Schema::create('password_reset_tokens', function (Blueprint $table) {
             $table->string('email')->primary();
             $table->string('token');
             $table->timestamp('created_at')->nullable();
         });
 
+        // Database session driver-ийн session-ууд (SPA session guard ашигладаг).
         Schema::create('sessions', function (Blueprint $table) {
             $table->string('id')->primary();
             $table->foreignId('user_id')->nullable()->index();
@@ -38,7 +42,7 @@ return new class extends Migration
     }
 
     /**
-     * Reverse the migrations.
+     * Migration-ийг буцаана: гурван хүснэгтийг устгана.
      */
     public function down(): void
     {

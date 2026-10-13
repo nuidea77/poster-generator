@@ -1,28 +1,35 @@
 <script setup>
+// Миний бүтээлүүд: төрөл/төлөвөөр шүүх, сараар бүлэглэсэн grid, хуудаслалт, идэвхтэй ажлуудын polling.
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { api, date } from "../lib/api";
 import Icon from "../components/Icon.vue";
 
+// Жагсаалт, ачаалалт, алдаа, төрлийн шүүлтүүр (all | poster | reel).
 const items = ref([]);
 const loading = ref(true);
 const error = ref("");
 const filter = ref("all");
 const status = ref("all"); // all | done | failed | active
+// Төлөвийн шүүлтүүрийн сонголтууд: [утга, нэр].
 const statuses = [
     ["all", "Бүгд"],
     ["done", "Амжилттай"],
     ["failed", "Амжилтгүй"],
     ["active", "Хийгдэж буй"],
 ];
+// Бүтээл боловсруулагдаж байгаа эсэх.
 const isActive = (c) => ["queued", "running", "assembling"].includes(c.status);
+// Хуудаслалтын төлөв ба polling-ийн timer.
 const page = ref(1);
 const lastPage = ref(1);
 const total = ref(0);
 const loadingMore = ref(false);
 let timer;
 
+// Жагсаалтад хийгдэж буй ажил байгаа эсэх (polling хэрэгтэй эсэх).
 const hasActive = computed(() => items.value.some(isActive));
 
+// Бүтээлүүдийг шүүлтүүрийн дагуу ачаална: reset=true бол эхний хуудаснаас, үгүй бол дараагийн хуудсыг нэмнэ.
 async function load(reset = true) {
     try {
         const type = filter.value === "all" ? "" : `&type=${filter.value}`;
@@ -30,7 +37,7 @@ async function load(reset = true) {
         const res = await api.get(
             `/creations?page=${reset ? 1 : page.value}${type}${state}`,
         );
-        // Appending skips anything already shown (a new job can shift the pages by one).
+        // Нэмэхдээ аль хэдийн харагдаж буйг алгасна (шинэ ажил нэмэгдвэл хуудсууд нэгээр шилжиж болно).
         const seen = new Set(reset ? [] : items.value.map((c) => c.id));
         items.value = reset ? res.data : [...items.value, ...res.data.filter((c) => !seen.has(c.id))];
         page.value = res.meta.current_page;
@@ -43,6 +50,7 @@ async function load(reset = true) {
     }
 }
 
+// "Цааш үзэх": дараагийн хуудсыг ачаалж нэмнэ.
 async function more() {
     if (loadingMore.value) return;
     loadingMore.value = true;
@@ -51,8 +59,8 @@ async function more() {
     loadingMore.value = false;
 }
 
-// Polling refreshes only the jobs still in progress, so pages loaded with
-// "Цааш үзэх" stay on screen.
+// Polling нь зөвхөн хийгдэж буй ажлуудыг шинэчилнэ, тиймээс "Цааш үзэх"-ээр
+// ачаалсан хуудсууд дэлгэцэнд хэвээр үлдэнэ.
 async function refreshActive() {
     for (const c of items.value.filter(isActive)) {
         try {
@@ -60,16 +68,18 @@ async function refreshActive() {
             const i = items.value.findIndex((x) => x.id === c.id);
             if (i !== -1) items.value[i] = data;
         } catch {
-            // keep the old card; the next tick tries again
+            // хуучин картыг үлдээнэ; дараагийн удаа дахин оролдоно
         }
     }
 }
 
+// Шүүлтүүр солигдоход эхнээс нь дахин ачаална.
 watch([filter, status], () => {
     loading.value = true;
     load();
 });
 
+// Эхний ачаалалт; дараа нь 5 секунд тутам хийгдэж буй ажлуудыг шинэчилнэ.
 onMounted(async () => {
     await load();
     timer = setInterval(() => hasActive.value && refreshActive(), 5000);
@@ -77,7 +87,7 @@ onMounted(async () => {
 
 onBeforeUnmount(() => clearInterval(timer));
 
-// Newest first, in one section per year and month ("2026 оны 10-р сар").
+// Шинэ нь эхэндээ, он сар тус бүрээр нэг хэсэг болгож бүлэглэнэ ("2026 оны 10-р сар").
 const groups = computed(() => {
     const out = [];
     for (const c of items.value) {
@@ -95,8 +105,10 @@ const groups = computed(() => {
     return out;
 });
 
+// Картын нүүр зураг: reels бол thumbnail, постер бол эхний зураг.
 const cover = (c) =>
     c.type === "reel" ? c.outputs[0]?.thumb_url : c.outputs[0]?.url;
+// Картын харьцаа: гаралтын хэмжээ, эсвэл сонгосон формат, эсвэл төрлийн анхдагч харьцаа.
 const aspect = (c) => {
     const o = c.outputs[0];
     const fallback = c.type === "reel" ? "9 / 16" : "4 / 5";
@@ -109,6 +121,7 @@ const aspect = (c) => {
 
 <template>
     <div class="mx-auto max-w-[1400px]">
+        <!-- Толгой: гарчиг, төрөл ба төлөвийн шүүлтүүр, шинээр бүтээх товч -->
         <div class="mb-5 flex flex-wrap items-center gap-3">
             <h1 class="display text-3xl">Миний бүтээлүүд</h1>
             <div class="ml-auto flex gap-1.5">
@@ -142,6 +155,7 @@ const aspect = (c) => {
             >
         </div>
 
+        <!-- Алдаа, ачаалж буй, хоосон төлөв -->
         <p v-if="error" class="rounded-xl bg-red-950 p-3 text-sm text-red-200">
             {{ error }}
         </p>
@@ -166,6 +180,7 @@ const aspect = (c) => {
             </div>
         </div>
 
+        <!-- Сараар бүлэглэсэн бүтээлүүдийн жагсаалт -->
         <section v-for="g in groups" :key="g.key" class="mb-6">
             <h2
                 class="sticky top-0 z-10 -mx-1 mb-3 flex items-baseline gap-2 bg-ink/85 px-1 py-2 backdrop-blur"
@@ -175,7 +190,7 @@ const aspect = (c) => {
                     >{{ g.items.length }} бүтээл</span
                 >
             </h2>
-            <!-- A grid, not CSS columns: cards read left to right, newest first. -->
+            <!-- CSS columns биш grid: картууд зүүнээс баруун тийш, шинэ нь эхэндээ. -->
             <div
                 class="grid grid-cols-2 items-start gap-4 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"
             >
@@ -218,6 +233,7 @@ const aspect = (c) => {
                             {{ c.progress }}%</span
                         >
                     </div>
+                    <!-- Төрөл, гаралтын тоо, төлөвийн тэмдэглэгээнүүд -->
                     <span
                         class="badge absolute top-2 left-2 backdrop-blur"
                         :class="c.type === 'reel' ? 'badge-top' : 'badge-new'"
@@ -252,6 +268,7 @@ const aspect = (c) => {
                             class="grid size-12 place-items-center rounded-full bg-black/50 backdrop-blur"
                             ><Icon name="play" size="18" /></span
                     ></span>
+                    <!-- Бриф ба огноо -->
                     <div class="media-overlay">
                         <div class="line-clamp-2 text-sm font-semibold">
                             {{ c.prompt }}
@@ -264,6 +281,7 @@ const aspect = (c) => {
             </div>
         </section>
 
+        <!-- Хуудаслалт: тоо ба "Цааш үзэх" -->
         <div v-if="items.length" class="mt-4 text-center">
             <p class="mb-2 text-xs text-muted">{{ items.length }} / {{ total }} бүтээл</p>
             <button v-if="page < lastPage" class="btn btn-ghost" :disabled="loadingMore" @click="more">

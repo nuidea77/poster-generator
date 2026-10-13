@@ -11,8 +11,13 @@ use App\Services\AI\Providers\SeedanceProvider;
 use App\Services\AI\Providers\VeoProvider;
 use Illuminate\Support\Facades\Cache;
 
+/**
+ * Зураг/видео үйлчилгээ үзүүлэгчдийг нэрээр нь үүсгэж, аль нь тохируулагдсан,
+ * аль нь quota/credit дууссаны улмаас түр зогссоныг хянана.
+ */
 class AiManager
 {
+    // Нэрээр нь зураг үүсгэгч буцаана (тохируулаагүй эсвэл зогссон бол алдаа).
     public function image(string $name): ImageProvider
     {
         return match ($this->configured($name, 'image')) {
@@ -22,6 +27,7 @@ class AiManager
         };
     }
 
+    // Нэрээр нь видео үүсгэгч буцаана (тохируулаагүй эсвэл зогссон бол алдаа).
     public function video(string $name): VideoProvider
     {
         return match ($this->configured($name, 'video')) {
@@ -31,7 +37,7 @@ class AiManager
     }
 
     /**
-     * Configured provider names of a kind ("image" | "video").
+     * Тухайн төрлийн ("image" | "video") тохируулагдсан үйлчилгээ үзүүлэгчдийн нэрс.
      *
      * @return list<string>
      */
@@ -43,28 +49,28 @@ class AiManager
             ->values()
             ->all();
 
-        // A pinned provider (AI_IMAGE_ONLY / AI_VIDEO_ONLY) is the only one offered while it works;
-        // when it is paused or not set up, the others step in.
+        // Тогтоосон үйлчилгээ үзүүлэгч (AI_IMAGE_ONLY / AI_VIDEO_ONLY) ажиллаж байхад зөвхөн тэр санал болгогдоно;
+        // түр зогссон эсвэл тохируулаагүй бол бусад нь орлоно.
         $only = config("ai.only.{$kind}");
 
         return $pinned && $only && in_array($only, $names, true) ? [$only] : $names;
     }
 
     /**
-     * Pause a provider for a while when it says it is out of quota or credits,
-     * so jobs stop offering it to Fable and stop wasting turns on it.
+     * Үйлчилгээ үзүүлэгч quota эсвэл credit дууссан гэвэл түүнийг хэсэг хугацаанд
+     * зогсооно; ингэснээр ажлууд Fable-д үүнийг санал болгож, алхам дэмий үрэхээ болино.
      *
-     * @return bool whether the error was a quota / billing one (provider paused)
+     * @return bool алдаа quota / billing-тэй холбоотой байсан эсэх (үйлчилгээ үзүүлэгч зогссон)
      */
     public function noteFailure(string $name, string $error): bool
     {
-        // Our own "is paused" refusal must not extend the pause forever.
+        // Бидний өөрсдийн "is paused" татгалзал зогсолтыг үүрд сунгах ёсгүй.
         if (str_contains($error, "Provider [{$name}] is paused")) {
             return true;
         }
 
-        // Out of quota / credits pauses the provider; a transient "try again later" rate limit does not.
-        // Vertex's 429 "Resource has been exhausted (e.g. check quota)" is a per-minute limit, not billing.
+        // Quota / credit дууссан бол үйлчилгээ үзүүлэгчийг зогсооно; түр зуурын "try again later" rate limit бол үгүй.
+        // Vertex-ийн 429 "Resource has been exhausted (e.g. check quota)" нь минутын хязгаар, billing биш.
         if (preg_match('/try again later|Resource has been exhausted/i', $error) || ! preg_match('/quota|no credits|credits are depleted|prepayment|credit balance|billing|insufficient_quota/i', $error)) {
             return false;
         }
@@ -74,14 +80,15 @@ class AiManager
         return true;
     }
 
+    // Үйлчилгээ үзүүлэгч одоогоор түр зогссон эсэх (cache дахь тэмдэглэгээгээр).
     public function paused(string $name): bool
     {
         return Cache::has($this->pauseKey($name));
     }
 
     /**
-     * Provider config with the route it will really take: a provider set to run
-     * via Vertex falls back to the Gemini API while Vertex has no credentials.
+     * Үйлчилгээ үзүүлэгчийн config-ийг бодит замтай нь буцаана: Vertex-ээр ажиллахаар
+     * тохируулсан ч Vertex-ийн credentials байхгүй бол Gemini API руу шилжинэ.
      */
     private function settings(string $name): array
     {
@@ -94,7 +101,7 @@ class AiManager
         return $provider;
     }
 
-    /** Pauses are per route, so moving a provider to Vertex is not blocked by a Gemini-API outage. */
+    /** Зогсолт нь зам тус бүрээр тул Gemini API-ийн доголдол үйлчилгээ үзүүлэгчийг Vertex руу шилжүүлэхэд саад болохгүй. */
     private function pauseKey(string $name): string
     {
         $via = config("ai.providers.{$name}") ? ($this->settings($name)['via'] ?? 'direct') : 'direct';
@@ -102,22 +109,25 @@ class AiManager
         return "ai:paused:{$name}:{$via}";
     }
 
-    /** A provider can be called: Vertex AI credentials when it runs via Vertex, else its API key. */
+    /** Үйлчилгээ үзүүлэгчийг дуудаж болох эсэх: Vertex-ээр бол Vertex AI credentials, эс бөгөөс өөрийн API key. */
     private function ready(array $provider): bool
     {
         return (($provider['via'] ?? null) === 'vertex' && $this->vertexReady($provider)) || filled($provider['key'] ?? null);
     }
 
+    // Vertex бэлэн эсэх; видео (Veo) нь service account шаарддаг, зурагт API key хангалттай.
     private function vertexReady(array $provider): bool
     {
         return Vertex::fromConfig()->ready(needsServiceAccount: ($provider['kind'] ?? null) === 'video');
     }
 
+    // Claude (Anthropic) API key тохируулагдсан эсэх.
     public function claudeReady(): bool
     {
         return filled(config('ai.providers.anthropic.key'));
     }
 
+    // Нэрийг шалгана: зогссон эсвэл энэ төрөлд тохируулаагүй бол AiException шиднэ.
     private function configured(string $name, string $kind): string
     {
         if ($this->paused($name)) {

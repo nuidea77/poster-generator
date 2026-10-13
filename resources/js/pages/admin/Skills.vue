@@ -1,9 +1,11 @@
 <script setup>
+// Админ: агентын skill-үүд — жагсаах, үзэх, засах, идэвхжүүлэх/унтраах, SKILL.md импортлох, custom skill нэмэх/устгах.
 import { onMounted, ref } from 'vue';
 import Icon from '../../components/Icon.vue';
 import AdminNav from '../../components/AdminNav.vue';
 import { api } from '../../lib/api';
 
+// Skill-үүдийн жагсаалт ба баруун талын самбарын төлөв (үзэж буй / засаж буй).
 const skills = ref([]);
 const viewing = ref(null); // { name, content }
 const editing = ref(null); // { id?, name, description, content, enabled, bundled }
@@ -12,8 +14,10 @@ const saving = ref(false);
 const importing = ref(false);
 const notice = ref('');
 
+// Claude skill-ээс гаралтай эсэх (origin мөрөөр нь).
 const isClaude = (s) => /claude skill/i.test(s.origin || '');
 
+// Claude-ийн SKILL.md файлыг импортлоод жагсаалтыг шинэчилж, шинэ skill-ийг нээнэ.
 async function importFile(e) {
     const file = e.target.files?.[0];
     e.target.value = '';
@@ -34,6 +38,7 @@ async function importFile(e) {
     }
 }
 
+// Шинэ skill-ийн анхдагч Markdown загвар.
 const template = `# Миний skill
 
 ## Хэзээ ашиглах
@@ -45,6 +50,7 @@ const template = `# Миний skill
 
 onMounted(load);
 
+// Бүх skill-ийг (bundled + custom) ачаална.
 async function load() {
     try {
         skills.value = await api.get('/admin/skills');
@@ -53,6 +59,7 @@ async function load() {
     }
 }
 
+// Skill-ийн агуулгыг ачаалж баруун самбарт харуулна.
 async function view(s) {
     error.value = '';
     try {
@@ -62,13 +69,16 @@ async function view(s) {
     }
 }
 
+// Системтэй хамт ирсэн (bundled) skill эсэх.
 const isBundled = (s) => s.source === 'bundled';
 
+// Хоосон загвартай шинэ skill засварлагчийг нээнэ.
 function startNew() {
     editing.value = { name: '', description: '', content: template, enabled: true };
     viewing.value = null;
 }
 
+// Skill-ийн агуулгыг татаж засварлагчид ачаална.
 async function edit(s) {
     error.value = '';
     try {
@@ -80,9 +90,10 @@ async function edit(s) {
     }
 }
 
-// Bundled skills are saved as an edit (override) of the same name; custom ones as their own row.
+// Bundled skill нь ижил нэртэй засвар (override) болж хадгалагдана; custom skill өөрийн мөрөөр.
 const put = (s, body) => (isBundled(s) ? api.put(`/admin/skills/bundled/${s.name}`, body) : api.put(`/admin/skills/${s.id}`, { name: s.name, ...body }));
 
+// Засварлагчийн утгыг хадгална: байгаа skill бол put(), шинэ бол POST.
 async function save() {
     error.value = '';
     saving.value = true;
@@ -101,6 +112,7 @@ async function save() {
     }
 }
 
+// Skill-ийг идэвхжүүлэх/унтраах; нээлттэй байвал харагдацыг шинэчилнэ.
 async function toggle(s) {
     error.value = '';
     try {
@@ -113,6 +125,7 @@ async function toggle(s) {
     }
 }
 
+// Bundled skill-ийн засварыг устгаж анхны хувилбар руу буцаана.
 async function reset(s) {
     if (!confirm(`"${s.name}"-ийн засварыг устгаад анхны хувилбар руу буцаах уу?`)) return;
     await api.delete(`/admin/skills/bundled/${s.name}`);
@@ -120,6 +133,7 @@ async function reset(s) {
     if (viewing.value?.name === s.name) await view(skills.value.find((x) => x.name === s.name));
 }
 
+// Custom skill-ийг баталгаажуулаад устгана.
 async function remove(s) {
     if (!confirm(`"${s.name}" skill-ийг устгах уу?`)) return;
     await api.delete(`/admin/skills/${s.id}`);
@@ -131,6 +145,7 @@ async function remove(s) {
 <template>
     <div class="mx-auto max-w-[1400px]">
         <AdminNav />
+        <!-- Толгой: гарчиг, тоо, импортлох ба нэмэх товч -->
         <div class="mb-5 flex flex-wrap items-center gap-3">
             <h1 class="display text-3xl">Skills</h1>
             <span class="badge badge-dark">{{ skills.length }}</span>
@@ -143,10 +158,12 @@ async function remove(s) {
                 <button class="btn btn-lime" @click="startNew"><Icon name="plus" size="14" /> Skill нэмэх</button>
             </div>
         </div>
+        <!-- Алдаа ба мэдэгдэл -->
         <p v-if="error" class="mb-3 rounded-xl bg-red-950/70 p-2 text-xs text-red-200">{{ error }}</p>
         <p v-if="notice" class="mb-3 rounded-xl bg-lime/10 p-2 text-xs text-lime">{{ notice }}</p>
 
         <div class="grid gap-5 lg:grid-cols-[1fr_minmax(0,1.2fr)]">
+            <!-- Skill-үүдийн картууд: тэмдэглэгээ, тайлбар, үйлдлийн товчнууд -->
             <div class="grid gap-3 sm:grid-cols-2">
                 <button v-for="s in skills" :key="s.name" class="group feature-card text-left" :class="{ 'opacity-50': !s.enabled, 'border-lime/60': viewing?.name === s.name }" @click="view(s)">
                     <div class="mb-5 flex items-start justify-between">
@@ -169,6 +186,7 @@ async function remove(s) {
                 </button>
             </div>
 
+            <!-- Баруун самбар: засварлагч / skill-ийн агуулга / хоосон төлөв -->
             <div class="lg:sticky lg:top-20 lg:self-start">
                 <div v-if="editing" class="panel space-y-3">
                     <div class="text-sm font-semibold">{{ editing.id || editing.bundled ? 'Skill засах' : 'Шинэ skill' }}</div>

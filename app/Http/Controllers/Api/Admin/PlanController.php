@@ -8,18 +8,22 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
+// Админ: багцуудыг (plan) жагсаах, үүсгэх, засах.
 class PlanController extends Controller
 {
+    // Бүх багцыг эрэмбээр нь буцаана.
     public function index(): JsonResponse
     {
         return response()->json(['data' => Plan::orderBy('sort')->get()]);
     }
 
+    // Шинэ багц үүсгэнэ.
     public function store(Request $request): JsonResponse
     {
         return response()->json(['data' => Plan::create($this->validated($request))], 201);
     }
 
+    // Байгаа багцыг шинэчилнэ.
     public function update(Request $request, Plan $plan): JsonResponse
     {
         $plan->update($this->validated($request, $plan));
@@ -27,12 +31,13 @@ class PlanController extends Controller
         return response()->json(['data' => $plan]);
     }
 
+    // Үүсгэх, засах үеийн нийтлэг шалгалт; засахад өөрийн slug-ийг давхардалд тооцохгүй.
     private function validated(Request $request, ?Plan $plan = null): array
     {
         return $request->validate([
             'slug' => ['required', 'string', 'max:50', 'alpha_dash', Rule::unique('plans', 'slug')->ignore($plan)],
             'name' => ['required', 'string', 'max:100'],
-            // 0 = the free tier; paid plans go through QPay, which needs a real amount.
+            // 0 = үнэгүй түвшин; төлбөртэй багц QPay-ээр явдаг тул бодит дүн шаардана.
             'price' => ['required', 'integer', 'min:0', fn ($attr, $value, $fail) => $value > 0 && $value < 100 ? $fail('Үнэ 0 (үнэгүй) эсвэл 100₮-өөс дээш байна.') : null],
             'period_days' => ['required', 'integer', 'min:1', 'max:3660'],
             'credits' => ['required', 'integer', 'min:0'],

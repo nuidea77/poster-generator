@@ -9,12 +9,14 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * Internal view for admins: includes the agent log, model choices and cost signals.
+ * Админд зориулсан дотоод харагдац: agent-ийн лог, model-ийн сонголт, өртгийн дохиог агуулна.
  */
 class AdminCreationResource extends JsonResource
 {
+    // Хэрэглэгчийн харагдац дээр дотоод мэдээллийг нэмнэ.
     public function toArray(Request $request): array
     {
+        // Зөвхөн model-оор үүсгэсэн asset-ууд (хэрэглэгчийн upload биш).
         $generated = collect($this->assets)->where('source', 'generated');
 
         return (new CreationResource($this->resource))->toArray($request) + [
@@ -37,7 +39,7 @@ class AdminCreationResource extends JsonResource
     }
 
     /**
-     * Real API cost vs what the credits earned (at the cheapest paid plan's credit value).
+     * Бодит API өртөг ба credit-ээр олсон орлогын харьцуулалт (хамгийн хямд төлбөртэй багцын credit үнээр).
      */
     private function costReport(): array
     {
@@ -54,7 +56,7 @@ class AdminCreationResource extends JsonResource
             'budget_usd' => app(Credits::class)->mediaBudget($this->resource),
             'credits' => $this->credits,
             'revenue_mnt' => $revenue,
-            'margin' => $cost > 0 && $revenue > 0 ? round($revenue / $cost, 1) : null, // × cost
+            'margin' => $cost > 0 && $revenue > 0 ? round($revenue / $cost, 1) : null, // × өртөг
             'cache_read_tokens' => $this->cache_read_tokens,
             'cache_write_tokens' => $this->cache_write_tokens,
         ];

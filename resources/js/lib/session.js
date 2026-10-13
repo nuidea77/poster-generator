@@ -1,15 +1,17 @@
 import { reactive } from 'vue';
 import { api } from './api';
 
-// App-wide state: the signed-in user and public metadata (formats, plans).
+// Аппын нийтлэг төлөв: нэвтэрсэн хэрэглэгч болон нийтийн metadata (форматууд, багцууд).
 export const session = reactive({
     user: null,
     meta: null,
     ready: false,
 });
 
+// Ачаалж буй (эсвэл ачаалсан) session-ийн Promise — давхар хүсэлт явуулахгүйн тулд.
 let loading;
 
+// Хэрэглэгч (/me) болон metadata (/meta)-г ачаална. Нэг удаа л ачаална; force=true бол дахин татна.
 export function loadSession(force = false) {
     if (loading && !force) return loading;
 
@@ -22,10 +24,12 @@ export function loadSession(force = false) {
     return loading;
 }
 
+// Хэрэглэгчийн мэдээллийг (кредит, багц г.м.) шинэчилнэ.
 export async function refreshUser() {
     session.user = (await api.get('/me')).data;
 }
 
+// Системээс гарч, локал хэрэглэгчийг цэвэрлэнэ.
 export async function logout() {
     await api.post('/auth/logout');
     session.user = null;

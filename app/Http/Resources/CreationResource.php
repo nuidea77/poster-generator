@@ -8,11 +8,12 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * What the customer sees. Deliberately excludes providers, prompts sent to
- * models, agent steps and technical errors.
+ * Хэрэглэгчийн харах зүйл. Provider, model-д илгээсэн prompt, agent-ийн алхам,
+ * техникийн алдааг зориуд оруулахгүй.
  */
 class CreationResource extends JsonResource
 {
+    // Зөвхөн аюулгүй талбаруудыг буцаана; алдааг ерөнхий мессежээр орлуулна.
     public function toArray(Request $request): array
     {
         return [

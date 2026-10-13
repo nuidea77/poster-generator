@@ -1,4 +1,6 @@
 <script setup>
+// Бүтээх хуудас: бриф бичиж, төрөл (постер/reels), хэмжээ, урт, лого ба зургуудаа сонгоод ажил илгээнэ.
+// Компьютерт composer-ийн chip-үүд, утсанд bottom sheet ашиглана.
 import { computed, onBeforeUnmount, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { api } from '../lib/api';
@@ -11,9 +13,11 @@ import Icon from '../components/Icon.vue';
 
 const router = useRouter();
 const meta = session.meta;
+// Бүтээгдэхүүний болон жишээ зургийн дээд тоо.
 const maxImages = meta.uploads.max_product_images;
 const maxRefs = meta.uploads.max_reference_images;
 
+// Формын үндсэн утгууд: төрөл, постерын хэмжээнүүд, reels-ийн чиглэл ба урт, бриф, бүтээгдэхүүний мэдээлэл.
 const form = reactive({
     type: 'poster',
     formats: ['4:5'],
@@ -25,31 +29,37 @@ const form = reactive({
 
 const logo = ref(null); // { file, url } | { saved: true, url }
 const images = ref([]); // [{ file, url }]
-const refs = ref([]); // style examples, [{ file, url }]
+const refs = ref([]); // хэв маягийн жишээ зургууд, [{ file, url }]
 const rememberLogo = ref(true);
 const busy = ref(false);
 
-// Price in credits, charged when the job starts (refunded if it fails). credits null = unlimited (admin).
+// Кредитээрх үнэ: ажил эхлэхэд хасагдана (амжилтгүй болбол буцна). credits null = хязгааргүй (админ).
 const prices = meta.credit_prices;
+// Энэ бүтээлийн үнэ: reels бол уртаас, постер бол үндсэн үнэ + нэмэлт хэмжээ бүрийн үнэ.
 const cost = computed(() => (form.type === 'reel' ? prices.reel[form.duration] : prices.poster + Math.max(0, form.formats.length - 1) * prices.poster_extra_format));
 const balance = computed(() => session.user.credits);
+// Кредит хүрэлцэхгүй эсэх.
 const blocked = computed(() => balance.value !== null && balance.value < cost.value);
 const error = ref('');
 
+// Хадгалсан лого байвал анхнаасаа хавсаргана.
 if (session.user?.logo_url) {
     logo.value = { saved: true, url: session.user.logo_url };
 }
 
-// Size menu: poster ratios (several, or Auto) or the reel orientation (one).
+// Хэмжээний цэс: постерын харьцаанууд (хэд хэдийг, эсвэл Auto) эсвэл reels-ийн чиглэл (нэг).
 const formatOptions = computed(() => (form.type === 'reel' ? meta.reel.formats : meta.poster_formats));
+// Тухайн хэмжээ сонгогдсон эсэх.
 const isPicked = (id) => (form.type === 'reel' ? form.reelFormat === id : form.formats.includes(id));
 
+// Хэмжээний chip-ийн текст: нэг бол нэр нь, олон бол "N хэмжээ".
 const formatLabel = computed(() => {
     if (form.type === 'reel') return form.reelFormat;
     const picked = meta.poster_formats.filter((f) => form.formats.includes(f.id));
     return picked.length === 1 ? picked[0].label : `${picked.length} хэмжээ`;
 });
 
+// Бүтээлийн төрлүүд ба сонгосон төрөл/уртын текст.
 const types = [
     { id: 'poster', label: 'Постер', icon: 'image' },
     { id: 'reel', label: 'Reels', icon: 'video' },
@@ -57,19 +67,23 @@ const types = [
 const typeLabel = computed(() => types.find((t) => t.id === form.type).label);
 const durationLabel = computed(() => `${form.duration} сек`);
 
-// Phone layout: attachments and settings live in bottom sheets.
+// Утасны байршил: хавсралт ба тохиргоо bottom sheet-д байрлана.
 const attachOpen = ref(false);
 const settingsOpen = ref(false);
-const expanded = ref('format'); // open row in the settings sheet
+const expanded = ref('format'); // тохиргооны sheet-д нээлттэй байгаа мөр
+// Тохиргооны sheet-ийг заасан мөрийг нь дэлгэсэн байдлаар нээнэ.
 function openSettings(row) {
     expanded.value = row;
     settingsOpen.value = true;
 }
 
+// Хавсралтын нийт тоо (лого + бүтээгдэхүүн + постерын жишээ зураг).
 const attachCount = computed(() => (logo.value ? 1 : 0) + images.value.length + (form.type === 'poster' ? refs.value.length : 0));
 
+// Бүтээгдэхүүний мэдээллийн аль нэг талбар бөглөгдсөн эсэх.
 const productFilled = computed(() => Object.values(form.product).some((v) => v.trim()));
 
+// Төрөл тус бүрийн жишээ бриф (дарахад prompt-д бөглөгдөнө).
 const examples = {
     poster: [
         'Шинэ кофе шопын нээлт. Дулаан, тухтай уур амьсгал, манай латтег гол дүр болгоорой.',
@@ -83,7 +97,8 @@ const examples = {
     ],
 };
 
-// Several ratios can be picked; Auto stands alone.
+// Хэмжээ сонгох/болиулах: хэд хэдэн харьцаа сонгож болно, Auto ганцаараа байна; хамгийн багадаа нэг үлдэнэ.
+// Reels бол ганц чиглэлийг сонгоно.
 function toggleFormat(id) {
     if (form.type === 'reel') {
         form.reelFormat = id;
@@ -98,6 +113,7 @@ function toggleFormat(id) {
     else if (form.formats.length > 1) form.formats.splice(i, 1);
 }
 
+// Шинэ лого сонгоход өмнөх түр URL-ийг чөлөөлж, урьдчилан харах URL үүсгэнэ.
 function pickLogo(e) {
     const file = e.target.files?.[0];
     e.target.value = '';
@@ -106,7 +122,8 @@ function pickLogo(e) {
     logo.value = { file, url: URL.createObjectURL(file) };
 }
 
-// `list` is the (template-unwrapped) reactive array of images or refs.
+// Сонгосон зургуудыг дээд тоо хүртэл жагсаалтад нэмнэ.
+// `list` нь images эсвэл refs-ийн (template-д unwrap хийгдсэн) reactive массив.
 function pickImages(list, max, e) {
     for (const file of e.target.files ?? []) {
         if (list.length >= max) break;
@@ -115,21 +132,26 @@ function pickImages(list, max, e) {
     e.target.value = '';
 }
 
+// Зургийг жагсаалтаас хасаж, түр URL-ийг чөлөөлнө.
 function removeImage(list, i) {
     URL.revokeObjectURL(list[i].url);
     list.splice(i, 1);
 }
 
+// Логог хасна (шинээр сонгосон бол түр URL-ийг чөлөөлнө).
 function removeLogo() {
     if (logo.value?.file) URL.revokeObjectURL(logo.value.url);
     logo.value = null;
 }
 
+// Хуудаснаас гарахад бүх түр object URL-ийг чөлөөлнө.
 onBeforeUnmount(() => {
     [...images.value, ...refs.value].forEach((i) => URL.revokeObjectURL(i.url));
     if (logo.value?.file) URL.revokeObjectURL(logo.value.url);
 });
 
+// Ажлыг илгээнэ: кредит хүрэлцэхгүй бол үнийн хуудас руу; үгүй бол FormData бэлдэж POST /creations,
+// амжилттай бол кредитийг шинэчилж бүтээлийн хуудас руу шилжинэ.
 async function submit() {
     if (blocked.value) {
         router.push({ name: 'pricing', query: { next: '/create' } });
@@ -172,6 +194,7 @@ async function submit() {
 
 <template>
     <div class="pb-64">
+        <!-- Hero: гарчиг, тайлбар, жишээ бриф, кредитийн мэдээлэл -->
         <section class="mx-auto flex min-h-[52vh] max-w-3xl flex-col items-center justify-center text-center">
             <h1 v-if="form.type === 'poster'" class="display text-4xl leading-[0.95] md:text-6xl">
                 Постер бүтээ<br /><span class="text-lime">Instagram · Facebook</span>
@@ -184,10 +207,12 @@ async function submit() {
                 <template v-else>Босоо 9:16 эсвэл хэвтээ 16:9, 15–60 секундын бэлэн видео. Урт нь сонгосон хугацаагаар гарна. Бүтээхэд 10–20 минут болно. Хуудсаа хааж болно, бэлэн болмогц "Миний бүтээлүүд"-д гарна.</template>
             </p>
 
+            <!-- Жишээ брифүүд -->
             <div class="mt-6 flex flex-wrap justify-center gap-2">
                 <button v-for="(ex, i) in examples[form.type]" :key="i" class="chip chip-sm max-w-xs truncate" :title="ex" @click="form.prompt = ex">{{ ex }}</button>
             </div>
 
+            <!-- Кредит: хүрэлцэхгүй / үнэ ба үлдэгдэл / админ -->
             <p v-if="blocked" class="mt-6 rounded-xl bg-lime/10 px-4 py-2 text-sm text-lime">
                 Энэ бүтээлд <b>{{ cost }}</b> кредит хэрэгтэй, танд <b>{{ balance }}</b> байна.
                 <RouterLink to="/pricing" class="font-semibold underline">Кредит нэмэх</RouterLink>
@@ -201,6 +226,7 @@ async function submit() {
             </p>
         </section>
 
+        <!-- Доод талын composer: бриф, хавсралт, тохиргоо, Generate товч -->
         <Composer
             v-model="form.prompt"
             :placeholder="form.type === 'poster' ? 'Юу сурталчлах вэ? Үйл явдал, бүтээгдэхүүн, мэдрэмж…' : 'Reels-ээр юуг, хэнд, ямар мэдрэмжээр харуулах вэ?'"
@@ -211,6 +237,7 @@ async function submit() {
             @generate="submit"
         >
             <template #top>
+                <!-- Алдаа ба хавсаргасан зургуудын жижиг зураг (лого, бүтээгдэхүүн, жишээ) -->
                 <p v-if="error" class="mb-2 rounded-xl bg-red-950/70 px-3 py-2 text-sm text-red-200">{{ error }}</p>
                 <div v-if="logo || images.length || (form.type === 'poster' && refs.length)" class="mb-2 flex flex-wrap items-end gap-2 px-1">
                     <div v-if="logo" class="group relative">
@@ -233,7 +260,7 @@ async function submit() {
                 </div>
             </template>
 
-            <!-- Phone: [+] attachments · type/size · settings, like a native app. -->
+            <!-- Утас: [+] хавсралт · төрөл/хэмжээ · тохиргоо, native апп шиг. -->
             <div class="contents sm:hidden">
                 <button type="button" class="chip relative w-9 shrink-0 justify-center px-0" aria-label="Хавсралт" @click="attachOpen = true">
                     <Icon name="plus" size="16" />
@@ -248,8 +275,9 @@ async function submit() {
                 </button>
             </div>
 
+            <!-- Компьютер: төрөл, лого, бүтээгдэхүүн, жишээ, мэдээлэл, хэмжээ, урт -->
             <div class="hidden sm:contents">
-                <!-- What to make: first control in the row, so the choices after it read as its settings. -->
+                <!-- Юу хийх вэ: мөрийн эхний контрол, тиймээс араас нь ирэх сонголтууд түүний тохиргоо мэт уншигдана. -->
                 <div class="inline-flex rounded-xl bg-white/5 p-0.5">
                     <button
                         v-for="t in [['poster', 'Постер', 'image'], ['reel', 'Reels', 'video']]"
@@ -262,6 +290,7 @@ async function submit() {
                         <Icon :name="t[2]" size="14" /> {{ t[1] }}
                     </button>
                 </div>
+                <!-- Файл хавсаргах chip-үүд: лого, бүтээгдэхүүн, жишээ (зөвхөн постерт) -->
                 <label class="chip cursor-pointer" :class="{ 'chip-active': logo }" title="Лого хавсаргах">
                     <Icon name="plus" size="14" /> Лого
                     <input type="file" accept="image/png,image/jpeg,image/webp" class="hidden" @change="pickLogo" />
@@ -274,6 +303,7 @@ async function submit() {
                     <Icon name="image" size="14" /> Жишээ {{ refs.length ? `${refs.length}/${maxRefs}` : '' }}
                     <input type="file" accept="image/png,image/jpeg,image/webp" multiple class="hidden" :disabled="refs.length >= maxRefs" @change="pickImages(refs, maxRefs, $event)" />
                 </label>
+                <!-- Бүтээгдэхүүний мэдээлэл, хэмжээ, reels-ийн урт -->
                 <ChipMenu label="Мэдээлэл" icon="edit" :active="productFilled" width="w-80">
                     <div class="space-y-2 p-1">
                         <div class="label">Бүтээгдэхүүний мэдээлэл</div>
@@ -307,6 +337,7 @@ async function submit() {
             </div>
         </Composer>
 
+        <!-- Утасны хавсралтын sheet: лого, бүтээгдэхүүний зураг, жишээ зураг -->
         <BottomSheet v-model="attachOpen" title="Хавсралт">
             <div class="space-y-1 pb-1">
                 <label class="sheet-row cursor-pointer">
@@ -331,8 +362,10 @@ async function submit() {
             </div>
         </BottomSheet>
 
+        <!-- Утасны тохиргооны sheet: дэлгэгддэг мөрүүд (төрөл, хэмжээ, урт, бүтээгдэхүүн) -->
         <BottomSheet v-model="settingsOpen" title="Тохиргоо">
             <div class="divide-y divide-white/5 pb-1">
+                <!-- Төрөл -->
                 <div>
                     <button type="button" class="sheet-row w-full" @click="expanded = expanded === 'type' ? '' : 'type'">
                         <Icon :name="form.type === 'poster' ? 'image' : 'video'" size="16" class="text-zinc-400" />
@@ -346,6 +379,7 @@ async function submit() {
                         </button>
                     </div>
                 </div>
+                <!-- Хэмжээ -->
                 <div>
                     <button type="button" class="sheet-row w-full" @click="expanded = expanded === 'format' ? '' : 'format'">
                         <Icon name="grid" size="16" class="text-zinc-400" />
@@ -355,6 +389,7 @@ async function submit() {
                     </button>
                     <div v-if="expanded === 'format'" class="pb-2"><FormatOptions :options="formatOptions" :picked="isPicked" @pick="toggleFormat" /></div>
                 </div>
+                <!-- Үргэлжлэх хугацаа (зөвхөн reels) -->
                 <div v-if="form.type === 'reel'">
                     <button type="button" class="sheet-row w-full" @click="expanded = expanded === 'duration' ? '' : 'duration'">
                         <Icon name="clock" size="16" class="text-zinc-400" />
@@ -380,6 +415,7 @@ async function submit() {
                         </button>
                     </div>
                 </div>
+                <!-- Бүтээгдэхүүний мэдээлэл -->
                 <div>
                     <button type="button" class="sheet-row w-full" @click="expanded = expanded === 'product' ? '' : 'product'">
                         <Icon name="edit" size="16" class="text-zinc-400" />

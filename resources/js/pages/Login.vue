@@ -1,4 +1,5 @@
 <script setup>
+// Нэвтрэх хуудас: имэйл, нууц үгээр нэвтэрч, next параметр эсвэл /create руу шилжинэ.
 import { reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { api } from '../lib/api';
@@ -11,6 +12,7 @@ const form = reactive({ email: '', password: '' });
 const error = ref('');
 const busy = ref(false);
 
+// Нэвтрэх хүсэлт илгээж, амжилттай бол session-д хэрэглэгчийг хадгална.
 async function submit() {
     error.value = '';
     busy.value = true;
@@ -27,6 +29,7 @@ async function submit() {
 
 <template>
     <AuthCard title="Нэвтрэх" subtitle="Постер, reels бүтээхээ үргэлжлүүлээрэй.">
+        <!-- Нэвтрэх форм -->
         <form class="space-y-4" @submit.prevent="submit">
             <div><label class="label">Имэйл</label><input v-model="form.email" type="email" autocomplete="email" required class="field" /></div>
             <div><label class="label">Нууц үг</label><input v-model="form.password" type="password" autocomplete="current-password" required class="field" /></div>

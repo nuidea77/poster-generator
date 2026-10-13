@@ -1,12 +1,14 @@
+// Backend API-тай харилцах туслах: fetch wrapper, алдааны класс, мөнгө/огноо форматлагч.
 const BASE = '/api/v1';
 
-// Laravel refreshes the XSRF-TOKEN cookie on every response, so reading it per
-// request keeps working after login/logout rotates the session token.
+// Laravel хариу бүрт XSRF-TOKEN cookie-г шинэчилдэг тул хүсэлт бүрт дахин уншина —
+// login/logout хийж session token солигдсон ч CSRF ажилласаар байна.
 function xsrf() {
     const match = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]+)/);
     return match ? decodeURIComponent(match[1]) : '';
 }
 
+// API-ийн алдаа: HTTP статус, серверийн code болон талбарын validation алдааг хадгална.
 export class ApiError extends Error {
     constructor(message, status, data = {}) {
         super(message);
@@ -16,6 +18,8 @@ export class ApiError extends Error {
     }
 }
 
+// Нэг API хүсэлт илгээнэ: JSON эсвэл FormData биет, CSRF толгой, cookie-той.
+// Амжилтгүй бол эхний validation алдаа эсвэл статусын монгол мессежтэй ApiError шиднэ.
 async function request(method, path, body) {
     const isForm = body instanceof FormData;
 
@@ -31,6 +35,7 @@ async function request(method, path, body) {
         body: body ? (isForm ? body : JSON.stringify(body)) : undefined,
     });
 
+    // 204 — хариунд биет байхгүй.
     if (res.status === 204) return null;
 
     const data = await res.json().catch(() => ({}));
@@ -44,6 +49,7 @@ async function request(method, path, body) {
     return data;
 }
 
+// HTTP аргууд тус бүрийн товч функцууд.
 export const api = {
     get: (path) => request('GET', path),
     post: (path, body) => request('POST', path, body),
@@ -51,9 +57,10 @@ export const api = {
     delete: (path) => request('DELETE', path),
 };
 
+// Мөнгөн дүнг мянгатын таслалтай, ₮ тэмдэгтэй болгоно (жишээ: 12,000₮).
 export const money = (n) => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ',') + '₮';
 
-// Formatted by hand: many browsers ship without Mongolian locale data.
+// Огноог YYYY.MM.DD хэлбэрээр гараар форматлана: олон browser монгол locale өгөгдөлгүй байдаг.
 export const date = (d) => {
     if (!d) return '';
     const t = new Date(d);

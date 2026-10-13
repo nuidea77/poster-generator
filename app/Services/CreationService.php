@@ -11,12 +11,16 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
+/**
+ * Бүтээл (постер / reel) эхлүүлэх: хязгаар шалгах, credit хасах, файл хадгалах, job дараалалд оруулах.
+ */
 class CreationService
 {
+    // Ажлын үнийг credit-ээр хасахад ашиглана.
     public function __construct(private Credits $credits) {}
 
     /**
-     * Validate fair-use limits, store uploads and queue the job.
+     * Шударга хэрэглээний хязгаарыг шалгаж, оруулсан файлуудыг хадгалаад job-ийг дараалалд оруулна.
      *
      * @param  array<int, UploadedFile>  $images
      * @param  array<int, UploadedFile>  $references
@@ -25,6 +29,7 @@ class CreationService
     {
         $this->guardFairUse($user, $data['type']);
 
+        // Постер олон хэмжээтэй байж болно; reel нэг л форматтай, урт нь сонгосон (эсвэл анхдагч) утга.
         $creation = $this->createCharged($user, [
             'type' => $data['type'],
             'formats' => $data['type'] === Creation::POSTER
@@ -38,6 +43,7 @@ class CreationService
         $dir = "creations/{$creation->public_id}/inputs";
         $inputs = [];
 
+        // Лого: шинээр оруулсныг хадгална (хүсвэл хэрэглэгчийн профайлд санана), эсвэл хадгалсан логог хуулна.
         if ($logo) {
             $path = $logo->store($dir, 'public');
             $inputs[] = ['id' => 'logo', 'kind' => 'image', 'role' => 'logo', 'source' => 'upload', 'path' => $path];
@@ -55,6 +61,7 @@ class CreationService
             $inputs[] = ['id' => 'logo', 'kind' => 'image', 'role' => 'logo', 'source' => 'upload', 'path' => $path];
         }
 
+        // Бүтээгдэхүүний зураг болон загвар (reference) зургуудыг дугаарлан хадгална.
         foreach (array_values($images) as $i => $image) {
             $inputs[] = ['id' => 'product_'.($i + 1), 'kind' => 'image', 'role' => 'product', 'source' => 'upload', 'path' => $image->store($dir, 'public')];
         }
@@ -71,7 +78,7 @@ class CreationService
     }
 
     /**
-     * Re-run the same brief and attachments as a new creation.
+     * Ижил даалгавар болон хавсралтуудаар шинэ бүтээл болгон дахин ажиллуулна.
      */
     public function retry(Creation $source): Creation
     {
@@ -85,6 +92,7 @@ class CreationService
             'product' => $source->product,
         ]);
 
+        // Эх бүтээлийн оруулсан файлуудыг шинэ хавтас руу хуулна; устсан файлыг алгасна.
         $inputs = [];
         foreach ($source->inputs as $input) {
             $path = "creations/{$creation->public_id}/inputs/".basename($input['path']);
@@ -102,7 +110,7 @@ class CreationService
     }
 
     /**
-     * Create the job and take its price in credits; nothing is kept if the wallet is short.
+     * Job үүсгэж үнийг нь credit-ээр хасна; хэтэвч хүрэлцэхгүй бол юу ч хадгалагдахгүй (transaction буцна).
      */
     private function createCharged(User $user, array $attributes): Creation
     {
@@ -114,12 +122,16 @@ class CreationService
         });
     }
 
+    /**
+     * Шударга хэрэглээний хязгаар: зэрэг ажиллаж буй болон өдрийн бүтээлийн тоо (админд хамаарахгүй), хэтэрвэл 429.
+     */
     private function guardFairUse(User $user, string $type): void
     {
         if ($user->is_admin) {
             return;
         }
 
+        // Нэг дор ажиллаж буй бүтээлийн тоо.
         $active = $user->creations()->whereIn('status', Creation::ACTIVE)->count();
 
         if ($active >= config('creations.max_active_per_user')) {
@@ -128,6 +140,7 @@ class CreationService
             ])->status(429);
         }
 
+        // Төрөл тус бүрийн өдрийн хязгаар (null бол хязгааргүй).
         $limit = config("creations.daily_limit.{$type}");
 
         if ($limit !== null && $user->creations()->where('type', $type)->where('created_at', '>=', now()->startOfDay())->count() >= $limit) {

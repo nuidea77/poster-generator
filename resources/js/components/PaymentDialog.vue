@@ -1,4 +1,5 @@
 <script setup>
+// QPay төлбөрийн цонх: QR болон банкны апп холбоосыг харуулж, төлөгдсөн эсэхийг polling-оор шалгана.
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { api, money } from '../lib/api';
 import Icon from './Icon.vue';
@@ -6,12 +7,15 @@ import Icon from './Icon.vue';
 const props = defineProps({ payment: { type: Object, required: true } });
 const emit = defineEmits(['close', 'paid']);
 
+// Төлбөрийн сүүлийн төлөв, алдааны мессеж, polling-ийн timer.
 const current = ref(props.payment);
 const error = ref('');
 let timer;
 
+// QR зургийг base64-ээс data URL болгоно (туршилтын горимд QR байхгүй).
 const qr = computed(() => (current.value.qr_image ? `data:image/png;base64,${current.value.qr_image}` : null));
 
+// Төлбөрийн төлөвийг серверээс шалгана: төлөгдвөл зогсоож 'paid' event илгээнэ, хугацаа дууссан/амжилтгүй бол зогсооно.
 async function poll() {
     try {
         current.value = (await api.get(`/payments/${current.value.id}`)).data;
@@ -25,11 +29,13 @@ async function poll() {
     }
 }
 
+// Туршилтын (fake) горимд төлбөрийг төлсөнд тооцуулна.
 async function simulate() {
     current.value = (await api.post(`/payments/${current.value.id}/simulate`)).data;
     emit('paid', current.value);
 }
 
+// 3 секунд тутам polling хийж, цонх хаагдахад зогсооно.
 onMounted(() => (timer = setInterval(poll, 3000)));
 onBeforeUnmount(() => clearInterval(timer));
 </script>
@@ -37,6 +43,7 @@ onBeforeUnmount(() => clearInterval(timer));
 <template>
     <div class="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4 backdrop-blur-sm" @click.self="emit('close')">
         <div class="w-full max-w-md rounded-[20px] border border-white/10 bg-[#141414] p-5 shadow-2xl">
+            <!-- Толгой: гарчиг, багц ба дүн, хаах товч -->
             <div class="mb-4 flex items-start justify-between">
                 <div>
                     <div class="display text-xl">QPay-ээр төлөх</div>
@@ -45,6 +52,7 @@ onBeforeUnmount(() => clearInterval(timer));
                 <button class="text-zinc-500 hover:text-fg" @click="emit('close')"><Icon name="x" size="18" /></button>
             </div>
 
+            <!-- Төлөв: төлөгдсөн / хугацаа дууссан / хүлээгдэж буй (QR) -->
             <div v-if="current.status === 'paid'" class="py-6 text-center">
                 <div class="mx-auto mb-3 grid size-14 place-items-center rounded-2xl bg-lime text-ink"><Icon name="check" size="26" /></div>
                 <div class="text-lg font-semibold">Төлбөр амжилттай</div>
@@ -60,6 +68,7 @@ onBeforeUnmount(() => clearInterval(timer));
                 </div>
                 <p class="mt-3 text-center text-sm text-zinc-400">Банкны аппаараа QR уншуулна уу. Төлбөр орж ирмэгц автоматаар идэвхжинэ.</p>
 
+                <!-- Утсан дээр банкны аппуудын холбоосууд -->
                 <div v-if="current.urls?.length" class="mt-4 grid grid-cols-4 gap-2 sm:hidden">
                     <a v-for="u in current.urls" :key="u.name" :href="u.link" class="flex flex-col items-center gap-1 rounded-xl bg-surface-2 p-2 text-center text-[10px] text-zinc-300">
                         <img :src="u.logo" :alt="u.name" class="size-8 rounded-lg" />

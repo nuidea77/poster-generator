@@ -10,27 +10,32 @@ use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Credit wallet. Credits live on subscription periods (paid plans) and on a
- * one-off free-tier grant. Spending draws from the period that expires
- * first; unused credits expire with their period.
+ * Credit хэтэвч. Credit нь захиалгын хугацаанууд (төлбөртэй багц) болон
+ * нэг удаагийн үнэгүй олголт дээр хадгалагдана. Зарцуулахдаа хамгийн түрүүнд
+ * дуусах хугацаанаас авна; ашиглаагүй credit хугацаатайгаа хамт дуусна.
  */
 class Credits
 {
-    /** Never expires. */
+    /** Үнэгүй олголт бараг хэзээ ч дуусахгүй. */
     private const FREE_YEARS = 100;
 
+    // Үнэ, төсвийг CostMeter-ээс тооцоолно.
     public function __construct(private CostMeter $meter) {}
 
+    /**
+     * Ажлын credit үнэ.
+     */
     public function price(Creation $creation): int
     {
         return $this->meter->listCredits($creation);
     }
 
     /**
-     * Hard cap on image + video spend (USD) for a job.
+     * Нэг ажлын зураг + видеоны зардлын (USD) хатуу дээд хязгаар.
      */
     public function mediaBudget(Creation $creation): float
     {
+        // Эхний форматаас бусад нэмэлт формат бүрт нэмэлт төсөв өгнө.
         $extra = max(0, count($creation->formats ?? []) - 1);
 
         return $creation->type === Creation::REEL
@@ -38,6 +43,9 @@ class Credits
             : $this->meter->budget('poster') + $extra * $this->meter->budget('poster_extra_format');
     }
 
+    /**
+     * Хэрэглэгчийн одоо зарцуулж болох нийт credit.
+     */
     public function balance(User $user): int
     {
         $this->grantFree($user);
@@ -46,7 +54,7 @@ class Credits
     }
 
     /**
-     * Give a new account the free tier's credits, once.
+     * Шинэ бүртгэлд үнэгүй багцын credit-ийг нэг удаа олгоно.
      */
     public function grantFree(User $user): void
     {
@@ -65,16 +73,18 @@ class Credits
     }
 
     /**
-     * Take the job's price from the wallet, or refuse with 402.
+     * Ажлын үнийг хэтэвчнээс хасна, хүрэлцэхгүй бол 402-оор татгалзана.
      */
     public function charge(User $user, Creation $creation, int $credits): void
     {
+        // Админ болон үнэгүй ажлаас credit хасахгүй.
         if ($user->is_admin || $credits === 0) {
             return;
         }
 
         $this->grantFree($user);
 
+        // Мөрүүдийг түгжиж, зэрэг хүсэлтүүд нэг credit-ийг давхар зарцуулахаас сэргийлнэ.
         DB::transaction(function () use ($user, $creation, $credits) {
             $wallet = $this->wallet($user, lock: true);
 
@@ -86,6 +96,7 @@ class Credits
                 ], 402));
             }
 
+            // Хамгийн түрүүнд дуусах хугацаанаас эхлэн хасаж, буцаан олголтод зориулж хаанаас хэд авснаа тэмдэглэнэ.
             $charges = [];
             $left = $credits;
 
@@ -108,13 +119,14 @@ class Credits
     }
 
     /**
-     * Give a failed job's credits back to the periods they came from. Idempotent.
+     * Амжилтгүй болсон ажлын credit-ийг авсан хугацаануудад нь буцаана. Давтан дуудахад аюулгүй.
      */
     public function refund(Creation $creation): void
     {
         DB::transaction(function () use ($creation) {
             $creation = Creation::withTrashed()->whereKey($creation->id)->lockForUpdate()->first();
 
+            // credits_used сөрөг болохоос хамгаалж нөхцөлтэйгээр хасна.
             foreach ($creation->charges ?? [] as $charge) {
                 Subscription::whereKey($charge['subscription_id'])
                     ->where('credits_used', '>=', $charge['credits'])
@@ -126,8 +138,8 @@ class Credits
     }
 
     /**
-     * Periods with credits that can be spent now, soonest-expiring first.
-     * Includes renewals that start later, so credits are usable right after paying.
+     * Одоо зарцуулж болох credit-тэй хугацаанууд, хамгийн түрүүнд дуусахаас нь эхлэн.
+     * Хожим эхлэх сунгалтуудыг ч оруулдаг тул төлсний дараа credit шууд ашиглагдана.
      */
     private function wallet(User $user, bool $lock = false)
     {

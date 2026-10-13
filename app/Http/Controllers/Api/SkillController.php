@@ -11,15 +11,19 @@ use Illuminate\Http\Response;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
+// Админ: skill-үүдийг (bundled болон DB-д хадгалсан) удирдах.
 class SkillController extends Controller
 {
+    // Skill-үүдийн эх сурвалж нь SkillLibrary.
     public function __construct(private SkillLibrary $skills) {}
 
+    // Бүх skill-ийн индекс.
     public function index(): JsonResponse
     {
         return response()->json($this->skills->index());
     }
 
+    // Нэг skill-ийн эх агуулгыг буцаана; байхгүй бол 404.
     public function show(string $name): JsonResponse
     {
         $source = $this->skills->source($name) ?? abort(404);
@@ -28,7 +32,7 @@ class SkillController extends Controller
     }
 
     /**
-     * Edit a bundled skill: saved as a DB override of the same name.
+     * Bundled skill-ийг засах: ижил нэртэй DB override болж хадгалагдана.
      */
     public function updateBundled(Request $request, string $name): JsonResponse
     {
@@ -43,7 +47,7 @@ class SkillController extends Controller
     }
 
     /**
-     * Drop the edit and go back to the bundled file.
+     * Засварыг хаяж, bundled файл руу буцна.
      */
     public function resetBundled(string $name): Response
     {
@@ -53,6 +57,7 @@ class SkillController extends Controller
         return response()->noContent();
     }
 
+    // Шинэ custom skill үүсгэнэ.
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate($this->rules());
@@ -61,7 +66,7 @@ class SkillController extends Controller
     }
 
     /**
-     * Import a Claude skill (SKILL.md with name/description frontmatter).
+     * Claude skill импортлох (name/description frontmatter-тай SKILL.md).
      */
     public function import(Request $request): JsonResponse
     {
@@ -69,9 +74,11 @@ class SkillController extends Controller
             'file' => ['required', 'file', 'max:400', 'mimetypes:text/plain,text/markdown,text/x-markdown,application/octet-stream'],
         ]);
 
+        // Frontmatter-ийг задлана; нэр байхгүй бол файлын нэрээс slug гаргана.
         $parsed = SkillLibrary::parse((string) file_get_contents($request->file('file')->getRealPath()));
         $name = Str::slug($parsed['name'] ?: pathinfo($request->file('file')->getClientOriginalName(), PATHINFO_FILENAME));
 
+        // Задалсан утгыг энгийн skill-ийн дүрмээр шалгана.
         $data = validator(
             ['name' => $name, 'description' => $parsed['description'], 'content' => $parsed['body'], 'origin' => 'Imported Claude skill "'.$parsed['name'].'"'],
             $this->rules() + ['origin' => ['nullable', 'string', 'max:255']],
@@ -81,6 +88,7 @@ class SkillController extends Controller
         return response()->json(Skill::create($data), 201);
     }
 
+    // Custom skill-ийг засна.
     public function update(Request $request, Skill $skill): JsonResponse
     {
         $skill->update($request->validate($this->rules($skill)));
@@ -88,6 +96,7 @@ class SkillController extends Controller
         return response()->json($skill);
     }
 
+    // Custom skill-ийг устгана.
     public function destroy(Skill $skill): Response
     {
         $skill->delete();
@@ -95,6 +104,7 @@ class SkillController extends Controller
         return response()->noContent();
     }
 
+    // Custom skill-ийн дүрэм: нэр нь bundled skill-тэй давхцахгүй, давтагдахгүй байна.
     private function rules(?Skill $skill = null): array
     {
         $bundled = array_keys($this->skills->bundled());

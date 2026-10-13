@@ -3,24 +3,27 @@
 namespace App\Services\Media;
 
 /**
- * Removes the plain background around a logo (white on a JPG, or any single
- * flat colour) without touching the logo itself: only background connected to
- * the image border is cleared (flood fill), so white or light parts inside
- * the logo stay. Edges get a soft alpha so the cut-out has no halo.
+ * Логоны эргэн тойрны энгийн дэвсгэрийг (JPG дээрх цагаан, эсвэл ямар нэг
+ * нэгэн өнгө) логонд нь хүрэлгүйгээр арилгана: зөвхөн зургийн хүрээтэй
+ * холбогдсон дэвсгэрийг цэвэрлэдэг (flood fill) тул логоны доторх цагаан/цайвар
+ * хэсгүүд үлдэнэ. Ирмэгт зөөлөн alpha өгч, тайрсан хэсэгт гэрэлт хүрээ (halo) үлдээхгүй.
  */
 class LogoCutout
 {
-    /** Squared RGB distance that still counts as background. */
+    /** Дэвсгэрт тооцогдох RGB зайны квадрат. */
     private const NEAR = 45 ** 2;
 
-    /** Up to this distance, edge pixels fade instead of cutting hard. */
+    /** Энэ зай хүртэлх ирмэгийн пикселүүд хатуу тайрагдахын оронд аажмаар тунана. */
     private const FEATHER = 110;
 
+    // Боловсруулалт хурдан байхын тулд урт талыг энэ px хүртэл багасгана.
     private const MAX_SIDE = 1400;
 
     /**
-     * @return string|null PNG with a transparent background, or null when the
-     *                     logo is already transparent or has no flat background.
+     * Логоны нэгэн өнгөт дэвсгэрийг тунгалаг болгоно.
+     *
+     * @return string|null Тунгалаг дэвсгэртэй PNG, эсвэл лого аль хэдийн
+     *                     тунгалаг / нэгэн өнгөт дэвсгэргүй бол null.
      */
     public function cut(string $data): ?string
     {
@@ -38,10 +41,12 @@ class LogoCutout
             [$w, $h] = [imagesx($src), imagesy($src)];
         }
 
+        // Палитрт зургийг truecolor болгож, пикселийн ARGB утгыг шууд уншина.
         imagepalettetotruecolor($src);
         $px = fn (int $x, int $y) => imagecolorat($src, $x, $y);
 
-        // Already transparent at the border → keep as is.
+        // Хүрээний бүх пикселийн координатыг цуглуулна (булангуудыг давхардуулахгүй).
+        // Хүрээ аль хэдийн тунгалаг бол → байгаагаар нь үлдээнэ.
         $border = [];
         for ($x = 0; $x < $w; $x++) {
             $border[] = [$x, 0];
@@ -52,12 +57,13 @@ class LogoCutout
             $border[] = [$w - 1, $y];
         }
 
+        // GD-ийн alpha 0–127 (127 = бүрэн тунгалаг); хүрээний 30%-аас дээш нь тунгалаг бол хэрэггүй.
         $alphaEdge = count(array_filter($border, fn ($p) => (($px(...$p) >> 24) & 0x7F) > 60));
         if ($alphaEdge > count($border) * 0.3) {
             return null;
         }
 
-        // The background colour = the border's dominant colour; it must cover most of the border.
+        // Дэвсгэрийн өнгө = хүрээний давамгай (дундаж) өнгө; хүрээний ихэнхийг (90%) эзлэх ёстой.
         $rgb = fn (int $c) => [($c >> 16) & 0xFF, ($c >> 8) & 0xFF, $c & 0xFF];
         $sum = [0, 0, 0];
         foreach ($border as $p) {
@@ -69,10 +75,11 @@ class LogoCutout
 
         $flat = count(array_filter($border, fn ($p) => $dist($rgb($px(...$p))) <= self::NEAR));
         if ($flat < count($border) * 0.9) {
-            return null; // photo or busy background: leave it, use a plate instead
+            return null; // зураг эсвэл ээдрээтэй дэвсгэр: хэвээр үлдээж, оронд нь plate ашиглана
         }
 
-        // Flood fill from the border through background-coloured pixels.
+        // Хүрээнээс эхлэн дэвсгэр өнгөтэй пикселүүдээр flood fill (BFS, 4 хөрш) хийнэ.
+        // Пикселийг $k = y*w + x гэсэн нэг индексээр тэмдэглэнэ.
         $isBg = [];
         $queue = new \SplQueue;
         foreach ($border as [$x, $y]) {
@@ -97,16 +104,18 @@ class LogoCutout
             }
         }
 
-        // Nothing (or almost nothing) left would mean the "background" is the logo itself.
+        // Юу ч (бараг юу ч) үлдэхгүй бол "дэвсгэр" нь лого өөрөө гэсэн үг.
         if (count($isBg) > $w * $h * 0.97) {
             return null;
         }
 
+        // Alpha суваг хадгалах гаралтын зураг; blending унтраалттай тул alpha шууд бичигдэнэ.
         $out = imagecreatetruecolor($w, $h);
         imagealphablending($out, false);
         imagesavealpha($out, true);
         $clear = imagecolorallocatealpha($out, 0, 0, 0, 127);
 
+        // Дэвсгэр пиксел → бүрэн тунгалаг; лого пиксел → хэвээр, дэвсгэртэй хиллэсэн бол зөөлөн alpha.
         for ($y = 0; $y < $h; $y++) {
             for ($x = 0; $x < $w; $x++) {
                 if (isset($isBg[$y * $w + $x])) {
@@ -120,7 +129,7 @@ class LogoCutout
                 $touchesBg = isset($isBg[$y * $w + $x + 1]) || isset($isBg[$y * $w + $x - 1]) || isset($isBg[($y + 1) * $w + $x]) || isset($isBg[($y - 1) * $w + $x]);
 
                 if ($touchesBg) {
-                    // Anti-aliased edge: the closer to the background colour, the more transparent.
+                    // Anti-aliased ирмэг: дэвсгэрийн өнгөнд ойр байх тусам илүү тунгалаг.
                     $alpha = (int) round(127 * max(0, 1 - sqrt($dist($c)) / self::FEATHER));
                 }
 
@@ -128,6 +137,7 @@ class LogoCutout
             }
         }
 
+        // PNG-ийг санах ойд бичиж буцаана.
         ob_start();
         imagepng($out);
 

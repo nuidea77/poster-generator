@@ -1,13 +1,16 @@
 <script setup>
+// Админ: бүх бүтээлийн жагсаалт — модель хэрэглээ, токен, зардал, кредит, ашиг; мөрийг дарахад дотоод алхмууд харагдана.
 import { onMounted, ref, watch } from 'vue';
 import { api, date, money } from '../../lib/api';
 import AdminNav from '../../components/AdminNav.vue';
 
+// Жагсаалт, төлөвийн шүүлтүүр, дэлгэсэн мөрийн id, алдаа.
 const items = ref([]);
 const status = ref('');
 const open = ref(null);
 const error = ref('');
 
+// Бүтээлүүдийг (шүүлтүүртэй бол төлөвөөр нь) ачаална.
 async function load() {
     try {
         items.value = (await api.get(`/admin/creations${status.value ? `?status=${status.value}` : ''}`)).data;
@@ -16,10 +19,13 @@ async function load() {
     }
 }
 
+// Нээгдэхэд болон шүүлтүүр солигдоход дахин ачаална.
 onMounted(load);
 watch(status, load);
 
+// Claude-ийн нийт токен (оролт + гаралт).
 const tokens = (c) => (c.input_tokens + c.output_tokens).toLocaleString();
+// Зураг/видео provider тус бүрийн дуудлагын тоо ("provider ×n").
 const usage = (c) =>
     [
         ...Object.entries(c.usage.images || {}).map(([p, n]) => `${p} ×${n}`),
@@ -30,6 +36,7 @@ const usage = (c) =>
 <template>
     <div class="mx-auto max-w-[1400px]">
         <AdminNav />
+        <!-- Толгой ба төлөвийн шүүлтүүр -->
         <div class="mb-4 flex flex-wrap items-center gap-3">
             <h1 class="display text-3xl">Бүтээлүүд</h1>
             <div class="ml-auto flex gap-1.5">
@@ -38,6 +45,7 @@ const usage = (c) =>
         </div>
         <p v-if="error" class="rounded-xl bg-red-950 p-3 text-sm text-red-200">{{ error }}</p>
 
+        <!-- Бүтээлүүдийн хүснэгт; мөрийг дарахад бриф, Fable-ийн дүгнэлт, asset-ууд, алхмууд дэлгэгдэнэ -->
         <div class="overflow-x-auto rounded-2xl border border-line">
             <table class="w-full text-left text-sm">
                 <thead class="bg-surface text-xs text-muted uppercase">

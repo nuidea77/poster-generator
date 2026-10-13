@@ -4,20 +4,24 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
+// Төлбөр (plans, payments, subscriptions) ба бүтээлийн (creations) хүснэгтүүд.
 return new class extends Migration
 {
+    // v1 хүснэгтийг устгаад billing ба creations хүснэгтүүдийг үүсгэнэ.
     public function up(): void
     {
-        // v1 tables replaced by `creations`.
+        // `creations`-аар солигдсон v1 хүснэгтүүд.
         Schema::dropIfExists('generations');
         Schema::dropIfExists('agent_runs');
 
+        // Хэрэглэгчид админ эрх ба брэндийн мэдээлэл (нэр, лого) нэмнэ.
         Schema::table('users', function (Blueprint $table) {
             $table->boolean('is_admin')->default(false)->after('password');
             $table->string('brand_name')->nullable()->after('is_admin');
             $table->string('logo_path')->nullable()->after('brand_name');
         });
 
+        // Захиалгын багцууд (үнэ, хугацаа, онцлогууд).
         Schema::create('plans', function (Blueprint $table) {
             $table->id();
             $table->string('slug')->unique();
@@ -30,6 +34,7 @@ return new class extends Migration
             $table->timestamps();
         });
 
+        // QPay нэхэмжлэх / төлбөрүүд; callback_token-оор callback-ийг таньж, payment/check-ээр баталгаажуулна.
         Schema::create('payments', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
@@ -50,6 +55,7 @@ return new class extends Migration
             $table->timestamps();
         });
 
+        // Захиалгын хугацаанууд; нэг төлбөр нэг л захиалга үүсгэнэ (payment_id unique).
         Schema::create('subscriptions', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
@@ -62,6 +68,7 @@ return new class extends Migration
             $table->index(['user_id', 'ends_at']);
         });
 
+        // Бүтээлүүд (постер / reel): хэрэглэгчид public_id (ULID)-аар харагдана.
         Schema::create('creations', function (Blueprint $table) {
             $table->id();
             $table->ulid('public_id')->unique();
@@ -73,11 +80,11 @@ return new class extends Migration
             $table->string('status')->default('queued'); // queued | running | assembling | done | failed
             $table->string('stage')->nullable();
             $table->unsignedTinyInteger('progress')->default(0);
-            $table->json('inputs');   // uploaded logo / product images
-            $table->json('assets');   // internal: generated media with provider + prompt
-            $table->json('steps');    // internal: agent log
-            $table->json('outputs');  // public: delivered posters / reel
-            $table->json('reel_clips')->nullable(); // ordered clip ids chosen by the agent
+            $table->json('inputs');   // байршуулсан лого / бүтээгдэхүүний зураг
+            $table->json('assets');   // дотоод: provider + prompt-той үүсгэсэн media
+            $table->json('steps');    // дотоод: agent-ийн лог
+            $table->json('outputs');  // нийтэд: хүргэсэн постер / reel
+            $table->json('reel_clips')->nullable(); // agent-ийн сонгосон клипүүдийн id, дарааллаар
             $table->text('summary')->nullable();
             $table->text('error_detail')->nullable();
             $table->string('model')->nullable();
@@ -87,11 +94,13 @@ return new class extends Migration
             $table->timestamp('finished_at')->nullable();
             $table->timestamps();
 
+            // Хэрэглэгчийн жагсаалт ба идэвхтэй бүтээлийн тоог хурдан авах индексүүд.
             $table->index(['user_id', 'created_at']);
             $table->index(['user_id', 'status']);
         });
     }
 
+    // Хүснэгтүүдийг foreign key-ийн урвуу дарааллаар устгаж, users-ийн нэмсэн баганыг хасна.
     public function down(): void
     {
         Schema::dropIfExists('creations');

@@ -1,26 +1,31 @@
 <script setup>
+// Админ: багцуудыг (үнэ, хугацаа, кредит, онцлог) засах, шинээр нэмэх.
 import { onMounted, ref } from 'vue';
 import { api, money } from '../../lib/api';
 import { loadSession, session } from '../../lib/session';
 import AdminNav from '../../components/AdminNav.vue';
 
+// Багцууд, алдаа, саяхан хадгалсан багцын id (түр "Хадгаллаа" харуулна).
 const plans = ref([]);
 const error = ref('');
 const saved = ref(null);
 const prices = session.meta.credit_prices;
-// Worst-case API cost per credit is ≈525₮ (most expensive models), so 2× margin needs ≥1,050₮ per credit.
+// Хамгийн муу тохиолдолд нэг кредитийн API зардал ≈525₮ (хамгийн үнэтэй моделиуд), тиймээс 2× ашигт нэг кредит ≥1,050₮ байх ёстой.
 const floor = 1050;
 
+// Багцуудыг ачаалж, онцлогуудыг мөр бүрт нэгээр textarea-д засах текст болгоно.
 async function load() {
     plans.value = (await api.get('/admin/plans')).data.map((p) => ({ ...p, featuresText: (p.features || []).join('\n') }));
 }
 
 onMounted(load);
 
+// Хадгалаагүй шинэ хоосон багц нэмнэ.
 function add() {
     plans.value.push({ id: null, slug: '', name: '', price: 0, period_days: 30, credits: 0, is_active: true, sort: plans.value.length + 1, featuresText: '' });
 }
 
+// Багцыг хадгална (id байвал PUT, үгүй бол POST), дараа нь нийтийн metadata-г шинэчилнэ.
 async function save(p) {
     error.value = '';
     const body = { ...p, features: p.featuresText.split('\n').map((s) => s.trim()).filter(Boolean) };
@@ -39,6 +44,7 @@ async function save(p) {
 <template>
     <div class="mx-auto max-w-[1400px]">
         <AdminNav />
+        <!-- Толгой, тайлбар (үнийн доод хязгаар) ба алдаа -->
         <div class="mb-4 flex items-center gap-3">
             <h1 class="display text-3xl">Багц, үнэ</h1>
             <button class="btn btn-lime ml-auto" @click="add">+ Багц</button>
@@ -46,6 +52,7 @@ async function save(p) {
         <p class="mb-4 text-sm text-muted">Үнэ 0 бол үнэгүй багц: шинэ хэрэглэгч бүр кредитийг нь нэг удаа авна, хугацаагүй. Төлбөртэй багцын кредит тухайн хугацаанд хүчинтэй. Бүтээлийн үнэ: постер {{ prices.poster }} (+{{ prices.poster_extra_format }}/хэмжээ), reels {{ Object.entries(prices.reel).map(([s, c]) => `${s} сек ${c}`).join(', ') }} кредит. 1 кредитийн үнэ ≥ {{ money(floor) }} байвал хамгийн үнэтэй модель (Veo, GPT high) ашигласан муу тохиолдолд ч ашиг 2 дахин байна (docs/PRICING.md).</p>
         <p v-if="error" class="mb-3 rounded-xl bg-red-950 p-3 text-sm text-red-200">{{ error }}</p>
 
+        <!-- Багц бүрийн засварлах карт; 1 кредитийн үнэ доод хязгаараас бага бол улаанаар -->
         <div class="grid gap-4 md:grid-cols-3">
             <div v-for="(p, i) in plans" :key="p.id ?? 'new' + i" class="panel space-y-3">
                 <div class="grid grid-cols-2 gap-2">

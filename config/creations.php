@@ -4,13 +4,13 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Poster formats
+    | Постерын форматууд
     |--------------------------------------------------------------------------
     |
-    | Keyed by aspect ratio: the image model is asked for that aspect and the
-    | delivered file is cover-cropped to exactly width × height (short side
-    | 1080 px). `auto` lets the agent pick the ratio that suits the brief; the
-    | poster then takes the size of the ratio it was generated at.
+    | Харьцаагаар түлхүүрлэсэн: image загвараас тэр харьцаагаар хүсэж, гаргах
+    | файлыг яг width × height болгож cover-crop хийнэ (богино тал 1080 px).
+    | `auto` үед agent брифэд тохирох харьцааг сонгох ба постер нь үүсгэсэн
+    | харьцааныхаа хэмжээг авна.
     |
     */
 
@@ -28,44 +28,50 @@ return [
         '21:9' => ['label' => '21:9', 'hint' => 'Өргөн баннер · cover', 'width' => 2520, 'height' => 1080],
     ],
 
+    // Reel (видео) тохиргоо.
     'reel' => [
-        // Video orientation; the first one is the default.
+        // Видеоны чиглэл; эхнийх нь анхдагч.
         'formats' => [
             '9:16' => ['label' => '9:16', 'hint' => 'Reels · Story · TikTok', 'width' => 1080, 'height' => 1920],
             '16:9' => ['label' => '16:9', 'hint' => 'YouTube · Facebook видео', 'width' => 1920, 'height' => 1080],
         ],
         'fps' => 30,
-        // Lengths the customer can pick (seconds => what it suits); the first
-        // is the default. Each has its own credit price and media budget in
-        // config/pricing.php. The delivered clips must add up to it ± tolerance.
+        // Хэрэглэгчийн сонгож болох урт (секунд => юунд тохирох); эхнийх нь
+        // анхдагч. Тус бүр config/pricing.php-ээс гарах өөрийн credit үнэ ба media
+        // төсөвтэй. Гаргасан клипүүдийн нийлбэр үүнтэй ± tolerance тэнцүү байх ёстой.
         'durations' => [
             15 => 'Богино, анхаарал татах',
             30 => 'Ихэнх reels-д тохирно',
             45 => 'Дэлгэрэнгүй танилцуулга',
             60 => 'Урт, түүх өгүүлэх',
         ],
+        // Клипүүдийн нийлбэр сонгосон уртаас хэдэн секунд зөрж болох.
         'duration_tolerance' => 3,
     ],
 
+    // Хэрэглэгчийн хавсаргах файлын хязгаар (тоо, KB).
     'uploads' => [
         'max_product_images' => 5,
-        // Example images the customer wants the result to look like.
+        // Үр дүн нь иймэрхүү харагдаасай гэж хэрэглэгчийн өгөх жишээ зураг.
         'max_reference_images' => 3,
         'max_kb' => 10240,
     ],
 
     /*
     |--------------------------------------------------------------------------
-    | Fair use (plans are unlimited)
+    | Шударга хэрэглээ (багцууд хязгааргүй)
     |--------------------------------------------------------------------------
     */
 
+    // Нэг хэрэглэгчийн зэрэг ажиллаж буй бүтээлийн дээд тоо.
     'max_active_per_user' => (int) env('CREATIONS_MAX_ACTIVE', 2),
+    // Төрөл тус бүрийн өдрийн хязгаар; env өгөөгүй бол null (хязгааргүй).
     'daily_limit' => [
         'poster' => env('CREATIONS_DAILY_POSTERS') !== null ? (int) env('CREATIONS_DAILY_POSTERS') : null,
         'reel' => env('CREATIONS_DAILY_REELS') !== null ? (int) env('CREATIONS_DAILY_REELS') : null,
     ],
 
+    // RunCreation job-ийн timeout (секунд); cleanup-stale schedule үүнийг ашиглана.
     'job_timeout' => (int) env('CREATIONS_JOB_TIMEOUT', 3600),
 
 ];

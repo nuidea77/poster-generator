@@ -6,13 +6,16 @@ use App\Models\Creation;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
+// Шинэ бүтээл (poster эсвэл reel) эхлүүлэх хүсэлтийн шалгалт.
 class StoreCreationRequest extends FormRequest
 {
+    // Зөвхөн нэвтэрсэн хэрэглэгч бүтээл эхлүүлнэ.
     public function authorize(): bool
     {
         return $this->user() !== null;
     }
 
+    // Reel нэг л формат авна, poster хэд хэдэн формат авч болно.
     public function rules(): array
     {
         $maxKb = config('creations.uploads.max_kb');
@@ -38,6 +41,7 @@ class StoreCreationRequest extends FormRequest
         ];
     }
 
+    // Монгол алдааны мессежүүд.
     public function messages(): array
     {
         return [

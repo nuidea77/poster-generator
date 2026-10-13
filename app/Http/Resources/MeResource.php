@@ -7,8 +7,10 @@ use App\Services\Billing\Credits;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
+// Одоогийн хэрэглэгчийн профайл, брэнд, credit, багцын мэдээлэл.
 class MeResource extends JsonResource
 {
+    // Идэвхтэй захиалга байхгүй бол үнэгүй багцыг харуулна.
     public function toArray(Request $request): array
     {
         $subscription = $this->activeSubscription();
@@ -20,7 +22,7 @@ class MeResource extends JsonResource
             'brand_name' => $this->brand_name,
             'logo_url' => $this->logo_path ? '/storage/'.$this->logo_path : null,
             'subscribed' => $this->isSubscribed(),
-            'credits' => $this->is_admin ? null : app(Credits::class)->balance($this->resource), // null = unlimited
+            'credits' => $this->is_admin ? null : app(Credits::class)->balance($this->resource), // null = хязгааргүй
             'plan' => $subscription ? ['name' => $subscription->plan->name, 'free' => false] : (($free = Plan::free()) ? ['name' => $free->name, 'free' => true] : null),
             'subscription' => $subscription ? [
                 'plan' => $subscription->plan->name,

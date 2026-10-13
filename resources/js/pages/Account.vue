@@ -1,4 +1,5 @@
 <script setup>
+// Миний бүртгэл: багц/кредитийн төлөв, брэндийн нэр ба лого, гарах.
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { api, date } from '../lib/api';
@@ -11,6 +12,7 @@ const saving = ref(false);
 const message = ref('');
 const error = ref('');
 
+// Брэндийн нэрийг (нэмэлтээр лого эсвэл лого устгах тэмдгийг) FormData-аар хадгална.
 async function save(extra = {}) {
     saving.value = true;
     message.value = error.value = '';
@@ -27,12 +29,14 @@ async function save(extra = {}) {
     }
 }
 
+// Сонгосон лого файлыг шууд хадгална; input-ийг цэвэрлэж ижил файлыг дахин сонгох боломжтой болгоно.
 function pickLogo(e) {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (file) save({ logo: file });
 }
 
+// Гараад нүүр хуудас руу шилжинэ.
 async function signOut() {
     await logout();
     router.push('/');
@@ -43,6 +47,7 @@ async function signOut() {
     <div class="mx-auto max-w-3xl space-y-4">
         <h1 class="display text-3xl">Миний бүртгэл</h1>
 
+        <!-- Багц ба кредитийн төлөв -->
         <div class="panel">
             <div class="mb-3 text-sm font-semibold">Багц</div>
             <div v-if="session.user.credits !== null" class="mb-3 text-sm">Кредитийн үлдэгдэл: <b class="text-lime">{{ session.user.credits }}</b></div>
@@ -62,6 +67,7 @@ async function signOut() {
             </div>
         </div>
 
+        <!-- Брэнд: лого ба брэндийн нэр -->
         <div class="panel space-y-4">
             <div class="text-sm font-semibold">Брэнд</div>
             <p class="text-xs text-muted">Хадгалсан лого шинэ бүтээл бүрт автоматаар хавсрагдана.</p>
@@ -86,6 +92,7 @@ async function signOut() {
             <p v-if="error" class="text-xs text-red-300">{{ error }}</p>
         </div>
 
+        <!-- Хэрэглэгчийн мэдээлэл ба гарах товч -->
         <div class="panel flex items-center gap-3">
             <div class="text-sm"><div class="font-semibold">{{ session.user.name }}</div><div class="text-muted">{{ session.user.email }}</div></div>
             <button class="btn btn-ghost btn-sm ml-auto text-red-300" @click="signOut">Гарах</button>

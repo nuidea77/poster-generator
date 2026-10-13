@@ -10,13 +10,16 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
+// Одоогийн хэрэглэгч, түүний брэнд болон аппын нийтийн мэдээлэл.
 class MeController extends Controller
 {
+    // Нэвтэрсэн хэрэглэгчийг, нэвтрээгүй бол null буцаана.
     public function show(Request $request): JsonResponse
     {
         return response()->json(['data' => $request->user() ? new MeResource($request->user()) : null]);
     }
 
+    // Брэндийн нэр, лого шинэчилнэ; хуучин логог дискнээс устгана.
     public function updateBrand(Request $request): MeResource
     {
         $data = $request->validate([
@@ -28,11 +31,13 @@ class MeController extends Controller
         $user = $request->user();
         $user->brand_name = $data['brand_name'] ?? $user->brand_name;
 
+        // Логог хасах хүсэлт.
         if ($request->boolean('remove_logo') && $user->logo_path) {
             Storage::disk('public')->delete($user->logo_path);
             $user->logo_path = null;
         }
 
+        // Шинэ лого: хуучныг устгаад орлуулна.
         if ($request->hasFile('logo')) {
             if ($user->logo_path) {
                 Storage::disk('public')->delete($user->logo_path);
@@ -46,7 +51,7 @@ class MeController extends Controller
     }
 
     /**
-     * Public app metadata: poster formats, reel spec, plans.
+     * Аппын нийтийн мэдээлэл: poster-ийн формат, reel-ийн тохиргоо, багцууд.
      */
     public function meta(): JsonResponse
     {

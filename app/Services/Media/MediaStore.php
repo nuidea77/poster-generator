@@ -6,11 +6,12 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 /**
- * Files live on the public disk under unguessable UUID names. URLs are
- * relative so the SPA loads them same-origin.
+ * Файлууд public диск дээр таамаглах боломжгүй UUID нэрээр хадгалагдана.
+ * URL нь харьцангуй тул SPA тэдгээрийг ижил origin-оос ачаална.
  */
 class MediaStore
 {
+    // MIME төрөл → файлын өргөтгөл (танихгүй төрөл бол 'bin').
     public const EXT = [
         'image/jpeg' => 'jpg',
         'image/png' => 'png',
@@ -20,6 +21,8 @@ class MediaStore
     ];
 
     /**
+     * Өгөгдлийг $dir хавтас дотор шинэ UUID нэртэй файл болгон хадгална.
+     *
      * @return array{path: string, url: string}
      */
     public static function put(string $dir, string $data, string $mime): array
@@ -30,17 +33,21 @@ class MediaStore
         return ['path' => $path, 'url' => self::url($path)];
     }
 
+    // Диск дээрх замаас SPA-д зориулсан харьцангуй URL гаргана.
     public static function url(string $path): string
     {
         return '/storage/'.ltrim($path, '/');
     }
 
+    // ffmpeg/GD-д өгөх файлын системийн бүтэн зам.
     public static function absolute(string $path): string
     {
         return Storage::disk('public')->path($path);
     }
 
     /**
+     * Файлын агуулга болон MIME төрлийг уншина (тодорхойгүй бол octet-stream).
+     *
      * @return array{data: string, mime: string}
      */
     public static function read(string $path): array
@@ -50,6 +57,7 @@ class MediaStore
         return ['data' => $disk->get($path), 'mime' => $disk->mimeType($path) ?: 'application/octet-stream'];
     }
 
+    // Хавтсыг доторх бүх файлтай нь устгана (жишээ нь бүтээлийг устгахад).
     public static function deleteDirectory(string $dir): void
     {
         Storage::disk('public')->deleteDirectory($dir);

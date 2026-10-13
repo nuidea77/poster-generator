@@ -1,4 +1,5 @@
 <script setup>
+// Аппын үндсэн бүрхүүл: дээд цэс (навигаци, кредит, хэрэглэгчийн цэс) ба хуудсын агуулга.
 import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { logout, session } from './lib/session';
@@ -6,8 +7,10 @@ import Icon from './components/Icon.vue';
 
 const route = useRoute();
 const router = useRouter();
+// Хэрэглэгчийн dropdown цэс нээлттэй эсэх.
 const menu = ref(false);
 
+// Навигацийн холбоосууд: auth=true нь зөвхөн нэвтэрсэн үед, админ холбоос зөвхөн админд харагдана.
 const nav = computed(() => [
     { to: '/create', label: 'Бүтээх', auth: true },
     { to: '/library', label: 'Миний бүтээлүүд', auth: true },
@@ -15,10 +18,13 @@ const nav = computed(() => [
     ...(session.user?.is_admin ? [{ to: '/admin', label: 'Админ', badge: 'Admin' }] : []),
 ].filter((n) => !n.auth || session.user));
 
+// Тухайн холбоос одоогийн замтай (эсвэл түүний дэд замтай) таарч байгаа эсэх.
 const active = (to) => route.path === to || (to !== '/' && route.path.startsWith(to));
 
+// Хуудас солигдоход хэрэглэгчийн цэсийг хаана.
 watch(() => route.fullPath, () => (menu.value = false));
 
+// Гараад нүүр хуудас руу шилжинэ.
 async function signOut() {
     await logout();
     router.push('/');
@@ -27,6 +33,7 @@ async function signOut() {
 
 <template>
     <div class="min-h-full">
+        <!-- Дээд толгой: лого, навигаци, кредит ба хэрэглэгчийн цэс -->
         <header class="sticky top-0 z-30 border-b border-line bg-bg/90 backdrop-blur">
             <div class="flex h-14 items-center gap-1 px-4">
                 <RouterLink to="/" class="mr-3 flex items-center gap-2">
@@ -34,6 +41,7 @@ async function signOut() {
                     <span class="hidden font-display text-sm font-bold tracking-tight uppercase sm:inline">Poster Studio</span>
                 </RouterLink>
 
+                <!-- Навигацийн холбоосууд -->
                 <nav class="flex items-center gap-0.5 overflow-x-auto scroll-thin">
                     <RouterLink
                         v-for="n in nav"
@@ -47,6 +55,7 @@ async function signOut() {
                     </RouterLink>
                 </nav>
 
+                <!-- Баруун тал: кредитийн үлдэгдэл, хэрэглэгчийн цэс эсвэл нэвтрэх/бүртгүүлэх -->
                 <div class="ml-auto flex items-center gap-2">
                     <template v-if="session.user">
                         <RouterLink v-if="session.user.credits !== null" to="/pricing" class="btn btn-lime-soft px-2.5 sm:px-4" title="Кредит нэмэх"><Icon name="sparkles" size="14" /> {{ session.user.credits }}<span class="hidden sm:inline"> кредит</span></RouterLink>
@@ -75,6 +84,7 @@ async function signOut() {
             </div>
         </header>
 
+        <!-- Хуудсын агуулга; session ачаалж дуустал spinner харуулна -->
         <main v-if="session.ready" class="px-4 pt-4 pb-16">
             <RouterView />
         </main>

@@ -1,18 +1,22 @@
 <script setup>
+// Нүүр (landing) хуудас: үйлчилгээний танилцуулга, алхмууд, постер/reels, багцын уриалга.
 import { session } from '../lib/session';
 import { money } from '../lib/api';
 import Icon from '../components/Icon.vue';
 
+// "Хэрхэн ажилладаг" хэсгийн гурван алхам.
 const steps = [
     { icon: 'edit', title: 'Санаагаа бич', text: 'Юу сурталчлах, хэнд, ямар уур амьсгалтай байхыг энгийн үгээр бичнэ.' },
     { icon: 'upload', title: 'Лого, бүтээгдэхүүн', text: 'Логогоо, бүтээгдэхүүнийхээ зургийг хавсаргана. AI яг тэр бүтээгдэхүүнийг ашиглана.' },
     { icon: 'sparkles', title: 'Бэлэн болно', text: 'Постер хэдэн минутад, reels видео бэлэн MP4 болж гарч ирнэ. Татаад шууд нийтэл.' },
 ];
+// Hero хэсгийн чимэглэлийн картуудын gradient өнгө.
 const cards = ['from-orange-500 to-amber-700', 'from-sky-500 to-indigo-700', 'from-pink-500 to-rose-700', 'from-lime-400 to-emerald-700'];
 </script>
 
 <template>
     <div class="mx-auto max-w-[1400px]">
+        <!-- Hero: чимэглэлийн картууд, гарчиг, үндсэн товчнууд -->
         <section class="relative mx-auto flex min-h-[70vh] max-w-4xl flex-col items-center justify-center text-center">
             <div class="mb-10 flex items-end justify-center gap-2">
                 <div v-for="(c, i) in cards" :key="i" class="h-32 rounded-xl border border-white/20 bg-gradient-to-br shadow-xl md:h-44" :class="[c, i === 1 ? 'w-20 md:w-24' : 'w-24 md:w-32']" :style="{ transform: `rotate(${(i - 1.5) * 6}deg) translateY(${Math.abs(i - 1.5) * 10}px)` }" />
@@ -30,6 +34,7 @@ const cards = ['from-orange-500 to-amber-700', 'from-sky-500 to-indigo-700', 'fr
             </div>
         </section>
 
+        <!-- Хэрхэн ажилладаг: 3 алхам -->
         <section class="grid gap-3 md:grid-cols-3">
             <div v-for="(s, i) in steps" :key="i" class="feature-card">
                 <div class="mb-8 flex items-start justify-between">
@@ -41,6 +46,7 @@ const cards = ['from-orange-500 to-amber-700', 'from-sky-500 to-indigo-700', 'fr
             </div>
         </section>
 
+        <!-- Постер ба reels-ийн боломжууд -->
         <section class="mt-16 grid gap-3 md:grid-cols-2">
             <div class="feature-card">
                 <div class="mb-6 flex items-center gap-2"><Icon name="image" size="20" /><span class="badge badge-new">Постер</span></div>
@@ -56,6 +62,7 @@ const cards = ['from-orange-500 to-amber-700', 'from-sky-500 to-indigo-700', 'fr
             </div>
         </section>
 
+        <!-- Багцын уриалга (хамгийн бага үнэтэй багцаас эхлэх үнэ) -->
         <section v-if="session.meta.plans.length" class="mt-16 text-center">
             <h2 class="display text-3xl">Эхний постер үнэгүй</h2>
             <p class="mt-2 text-zinc-400">Бүртгүүлээд туршаад үз. Багц {{ money(session.meta.plans.find((p) => p.price)?.price ?? 0) }}-өөс эхэлнэ</p>

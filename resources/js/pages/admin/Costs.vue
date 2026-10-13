@@ -3,12 +3,14 @@ import { onMounted, ref, watch } from 'vue';
 import { api, money } from '../../lib/api';
 import AdminNav from '../../components/AdminNav.vue';
 
-// Credit prices CostMeter derives from unit costs, next to what finished jobs really cost.
+// Админ "Өртөг" хуудас: CostMeter-ийн нэгж үнээс тооцсон кредитийн үнийг дууссан ажлуудын бодит өртөгтэй зэрэгцүүлж харуулна.
 const data = ref(null);
 const error = ref('');
-const days = ref(30); // real figures: last N days, 0 = all time
+const days = ref(30); // бодит тоо: сүүлийн N хоног, 0 = бүх хугацаа
+// Хугацааны шүүлтүүрийн сонголтууд: [хоног, нэр].
 const periods = [[7, '7 хоног'], [30, '30 хоног'], [0, 'Бүгд']];
 
+// Өртгийн тайланг (сонгосон хугацаагаар) ачаална.
 async function load() {
     try {
         data.value = await api.get(`/admin/costs${days.value ? `?days=${days.value}` : ''}`);
@@ -17,12 +19,17 @@ async function load() {
     }
 }
 
+// Нээгдэхэд болон хугацаа солигдоход дахин ачаална.
 onMounted(load);
 watch(days, load);
 
+// Долларыг 2 оронтой форматлана.
 const usd = (v) => `$${Number(v).toFixed(2)}`;
+// Ашгийн харьцааны өнгө: байхгүй бол бүдэг, доод хэмжээнээс бага бол улаан, үгүй бол ногоон.
 const tone = (m, min) => (m === null ? 'text-muted' : m < min ? 'text-red-300' : 'text-lime');
+// Том тоог мянгатаар товчилно (12k).
 const k = (n) => (n >= 1000 ? `${Math.round(n / 1000)}k` : String(n ?? 0));
+// Сөрөг дүнг хасах тэмдэгтэй мөнгөөр харуулна.
 const signed = (n) => (n < 0 ? `−${money(-n)}` : money(n));
 </script>
 
@@ -33,13 +40,14 @@ const signed = (n) => (n < 0 ? `−${money(-n)}` : money(n));
         <p v-if="error" class="rounded-xl bg-red-950 p-3 text-sm text-red-200">{{ error }}</p>
 
         <template v-if="data">
-            <!-- The whole picture: what was made, what it cost, what came in. -->
+            <!-- Нийт зураглал: юу хийсэн, хэд зарцуулсан, хэд орж ирсэн. -->
             <div class="mb-3 flex flex-wrap items-center gap-2">
                 <h2 class="font-semibold">Нийт тойм</h2>
                 <div class="ml-auto flex gap-1.5">
                     <button v-for="p in periods" :key="p[0]" class="chip chip-sm" :class="{ 'chip-active': days === p[0] }" @click="days = p[0]">{{ p[1] }}</button>
                 </div>
             </div>
+            <!-- Тоймын картууд: зардал, орж ирсэн мөнгө, ашиг/алдагдал, хийсэн бүтээл -->
             <div class="mb-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <div class="panel">
                     <div class="text-xs text-muted">Нийт зардал (API)</div>
@@ -65,6 +73,7 @@ const signed = (n) => (n < 0 ? `−${money(-n)}` : money(n));
                     <div class="text-[11px] text-muted">бүтэлгүйтсэн: {{ data.summary.posters.failed }} постер, {{ data.summary.reels.failed }} reel</div>
                 </div>
             </div>
+            <!-- Бүх бүтээлийг үнийн жагсаалтаар төлсөн гэж үзсэн тооцоо -->
             <div class="mb-3 rounded-2xl border border-line p-4">
                 <div class="mb-2 text-sm font-semibold">Хэрэв бүгдийг (админы тест орно) хэрэглэгч үнийн жагсаалтаар төлсөн бол</div>
                 <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -78,6 +87,7 @@ const signed = (n) => (n < 0 ? `−${money(-n)}` : money(n));
                         <div class="text-[11px] text-muted">{{ data.summary.as_customer.losing_jobs }} бүтээл үнээсээ их өртөгтэй</div></div>
                 </div>
             </div>
+            <!-- Зардлын задаргаа: юунд хэд зарцуулсан, постер/reel-ийн нийт -->
             <div class="mb-8 overflow-x-auto rounded-2xl border border-line">
                 <table class="w-full text-left text-sm">
                     <thead class="bg-surface text-xs text-muted uppercase">
@@ -112,6 +122,7 @@ const signed = (n) => (n < 0 ? `−${money(-n)}` : money(n));
                 Нэгж үнийг <code>config/pricing.php</code> (эсвэл <code>COST_*</code> env)-д өөрчилбөл үнэ дагаад шинэчлэгдэнэ.
             </p>
 
+            <!-- Үнийн тооцоо: бүтээл тус бүрийн ердийн/муу өртөг, медиа төсөв, кредит, ашиг -->
             <h2 class="mb-2 font-semibold">Үнийн тооцоо</h2>
             <div class="mb-8 overflow-x-auto rounded-2xl border border-line">
                 <table class="w-full text-left text-sm">
@@ -136,6 +147,7 @@ const signed = (n) => (n < 0 ? `−${money(-n)}` : money(n));
                 </table>
             </div>
 
+            <!-- Орлого ба алдагдал: бүтэлгүйтсэн ба төлбөргүй ажлын зардал -->
             <div class="mb-3 flex flex-wrap items-center gap-2">
                 <h2 class="font-semibold">Орлого ба алдагдал</h2>
             </div>
@@ -167,6 +179,7 @@ const signed = (n) => (n < 0 ? `−${money(-n)}` : money(n));
                 {{ data.losses.underwater.jobs }} дууссан бүтээл орлогоосоо их зардал гаргасан: нийт {{ money(data.losses.underwater.lost_mnt) }} алдагдал.
             </p>
 
+            <!-- Бүтэлгүйтсэн ажлууд: төрлөөр ба шалтгаанаар -->
             <div v-if="data.losses.failed.jobs" class="mb-8 grid gap-4 lg:grid-cols-2">
                 <div class="overflow-x-auto rounded-2xl border border-line">
                     <table class="w-full text-left text-sm">
@@ -200,6 +213,7 @@ const signed = (n) => (n < 0 ? `−${money(-n)}` : money(n));
                 </div>
             </div>
 
+            <!-- Бодит зардал: бүтээлийн төрөл тус бүрийн дундаж, хамгийн их, таамагтай харьцуулалт -->
             <h2 class="mb-1 font-semibold">Бодит зардал (дууссан бүтээлүүд)</h2>
             <p class="mb-2 max-w-3xl text-xs text-muted">Админы тест, үнэгүй кредитийн ажлыг оролцуулна. Ашиг = тухайн ажлын жагсаалтын үнэ ÷ бодит API зардал. «Таамаг» нь үнийн тооцооны ердийн ажлын зардал — бодит дундаж үүнээс их бол үнэ хангалтгүй.</p>
             <p v-if="!data.actuals.length" class="rounded-2xl border border-line p-4 text-sm text-muted">Одоогоор дууссан бүтээл алга.</p>
@@ -229,6 +243,7 @@ const signed = (n) => (n < 0 ? `−${money(-n)}` : money(n));
                 </table>
             </div>
 
+            <!-- Сүүлийн бүтээлүүдийн нэг бүрчилсэн зардал -->
             <h2 class="mt-8 mb-2 font-semibold">Бүтээл тус бүрийн бодит зардал</h2>
             <div class="overflow-x-auto rounded-2xl border border-line">
                 <table class="w-full text-left text-sm">

@@ -8,22 +8,24 @@ use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
 
 /**
- * ByteDance Seedance through the BytePlus ModelArk video generation API.
+ * ByteDance Seedance-ийг BytePlus ModelArk видео үүсгэх API-аар ашиглана.
  * POST /contents/generations/tasks → {id}; GET /contents/generations/tasks/{id} → status, content.video_url
  */
 class SeedanceProvider implements VideoProvider
 {
     public function __construct(private array $config, private int $timeout) {}
 
+    // Seedance-ийн дэмждэг клипийн уртууд (секунд).
     public function durations(): array
     {
         return [5, 10];
     }
 
+    // Видео үүсгэх даалгавар илгээж, даалгаврын id буцаана.
     public function submit(string $prompt, string $aspect, int $duration, ?array $firstFrame = null): string
     {
 
-        // Image-to-video takes its ratio from the frame; text-to-video needs the flag.
+        // Image-to-video харьцаагаа зурагнаас авна; text-to-video-д туг хэрэгтэй.
         $text = trim($prompt).' --duration '.$duration.($firstFrame ? '' : ' --ratio '.$aspect);
 
         $content = [['type' => 'text', 'text' => $text]];
@@ -48,12 +50,13 @@ class SeedanceProvider implements VideoProvider
         return (string) $response->json('id');
     }
 
+    // Даалгаврын төлөвийг Seedance-ийн статусаас pending/done/failed болгон хөрвүүлнэ.
     public function status(string $taskId): array
     {
         $response = $this->client()->get("/contents/generations/tasks/{$taskId}");
 
         if ($response->failed()) {
-            return ['state' => 'pending']; // transient — keep polling until the overall timeout
+            return ['state' => 'pending']; // түр зуурын алдаа — нийт хугацаа дуустал шалгасаар байна
         }
 
         return match ($response->json('status')) {
@@ -63,6 +66,7 @@ class SeedanceProvider implements VideoProvider
         };
     }
 
+    // Бэлэн клипийг URL-аас татна.
     public function download(string $url): array
     {
         $video = Http::timeout($this->timeout)->get($url);
@@ -74,16 +78,19 @@ class SeedanceProvider implements VideoProvider
         return ['data' => $video->body(), 'mime' => 'video/mp4'];
     }
 
+    // Төлөв шалгах хоорондын зай (config-оос).
     public function pollInterval(): int
     {
         return $this->config['poll_interval'];
     }
 
+    // Төлөв шалгах нийт хугацааны хязгаар (config-оос).
     public function pollTimeout(): int
     {
         return $this->config['poll_timeout'];
     }
 
+    // ModelArk API-д зориулсан base URL ба token-той HTTP client.
     private function client(): PendingRequest
     {
         return Http::timeout($this->timeout)

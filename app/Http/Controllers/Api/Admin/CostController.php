@@ -7,11 +7,12 @@ use App\Services\Billing\CostMeter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
+// Админы Өртөг хуудасны өгөгдөл: үнийн жагсаалт, бодит өртөг, алдагдал.
 class CostController extends Controller
 {
     /**
-     * Price book (credit prices derived from unit costs), what jobs really cost,
-     * and where money was lost. `days` limits real figures to recent jobs.
+     * Үнийн жагсаалт (нэгж өртгөөс гаргасан credit үнэ), ажлуудын бодит өртөг,
+     * мөн хаана мөнгө алдсан. `days` нь бодит тоог сүүлийн ажлуудаар хязгаарлана.
      */
     public function __invoke(Request $request, CostMeter $meter): JsonResponse
     {
