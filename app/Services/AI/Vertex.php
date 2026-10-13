@@ -104,7 +104,9 @@ class Vertex
             return null;
         }
 
-        $json = str_starts_with(trim($value), '{') ? $value : (is_file($value) ? file_get_contents($value) : null);
+        $absolute = str_starts_with($value, '/') || str_starts_with($value, '\\') || preg_match('/^[a-zA-Z]:[\\\\\/]/', $value);
+        $path = $absolute ? $value : base_path($value); // relative paths are from the project root
+        $json = str_starts_with(trim($value), '{') ? $value : (is_file($path) ? file_get_contents($path) : null);
         $data = $json ? json_decode($json, true) : null;
 
         return isset($data['client_email'], $data['private_key']) ? $data : null;

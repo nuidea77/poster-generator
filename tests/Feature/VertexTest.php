@@ -3,7 +3,9 @@
 namespace Tests\Feature;
 
 use App\Services\AI\AiManager;
+use App\Services\AI\Vertex;
 use Illuminate\Http\Client\Request;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
@@ -69,6 +71,42 @@ class VertexTest extends TestCase
 
         Http::assertSent(fn (Request $r) => str_starts_with($r->url(), 'https://aiplatform.googleapis.com/v1/publishers/google/models/gemini-2.5-flash-image:generateContent?key=AQ.vertex-key'));
         $this->assertNotContains('veo', $ai->available('video')); // Veo on Vertex needs a service account
+    }
+
+    public function test_vertex_without_credentials_falls_back_to_the_gemini_api(): void
+    {
+        config([
+            'ai.providers.gemini.via' => 'vertex', 'ai.providers.gemini.key' => 'k-gemini',
+            'ai.vertex' => ['project' => null, 'location' => 'us-central1', 'image_location' => 'global', 'credentials' => 'storage/keys/missing.json', 'api_key' => null],
+        ]);
+        Http::fake(['generativelanguage.googleapis.com/*' => Http::response(['candidates' => [['content' => ['parts' => [['inlineData' => ['mimeType' => 'image/png', 'data' => base64_encode($this->png())]]]]]]])]);
+
+        app(AiManager::class)->image('gemini')->generateImage('photo', '1:1');
+
+        Http::assertSent(fn (Request $r) => str_contains($r->url(), 'generativelanguage.googleapis.com') && $r->hasHeader('x-goog-api-key', 'k-gemini'));
+    }
+
+    public function test_a_gemini_api_outage_does_not_pause_the_vertex_route(): void
+    {
+        config(['ai.providers.gemini.via' => 'gemini_api', 'ai.providers.gemini.key' => 'k-gemini']);
+        $ai = app(AiManager::class);
+        $ai->noteFailure('gemini', 'Your prepayment credits are depleted.');
+        $this->assertTrue($ai->paused('gemini'));
+
+        config(['ai.providers.gemini.via' => 'vertex', 'ai.vertex' => ['project' => null, 'location' => 'us-central1', 'image_location' => 'global', 'credentials' => $this->serviceAccount(), 'api_key' => null]]);
+        $this->assertFalse($ai->paused('gemini'));
+        $this->assertContains('gemini', $ai->available('image'));
+    }
+
+    public function test_relative_credentials_path_is_read_from_the_project_root(): void
+    {
+        $file = 'storage/framework/testing/vertex-test.json';
+        File::ensureDirectoryExists(base_path(dirname($file)));
+        file_put_contents(base_path($file), $this->serviceAccount());
+        config(['ai.vertex' => ['project' => null, 'location' => 'us-central1', 'image_location' => 'global', 'credentials' => $file, 'api_key' => null]]);
+
+        $this->assertTrue(Vertex::fromConfig()->ready(needsServiceAccount: true));
+        @unlink(base_path($file));
     }
 
     public function test_veo_runs_through_vertex_and_returns_the_inline_clip(): void

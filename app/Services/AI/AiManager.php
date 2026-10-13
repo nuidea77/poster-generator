@@ -17,8 +17,8 @@ class AiManager
     {
         return match ($this->configured($name, 'image')) {
             'openai' => new OpenAIProvider(config('ai.providers.openai'), config('ai.timeout')),
-            'gemini' => new GeminiProvider(config('ai.providers.gemini'), config('ai.timeout')),
-            'gemini_pro' => new GeminiProvider(config('ai.providers.gemini_pro'), config('ai.timeout')),
+            'gemini' => new GeminiProvider($this->settings('gemini'), config('ai.timeout')),
+            'gemini_pro' => new GeminiProvider($this->settings('gemini_pro'), config('ai.timeout')),
         };
     }
 
@@ -26,7 +26,7 @@ class AiManager
     {
         return match ($this->configured($name, 'video')) {
             'seedance' => new SeedanceProvider(config('ai.providers.seedance'), config('ai.timeout')),
-            'veo' => new VeoProvider(config('ai.providers.veo'), config('ai.timeout')),
+            'veo' => new VeoProvider($this->settings('veo'), config('ai.timeout')),
         };
     }
 
@@ -52,28 +52,52 @@ class AiManager
      */
     public function noteFailure(string $name, string $error): bool
     {
-        if (! preg_match('/quota|RESOURCE_EXHAUSTED|no credits|credit balance|billing|insufficient_quota|429/i', $error)) {
+        if (! preg_match('/quota|RESOURCE_EXHAUSTED|no credits|credits are depleted|prepayment|credit balance|billing|insufficient_quota|429/i', $error)) {
             return false;
         }
 
-        Cache::put("ai:paused:{$name}", $error, now()->addMinutes(config('ai.pause_minutes', 30)));
+        Cache::put($this->pauseKey($name), $error, now()->addMinutes(config('ai.pause_minutes', 30)));
 
         return true;
     }
 
     public function paused(string $name): bool
     {
-        return Cache::has("ai:paused:{$name}");
+        return Cache::has($this->pauseKey($name));
     }
 
-    /** A provider can be called: its API key, or Vertex AI credentials when it runs via Vertex. */
-    private function ready(array $provider): bool
+    /**
+     * Provider config with the route it will really take: a provider set to run
+     * via Vertex falls back to the Gemini API while Vertex has no credentials.
+     */
+    private function settings(string $name): array
     {
-        if (($provider['via'] ?? null) === 'vertex') {
-            return Vertex::fromConfig()->ready(needsServiceAccount: ($provider['kind'] ?? null) === 'video');
+        $provider = config("ai.providers.{$name}");
+
+        if (($provider['via'] ?? null) === 'vertex' && ! $this->vertexReady($provider) && filled($provider['key'] ?? null)) {
+            $provider['via'] = 'gemini_api';
         }
 
-        return filled($provider['key'] ?? null);
+        return $provider;
+    }
+
+    /** Pauses are per route, so moving a provider to Vertex is not blocked by a Gemini-API outage. */
+    private function pauseKey(string $name): string
+    {
+        $via = config("ai.providers.{$name}") ? ($this->settings($name)['via'] ?? 'direct') : 'direct';
+
+        return "ai:paused:{$name}:{$via}";
+    }
+
+    /** A provider can be called: Vertex AI credentials when it runs via Vertex, else its API key. */
+    private function ready(array $provider): bool
+    {
+        return (($provider['via'] ?? null) === 'vertex' && $this->vertexReady($provider)) || filled($provider['key'] ?? null);
+    }
+
+    private function vertexReady(array $provider): bool
+    {
+        return Vertex::fromConfig()->ready(needsServiceAccount: ($provider['kind'] ?? null) === 'video');
     }
 
     public function claudeReady(): bool
