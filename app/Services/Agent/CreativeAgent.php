@@ -617,6 +617,13 @@ class CreativeAgent
             throw new AiException('In a reel, add_text needs a clip (use animate_still first for a card).');
         }
 
+        // Cyrillic sometimes arrives as a JSON control escape: "\b" + "a" for "Ба", "\f" for "Ф",
+        // "\t" for "Т" — the string is then cut short. Say exactly that so the next call is clean.
+        $broken = collect($in['items'] ?? [])->first(fn ($it) => is_string($it['text'] ?? null) && preg_match('/[\x00-\x08\x0B\x0C\x0E-\x1F]|\t/', $it['text']));
+        if ($broken) {
+            throw new AiException('The text arrived broken: '.json_encode($broken['text'], JSON_UNESCAPED_UNICODE).' contains a control character where a Cyrillic letter belongs (the JSON escapes \b \f \t \r instead of Б Ф Т Р). Nothing was drawn. Send the complete call again and type every Cyrillic letter directly (Б, Ф, Т, Р, Н), never as an escape.');
+        }
+
         // A stray partial call (1–3 items after a full layout on the same visual) wastes a render;
         // a poster's add_text must carry the complete set every time.
         $before = collect($creation->steps)

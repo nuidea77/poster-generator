@@ -870,6 +870,7 @@ class CreationTest extends TestCase
             'api.anthropic.com/*' => Http::sequence()
                 ->push($this->turn([['add_text', ['asset_id' => 'img_1', 'footer_color' => '3B1F0E', 'items' => [
                     $fact('10.20–11.20', false), $fact('07:30–22:00', true), $fact('Их тойруу 15', false), $fact('Хүргэлттэй', true), $fact('8800-3344', false),
+                    $fact('cafe.mn', true), $fact('@aglag', false), // 7 facts: more than a strip can hold
                 ]]]]))
                 ->push($this->turn([['finish', ['summary' => 'ok']]])),
         ]);
@@ -878,7 +879,7 @@ class CreationTest extends TestCase
 
         app(CreativeAgent::class)->run($creation);
 
-        Http::assertSent(fn ($r) => str_contains(collect($r['messages'][2]['content'][0]['content'] ?? [])->firstWhere('type', 'text')['text'] ?? '', 'footer holds 5 facts in 3 rows'));
+        Http::assertSent(fn ($r) => str_contains(collect($r['messages'][2]['content'][0]['content'] ?? [])->firstWhere('type', 'text')['text'] ?? '', 'footer holds 7 facts'));
     }
 
     public function test_starred_words_are_drawn_in_the_accent_colour_in_place(): void

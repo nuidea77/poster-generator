@@ -85,27 +85,46 @@ class TextOverlay
             // Size share of a role; in the footer every fact is near `small` (the phone at most 1.25×),
             // so the strip stays even — a "subtitle" phone must not dwarf the other facts.
             $roleSize = fn ($it) => ($it['position'] ?? '') === 'footer'
-                ? min(self::SIZES[$it['role'] ?? ''] ?? self::SIZES['subtitle'], self::SIZES['small'] * 1.25)
+                ? min(self::SIZES[$it['role'] ?? ''] ?? self::SIZES['subtitle'], self::SIZES['small'] * (! empty($it['solo']) ? 1.2 : 1.25))
                 : (self::SIZES[$it['role'] ?? ''] ?? self::SIZES['subtitle']);
             // Room an item needs in a row: its characters (+ icon) at its role's size.
             $len = fn ($it) => (max(4, mb_strlen((string) ($it['text'] ?? ''))) + (($it['icon'] ?? 'none') !== 'none' ? 2 : 0)
                 + (! empty($it['box']) || ($it['box_shape'] ?? '') === 'glass' ? 2.5 : 0)) * $roleSize($it);
 
-            // The contact strip is one row when its 2–4 facts fit across (the house style); the
-            // agent's own split into two rows only stays when the facts are too long for one.
+            // The contact strip is laid out here, not by the agent's row flags: one row when all its
+            // facts fit across at full size; otherwise two balanced rows (the phone last). The facts
+            // keep their order; items are reordered only to move the phone to the end.
             $footerKeys = array_keys(array_filter($list, fn ($it) => ($it['position'] ?? '') === 'footer' && trim((string) ($it['text'] ?? '')) !== ''));
-            if (count($footerKeys) >= 2 && count($footerKeys) <= 4 && end($footerKeys) - reset($footerKeys) === count($footerKeys) - 1) {
-                $need = array_sum(array_map(function ($k) use ($list, $roleSize, $w, $h) {
-                    $it = $list[$k];
+            if (count($footerKeys) >= 2 && count($footerKeys) <= 6 && end($footerKeys) - reset($footerKeys) === count($footerKeys) - 1) {
+                $facts = array_map(fn ($k) => $list[$k], $footerKeys);
+                $isPhone = fn ($it) => ($it['icon'] ?? '') === 'phone';
+                usort($facts, fn ($a, $b) => $isPhone($a) <=> $isPhone($b)); // stable: only the phone moves last
+                $widthOf = function (array $it) use ($roleSize, $w, $h): float {
                     $font = array_key_exists($it['font'] ?? '', self::FONTS) ? $it['font'] : 'bold_sans';
 
                     return (mb_strlen((string) $it['text']) * self::WIDTH[$font] + (($it['icon'] ?? 'none') !== 'none' ? 1.8 : 0)) * $roleSize($it) * min($w, $h);
-                }, $footerKeys)) + (count($footerKeys) - 1) * $w * 0.05;
-                if ($need <= $w * 0.84) {
-                    foreach ($footerKeys as $n => $k) {
-                        $list[$k]['same_line'] = $n > 0;
+                };
+                $fits = fn (array $row, float $scale = 1.0) => array_sum(array_map($widthOf, $row)) * $scale + (count($row) - 1) * $w * 0.05 <= $w * 0.84;
+                $n = count($facts);
+                $phone = $isPhone(end($facts)) ? end($facts) : null;
+                $others = $phone ? array_slice($facts, 0, -1) : $facts;
+                $rows = match (true) {
+                    // 1. everything in one strip
+                    $n <= 4 && $fits($facts) => [$facts],
+                    // 2. the facts on one row (may shrink to ~62%), the phone below on its own, centred and bold
+                    $phone && count($others) <= 3 && $fits($others, 0.62) => [$others, [['solo' => true, 'align' => 'center', 'role' => 'subtitle'] + $phone]],
+                    // 3. two balanced rows
+                    default => [array_slice($facts, 0, intdiv($n, 2)), array_slice($facts, intdiv($n, 2))],
+                };
+                $laid = [];
+                foreach ($rows as $r2 => $row) {
+                    // the facts row sits well above a solo phone row (clear air, the phone reads as the action)
+                    $airAbove = isset($rows[$r2 + 1][0]['solo']);
+                    foreach (array_values($row) as $c => $it) {
+                        $laid[] = ['same_line' => $c > 0, 'air_after' => $airAbove] + $it;
                     }
                 }
+                array_splice($list, reset($footerKeys), $n, $laid);
             }
 
             $badge = fn ($it) => ! empty($it['box']); // filled pills (price, offer); glass chips may pair long labels
@@ -183,7 +202,7 @@ class TextOverlay
 
                 $display = ($item['role'] ?? '') === 'display'; // big digits/caps: no descenders, sits tight on the next line
                 $blocks[$position][] = compact('i', 'item', 'text', 'raw', 'marked', 'font', 'size', 'pad', 'soft', 'same', 'align', 'shape', 'column', 'columns', 'rowNo')
-                    + ['ems' => ['pad' => $pad / max(1, $size), 'line' => ($display ? 0.9 : 1.2) * $lines + 0.2 * ($lines - 1), 'gap' => $display ? 0.12 : 0.3, 'width' => min($w * 0.9 / max(1, $size), $longest * self::WIDTH[$font] * $caps)]];
+                    + ['ems' => ['pad' => $pad / max(1, $size), 'line' => ($display ? 0.9 : 1.2) * $lines + 0.2 * ($lines - 1), 'gap' => $display ? 0.12 : (! empty($item['air_after']) ? 1.1 : 0.3), 'width' => min($w * 0.9 / max(1, $size), $longest * self::WIDTH[$font] * $caps)]];
             }
 
             // Items in one row share one size (the smallest), then every block gets its box.
@@ -312,7 +331,7 @@ class TextOverlay
                     if ($icon) {
                         $box = imagettfbbox($size * 0.75, 0, resource_path('fonts/'.self::FONTS[$b['font']]), $b['text']);
                         $textW = $box[2] - $box[0];
-                        $iconPx = (int) round($size * (($item['icon_style'] ?? ($position === 'footer' ? 'circle' : 'plain')) === 'circle' ? 1.3 : 0.95));
+                        $iconPx = (int) round($size * (($item['icon_style'] ?? ($position === 'footer' ? 'circle' : 'plain')) === 'circle' ? ($position === 'footer' ? 1.1 : 1.3) : 0.95));
                         $lead = $iconPx + (int) round($size * 0.35);
                         $iconX = match (true) {
                             $left => $margin,
@@ -747,7 +766,7 @@ class TextOverlay
             $needed = ($y1 - $y0) < $H * 0.05 ? 3.0 : 2.5;
             foreach (array_values(array_filter([$p['color'] ?? 'FFFFFF', $p['accent'] ?? null])) as $k => $hex) {
                 $text = $lum(sscanf($hex, '%02x%02x%02x'));
-                if ((max($bg, $text) + 0.05) / (min($bg, $text) + 0.05) < $needed) {
+                if ((max($bg, $text) + 0.05) / (min($bg, $text) + 0.05) < ($k ? max($needed, 3.0) : $needed)) { // the accent word must pop
                     $low[] = str_replace("\n", ' / ', $p['text']).($k ? ' (its accent word)' : '');
                 }
             }

@@ -18,7 +18,7 @@ The footer is where the customer acts: it must be **found in one glance and read
 Unless the brief or the style clearly calls for another pattern, use the **contact strip**: `footer_style: pill`, `footer_color` = the brand's main or dark tone, white text, **one row of 3–4 short facts, all `small`**, every fact with a circle icon (the default in the footer), the phone `bold_sans` last on the right. The tool draws thin dividers between the facts. It is compact (one line, ~7% of the height), calm and reads like the professional posters — the studio's house style.
 
 - **One row is the goal.** Shorten facts until they fit (`Их тойруу 15`, `07:30–22:00`, `8800-3344`, `Хүргэлттэй`). add_text warns when a row had to shrink — then drop the weakest fact, don't add a row.
-- **Two rows only** for 5–6 facts or an unavoidable long address; then the phone may be `subtitle` bold on the right of row 2.
+- **When they don't fit one row** the tool lays the strip out itself: the other facts (up to 3) on the first row, and the **phone alone on a second row, centred and bold** — the order line (`Захиалга: 8899-3311` with the phone icon) reads like a call to action. 5–6 facts become two balanced rows. You only choose the facts, their order and wording; keep them short so the first row stays readable.
 - The phone is bold, not huge: in a one-row strip all facts keep the same size.
 
 **Footer colour ≠ CTA colour.** The CTA pill takes the accent (orange, lime, yellow); the footer takes the brand's main or dark tone (violet, navy, deep green, near-black). Two blocks of the same colour stacked at the bottom merge into one blob. Keep a clear gap between the CTA and the footer.
