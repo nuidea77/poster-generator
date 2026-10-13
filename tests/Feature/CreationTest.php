@@ -1219,6 +1219,25 @@ class CreationTest extends TestCase
         }
     }
 
+    public function test_giving_up_after_a_media_failure_is_refused_once(): void
+    {
+        Http::fake([
+            'generativelanguage.googleapis.com/*' => Http::response(['candidates' => [['finishReason' => 'IMAGE_SAFETY', 'content' => ['parts' => []]]]]),
+            'api.anthropic.com/*' => Http::sequence()
+                ->push($this->turn([['generate_image', ['provider' => 'gemini', 'prompt' => 'x', 'aspect' => '1:1']]]))
+                ->push($this->turn([['finish', ['summary' => 'gave up']]]))   // refused: nothing delivered yet
+                ->push($this->turn([['finish', ['summary' => 'gave up']]])),  // accepted the second time
+        ]);
+        $creation = Creation::create(['user_id' => $this->user->id, 'type' => 'poster', 'formats' => ['1:1'], 'prompt' => 'x', 'status' => 'running']);
+
+        app(CreativeAgent::class)->run($creation);
+        $finishes = collect($creation->fresh()->steps)->where('name', 'finish')->values();
+
+        $this->assertCount(2, $finishes);
+        $this->assertStringContainsString('Nothing has been delivered yet', $finishes[0]['error']);
+        $this->assertArrayNotHasKey('error', $finishes[1]);
+    }
+
     public function test_reel_delivery_needs_clips_and_respects_the_cap(): void
     {
         Http::fake([

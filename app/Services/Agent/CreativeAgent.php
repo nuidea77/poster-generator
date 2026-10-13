@@ -104,6 +104,7 @@ class CreativeAgent
                     continue;
                 }
 
+                $failed = false;
                 try {
                     $result = array_key_exists($block['id'], $images) ? $this->settled($images[$block['id']]) : $this->call($creation, $block['name'], $input);
                     $results[] = ['type' => 'tool_result', 'tool_use_id' => $block['id'], 'content' => $result['content']];
@@ -114,9 +115,10 @@ class CreativeAgent
                     }
                     $results[] = ['type' => 'tool_result', 'tool_use_id' => $block['id'], 'is_error' => true, 'content' => $e->getMessage()];
                     $creation->addStep(['type' => 'tool', 'name' => $block['name'], 'input' => $input, 'error' => $e->getMessage()]);
+                    $failed = true;
                 }
 
-                $finished = $finished || $block['name'] === 'finish';
+                $finished = $finished || ($block['name'] === 'finish' && ! $failed);
             }
 
             if ($finished || (! $cutOff && ($response['stop_reason'] ?? null) !== 'tool_use')) {
@@ -139,7 +141,7 @@ class CreativeAgent
         $headers = ['x-api-key' => $cfg['key'], 'anthropic-version' => '2023-06-01'];
         $body = [
             'model' => $agent['model'],
-            'max_tokens' => $agent['max_tokens'] ?? 32000,
+            'max_tokens' => $agent['max_tokens'] ?? 12000,
             'system' => [[
                 'type' => 'text',
                 'text' => $system,
@@ -447,10 +449,10 @@ class CreativeAgent
             try {
                 return $call();
             } catch (AiException $e) {
-                if ($attempt >= 2 || ! preg_match('/try again later|rate limit|Resource exhausted\\./i', $e->getMessage())) {
+                if ($attempt >= 3 || ! preg_match('/try again later|rate limit|Resource exhausted\\./i', $e->getMessage())) {
                     throw $e;
                 }
-                sleep(config('ai.rate_limit_wait', 6) * ($attempt + 1));
+                sleep(config('ai.rate_limit_wait', 10) * ($attempt + 1)); // 10 + 20 + 30 s: per-minute quotas refill
             }
         }
     }
@@ -921,6 +923,16 @@ class CreativeAgent
 
     private function finish(Creation $creation, array $in): array
     {
+        // Giving up with nothing delivered fails the job; refuse that once so the agent retries
+        // (rate limits clear within a minute) or switches model. A second finish is accepted.
+        $steps = collect($creation->steps);
+        $refused = $steps->contains(fn ($s) => ($s['name'] ?? '') === 'finish' && isset($s['error']));
+        $delivered = $creation->outputs || $steps->contains(fn ($s) => in_array($s['name'] ?? '', ['deliver_poster', 'deliver_reel'], true) && ! isset($s['error']));
+        $mediaFailed = $steps->contains(fn ($s) => in_array($s['name'] ?? '', ['generate_image', 'generate_videos'], true) && isset($s['error']));
+        if (! $delivered && $mediaFailed && ! $refused) {
+            throw new AiException('Nothing has been delivered yet, so the client would get nothing. If an image or video model said "try again later", call it again now (the tool waits and retries); if it is out of credits, use another available model; for reels, animate_still can finish the beats. Call finish only after delivering — calling it again now gives up the job.');
+        }
+
         $creation->update(['summary' => (string) ($in['summary'] ?? '')]);
 
         return ['summary' => 'done', 'content' => 'OK'];
