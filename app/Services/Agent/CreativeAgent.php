@@ -314,7 +314,7 @@ class CreativeAgent
                         'type' => 'object',
                         'properties' => [
                             'text' => ['type' => 'string'],
-                            'role' => ['type' => 'string', 'enum' => ['title', 'price', 'subtitle', 'small']],
+                            'role' => ['type' => 'string', 'enum' => ['display', 'title', 'price', 'subtitle', 'small'], 'description' => 'display = a huge hero number or 1–2 short words (15, -30%, 2026), about twice a title'],
                             'position' => ['type' => 'string', 'enum' => ['top', 'center', 'lower_third', 'bottom']],
                             'align' => ['type' => 'string', 'enum' => ['center', 'left']],
                             'font' => ['type' => 'string', 'enum' => array_keys(TextOverlay::FONTS)],

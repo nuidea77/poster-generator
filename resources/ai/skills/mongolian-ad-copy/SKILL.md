@@ -23,6 +23,7 @@ You write very little — a headline, a fact line, a CTA — so every word must 
 - 1 June: `Хүүхдийн баярын мэнд хүргэе`
 - Naadam: `Наадмын баярын мэнд хүргэе`
 - Teachers' day: `Багш нарын баярын мэнд хүргэе`
+- Anniversary: number alone + `ЖИЛИЙН ОЙ` (`15` / `ЖИЛИЙН ОЙ`), wish `Ойн баярын мэнд хүргэе!`, `15 жилийн ойн мэнд хүргэе`; for a company's own milestone `15 жилийн түүхтэй`, `Хамтдаа 15 жил`. Not `15 ЖИЛ` alone — it reads as a duration, not a celebration.
 (See `mongolian-culture` for what to show.)
 
 ## CTA bank

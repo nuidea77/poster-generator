@@ -737,6 +737,42 @@ class CreationTest extends TestCase
         }
     }
 
+    public function test_a_display_number_is_huge_and_never_in_old_style_serif_digits(): void
+    {
+        if (! Process::run([config('ai.ffmpeg'), '-version'])->successful()) {
+            $this->markTestSkipped('ffmpeg not installed');
+        }
+
+        $bg = imagecreatetruecolor(1080, 1080);
+        $file = sys_get_temp_dir().'/bg-'.uniqid().'.png';
+        imagepng($bg, $file);
+        $item = fn (string $role) => ['text' => '15', 'role' => $role, 'position' => 'top', 'align' => 'center', 'font' => 'serif', 'color' => 'FFFFFF', 'box' => false, 'box_color' => '', 'start' => 0, 'end' => 0, 'animation' => 'none'];
+
+        // Height of the drawn digits: a display number is about twice a title; serif digits get lining (condensed) figures.
+        $height = function (string $role) use ($file, $item) {
+            $out = app(TextOverlay::class)->burn($file, [$item($role)], 0, true);
+            $img = imagecreatefrompng($out);
+            @unlink($out);
+            $rows = 0;
+            for ($y = 0; $y < 1080; $y += 2) {
+                for ($x = 300; $x < 780; $x += 2) {
+                    if ((imagecolorat($img, $x, $y) >> 16 & 0xFF) > 200) {
+                        $rows++;
+                        break;
+                    }
+                }
+            }
+
+            return $rows * 2;
+        };
+        $display = $height('display');
+        $title = $height('title');
+        @unlink($file);
+
+        $this->assertGreaterThan(1.8 * $title, $display);
+        $this->assertGreaterThan(0.18 * 1080, $display); // Oswald digits are cap height, not sunk old-style figures
+    }
+
     public function test_a_reply_cut_off_at_max_tokens_does_not_end_the_job(): void
     {
         Http::fake([

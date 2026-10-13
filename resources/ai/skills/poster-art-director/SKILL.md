@@ -60,6 +60,7 @@ Reject or fix when: the message is missing or wrong; any text is misspelled or h
 | New product (шинэ) | Close-up, premium light, product alone, one prop telling its benefit | `ШИНЭ` or product name, one benefit line, price if given |
 | Event / opening (нээлт, өдөрлөг) | Venue, symbol of the cause or the atmosphere | Event name, **date · time · place** band, CTA (`Бүгдийг урьж байна`) |
 | Greeting (баярын мэндчилгээ) | Symbolic still life, warm light (see `mongolian-culture`) | Occasion title, short wish, brand line |
+| Anniversary (ойн баяр) | Sense of occasion with a big calm area for the number; the brand's symbol/subject below it | Huge `display` number (`15`) + `ЖИЛИЙН ОЙ`, name, wish — `poster-typography` §3c |
 | Hiring (ажлын зар) | Workplace or team, or calm brand field | `АЖИЛД УРЬЖ БАЙНА`, position, contact |
 | Menu / price list | Hero dish + clean panel | 3–5 items with prices |
 | Service / booking | Result or service in action | Service name, "from" price, booking contact |

@@ -19,12 +19,12 @@ class TextOverlay
         'bold_sans' => 'Montserrat-ExtraBold.ttf',
         'sans' => 'Montserrat-Medium.ttf',
         'condensed' => 'Oswald-Bold.ttf',
-        'serif' => 'PlayfairDisplay-Bold.ttf',   // no ₮ glyph: strings with ₮ fall back to bold_sans
+        'serif' => 'PlayfairDisplay-Bold.ttf',   // no ₮ glyph (falls back to bold_sans); old-style digits (fall back to condensed)
         'rounded' => 'Nunito-ExtraBold.ttf',
     ];
 
     /** Font size as a share of the frame's short side. */
-    private const SIZES = ['title' => 0.105, 'price' => 0.095, 'subtitle' => 0.058, 'small' => 0.04];
+    private const SIZES = ['display' => 0.24, 'title' => 0.105, 'price' => 0.095, 'subtitle' => 0.058, 'small' => 0.04];
 
     /** Average glyph width relative to font size, to shrink lines that would overflow. */
     private const WIDTH = ['bold_sans' => 0.74, 'sans' => 0.6, 'condensed' => 0.5, 'serif' => 0.6, 'rounded' => 0.68];
@@ -57,6 +57,8 @@ class TextOverlay
                 $font = array_key_exists($item['font'] ?? '', self::FONTS) ? $item['font'] : 'bold_sans';
                 if ($font === 'serif' && str_contains($text, '₮')) {
                     $font = 'bold_sans';
+                } elseif ($font === 'serif' && preg_match('/\d/', $text)) {
+                    $font = 'condensed'; // Playfair's old-style digits sink below the capitals ("15 ЖИЛ" looked weak)
                 }
 
                 $longest = max(array_map('mb_strlen', explode("\n", $text)));
@@ -68,7 +70,8 @@ class TextOverlay
                 $lines = substr_count($text, "\n") + 1;
                 $position = in_array($item['position'] ?? '', ['top', 'center', 'lower_third', 'bottom'], true) ? $item['position'] : 'lower_third';
 
-                $blocks[$position][] = compact('i', 'item', 'text', 'font', 'size', 'pad', 'soft') + ['height' => (int) round($size * 1.2 * $lines + $size * 0.2 * ($lines - 1)) + 2 * $pad];
+                $display = ($item['role'] ?? '') === 'display'; // big digits/caps: no descenders, sits tight on the next line
+                $blocks[$position][] = compact('i', 'item', 'text', 'font', 'size', 'pad', 'soft') + ['height' => (int) round($size * ($display ? 0.9 : 1.2) * $lines + $size * 0.2 * ($lines - 1)) + 2 * $pad, 'gap' => (int) round($size * ($display ? 0.12 : 0.3))];
             }
 
             $filters = [];
@@ -78,7 +81,7 @@ class TextOverlay
                 $y = max($this->baseY($position, $w, $h, $still), $floor);
 
                 if ($position === 'bottom' && isset($blocks['bottom'])) {
-                    $group = array_sum(array_map(fn ($b) => $b['height'] + (int) round($b['size'] * 0.3), $blocks['bottom']));
+                    $group = array_sum(array_map(fn ($b) => $b['height'] + $b['gap'], $blocks['bottom']));
                     $y = max($floor, min($y, (int) round($h * ($still ? 0.95 : 0.8)) - $group));
                 }
 
@@ -126,7 +129,7 @@ class TextOverlay
                         $lineY = count($lines) === 1 ? $yExpr : "({$yExpr})+".($k * (int) round($size * 1.4) + (int) round($size * 0.92)).'-ascent';
                         $filters[] = "drawtext=fontfile=f{$i}.ttf:textfile=t{$i}_{$k}.txt:line_spacing=".round($size * 0.2).":y='{$lineY}':{$common}";
                     }
-                    $y += $b['height'] + (int) round($size * 0.3);
+                    $y += $b['height'] + $b['gap'];
                 }
 
                 $floor = $y + (int) round(min($w, $h) * 0.02);
