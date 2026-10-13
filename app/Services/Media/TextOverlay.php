@@ -49,7 +49,7 @@ class TextOverlay
      * @param  bool  $still  an image (poster): static text, PNG out; else a clip: timed text, MP4 out
      * @param  string  $scrim  soft gradient behind the text zones: none | top | bottom | top_bottom
      * @param  string  $footerColor  hex of the band behind `footer` items (default near-black)
-     * @param  string  $footerStyle  band (full width at the foot) | pill (rounded bar inset from the edges)
+     * @param  string  $footerStyle  band (full width at the foot) | pill (rounded bar inset from the edges) | open (no strip, on the picture)
      * @return string Absolute path of the new file (caller moves it).
      */
     public function burn(string $video, array $items, float $duration, bool $still = false, array $reserved = [], string $scrim = 'none', string $scrimColor = '000000', string $footerColor = '', string $footerStyle = 'band'): string
@@ -85,7 +85,7 @@ class TextOverlay
             // Size share of a role; in the footer every fact is near `small` (the phone at most 1.25×),
             // so the strip stays even — a "subtitle" phone must not dwarf the other facts.
             $roleSize = fn ($it) => ($it['position'] ?? '') === 'footer'
-                ? min(self::SIZES[$it['role'] ?? ''] ?? self::SIZES['subtitle'], self::SIZES['small'] * (! empty($it['solo']) ? 1.35 : 1.25))
+                ? min(self::SIZES[$it['role'] ?? ''] ?? self::SIZES['subtitle'], self::SIZES['small'] * 1.25)
                 : (self::SIZES[$it['role'] ?? ''] ?? self::SIZES['subtitle']);
             // Room an item needs in a row: its characters (+ icon) at its role's size.
             $len = fn ($it) => (max(4, mb_strlen((string) ($it['text'] ?? ''))) + (($it['icon'] ?? 'none') !== 'none' ? 2 : 0)
@@ -110,9 +110,9 @@ class TextOverlay
                 $others = $phone ? array_slice($facts, 0, -1) : $facts;
                 $rows = match (true) {
                     // 1. everything in one strip
-                    $n <= 4 && $fits($facts) => [$facts],
+                    $n <= 3 && $fits($facts, 0.64) || $n === 4 && $fits($facts, 0.78) => [$facts],
                     // 2. the facts on one row (may shrink to ~62%), the phone below on its own, centred and bold
-                    $phone && count($others) <= 3 && $fits($others, 0.62) => [$others, [['solo' => true, 'align' => 'center', 'role' => 'subtitle'] + $phone]],
+                    $phone && count($others) <= 3 && $fits($others, 0.62) => [$others, [['solo' => true, 'align' => 'center'] + $phone]],
                     // 3. two balanced rows
                     default => [array_slice($facts, 0, intdiv($n, 2)), array_slice($facts, intdiv($n, 2))],
                 };
@@ -202,7 +202,7 @@ class TextOverlay
 
                 $display = ($item['role'] ?? '') === 'display'; // big digits/caps: no descenders, sits tight on the next line
                 $blocks[$position][] = compact('i', 'item', 'text', 'raw', 'marked', 'font', 'size', 'pad', 'soft', 'same', 'align', 'shape', 'column', 'columns', 'rowNo')
-                    + ['ems' => ['pad' => $pad / max(1, $size), 'line' => ($display ? 0.9 : 1.2) * $lines + 0.2 * ($lines - 1), 'gap' => $display ? 0.12 : (! empty($item['air_after']) ? 1.0 : 0.3), 'width' => min($w * 0.9 / max(1, $size), $longest * self::WIDTH[$font] * $caps)]];
+                    + ['ems' => ['pad' => $pad / max(1, $size), 'line' => ($display ? 0.9 : 1.2) * $lines + 0.2 * ($lines - 1), 'gap' => $display ? 0.12 : (! empty($item['air_after']) ? 0.6 : 0.3), 'width' => min($w * 0.9 / max(1, $size), $longest * self::WIDTH[$font] * $caps)]];
             }
 
             // Items in one row share one size (the smallest), then every block gets its box.
@@ -250,7 +250,9 @@ class TextOverlay
                 $bandTop = $bandBottom - $group - 2 * $padY;
                 $footerTop = $bandTop + $padY;
                 $bottomLimit = min($bottomLimit, $bandTop - (int) round(min($w, $h) * 0.045)); // air between the CTA and the strip
-                if ($footerStyle === 'pill') {
+                if ($footerStyle === 'open') {
+                    $this->footerArea = [0, $bandTop, $w, $bandBottom];
+                } elseif ($footerStyle === 'pill') {
                     // A rounded bar floating above the foot, inset from the edges (contact strip).
                     $inset = (int) round($w * 0.04);
                     $lift = $still && $h <= $w * 1.5 ? (int) round($h * 0.03) : 0;

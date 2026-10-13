@@ -320,7 +320,7 @@ class CreativeAgent
                 'scrim' => ['type' => 'string', 'enum' => TextOverlay::SCRIMS, 'description' => 'Soft gradient from the frame edge behind the text zones, when the photo is too busy or bright for the text; none if the zone is already calm'],
                 'scrim_color' => ['type' => 'string', 'description' => 'Hex of the scrim: 000000 (dark, for white text) or a light/brand tone for dark text'],
                 'footer_color' => ['type' => 'string', 'description' => 'Hex of the footer strip. House style: the brand\'s main colour (or its dark tone) with white text and circle icons; white (FFFFFF) only when the poster itself is that brand colour all over'],
-                'footer_style' => ['type' => 'string', 'enum' => ['band', 'pill'], 'description' => 'band = full-width strip at the foot; pill = rounded contact bar inset from the edges (white with dark text, or the brand colour)'],
+                'footer_style' => ['type' => 'string', 'enum' => ['band', 'pill', 'open'], 'description' => 'band = full-width strip at the foot; pill = rounded contact bar inset from the edges (white with dark text, or the brand colour); open = no strip, the facts sit on a calm or dark foot of the picture (add scrim bottom if it is busy)'],
                 'items' => [
                     'type' => 'array',
                     'items' => [
@@ -671,7 +671,7 @@ class CreativeAgent
         if ($footerRows > 2 || count($footer) > 6) {
             $content .= ' LAYOUT — the footer holds '.count($footer).' facts in '.$footerRows.' rows; keep it to 2 rows (up to 3 short facts per row with same_line; the phone bold on the right). Drop the weakest fact or move it to a pill.';
         } elseif ($cramped) {
-            $content .= ' LAYOUT — footer facts had to shrink to fit their row ("'.implode('", "', $cramped).'"): shorten them (address without the district, "07:30–22:00" not "Цагийн хуваарь 07:30–22:00") or move one to the other row.';
+            $content .= ' LAYOUT — footer facts had to shrink to fit their row ("'.implode('", "', $cramped).'"): shorten them (address without the district, "07:30–22:00" not "Цагийн хуваарь 07:30–22:00") so the one row reads at full size, or drop the weakest fact.';
         }
 
         if ($stripOverSubject >= 0.35) {

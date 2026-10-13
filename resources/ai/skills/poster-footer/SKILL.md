@@ -8,7 +8,8 @@ description: The contact footer of a poster — address, phone, hours, date, web
 The footer is where the customer acts: it must be **found in one glance and read at phone size**, and it must never compete with the headline or cover the product. Professional posters solve it the same way again and again: a separate strip at the foot, facts in a tidy row, icons, the phone the strongest.
 
 ## 1. Mechanics (add_text)
-- Every contact fact gets `position: footer`. The call sets `footer_style` (`band` = full-width strip at the foot; `pill` = rounded bar inset from the edges) and `footer_color` (the strip's colour).
+- Every contact fact gets `position: footer`. The call sets `footer_style` (`band` = full-width strip at the foot; `pill` = rounded bar inset from the edges; `open` = no strip, the facts sit straight on the picture) and `footer_color` (the strip's colour).
+- **Not every poster needs a strip.** When the foot of the picture is calm and dark (a table edge, a shadow, a plain wall, a dark gradient), or the poster is minimal/premium, use `footer_style: open`: white text with plain icons or circle icons, `scrim: bottom` if the foot is a little busy. A strip is for a busy or light foot, or when the brand colour should carry the contacts. Vary it across a series.
 - Rows: the first fact of a row is a normal item, the next 1–2 have `same_line: true`. A row of 2 = left edge + right edge; a row of 3 = left / centre / right. **Max 2 rows.**
 - Icons: `icon` per fact (phone, location, clock, calendar, web, mail, instagram, facebook, chat, user, delivery). `icon_style: circle` puts the icon in a disc of the text colour with the glyph in `icon_color` (pass the strip colour) — the polished look of most agency posters.
 - Sizes: facts `small`; the **phone `subtitle` bold** (it is the action). Pairs keep their own sizes; a row is centred vertically.
@@ -18,7 +19,7 @@ The footer is where the customer acts: it must be **found in one glance and read
 Unless the brief or the style clearly calls for another pattern, use the **contact strip**: `footer_style: pill`, `footer_color` = the brand's main or dark tone, white text, **one row of 3–4 short facts, all `small`**, every fact with a circle icon (the default in the footer), the phone `bold_sans` last on the right. The tool draws thin dividers between the facts. It is compact (one line, ~7% of the height), calm and reads like the professional posters — the studio's house style.
 
 - **One row is the goal.** Shorten facts until they fit (`Их тойруу 15`, `07:30–22:00`, `8800-3344`, `Хүргэлттэй`). add_text warns when a row had to shrink — then drop the weakest fact, don't add a row.
-- **When they don't fit one row** the tool lays the strip out itself: the other facts (up to 3) on the first row, and the **phone alone on a second row, centred and bold** — the order line (`Захиалга: 8899-3311` with the phone icon) reads like a call to action. 5–6 facts become two balanced rows. You only choose the facts, their order and wording; keep them short so the first row stays readable.
+- **3–4 facts stay on one row**; the tool shrinks them a little if needed. Only when they still don't fit does it move the phone to its own centred row below (same size, bold). 5–6 facts become two balanced rows. You only choose the facts, their order and wording; keep them short.
 - The phone is bold, not huge: in a one-row strip all facts keep the same size.
 
 **Footer colour ≠ CTA colour.** The CTA pill takes the accent (orange, lime, yellow); the footer takes the brand's main or dark tone (violet, navy, deep green, near-black). Two blocks of the same colour stacked at the bottom merge into one blob. Keep a clear gap between the CTA and the footer.
