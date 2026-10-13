@@ -52,6 +52,11 @@ class AiManager
      */
     public function noteFailure(string $name, string $error): bool
     {
+        // Our own "is paused" refusal must not extend the pause forever.
+        if (str_contains($error, "Provider [{$name}] is paused")) {
+            return true;
+        }
+
         if (! preg_match('/quota|RESOURCE_EXHAUSTED|no credits|credits are depleted|prepayment|credit balance|billing|insufficient_quota|429/i', $error)) {
             return false;
         }

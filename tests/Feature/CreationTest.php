@@ -16,6 +16,7 @@ use Database\Seeders\PlanSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Queue;
@@ -527,6 +528,11 @@ class CreationTest extends TestCase
         $this->assertContains('gemini', $ai->available('image'));
         $this->assertStringContainsString('paused', $creation->fresh()->steps[0]['error']);
         $this->assertFalse($ai->noteFailure('gemini', 'Safety filter blocked the prompt')); // ordinary errors do not pause
+
+        // Refusing a paused provider does not extend its pause.
+        Cache::forget('ai:paused:openai:direct');
+        $this->assertTrue($ai->noteFailure('openai', 'Provider [openai] is paused: out of quota/credits. Use another model.'));
+        $this->assertFalse($ai->paused('openai'));
     }
 
     public function test_job_fails_fast_without_calling_fable_when_no_image_model_is_left(): void
