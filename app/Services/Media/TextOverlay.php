@@ -36,6 +36,9 @@ class TextOverlay
      */
     public array $placed = [];
 
+    /** The footer strip of the last burn() as [x0, y0, x1, y1] pixels, or null. */
+    public ?array $footerArea = null;
+
     /** The scrim of the last burn() [where, hex], to judge contrast as the viewer sees it. */
     private array $lastScrim = ['none', '000000'];
 
@@ -52,6 +55,7 @@ class TextOverlay
     public function burn(string $video, array $items, float $duration, bool $still = false, array $reserved = [], string $scrim = 'none', string $scrimColor = '000000', string $footerColor = '', string $footerStyle = 'band'): string
     {
         $this->placed = [];
+        $this->footerArea = null;
         $this->lastScrim = [$scrim, $this->hex($scrimColor)];
 
         if (! $items) {
@@ -86,6 +90,24 @@ class TextOverlay
             // Room an item needs in a row: its characters (+ icon) at its role's size.
             $len = fn ($it) => (max(4, mb_strlen((string) ($it['text'] ?? ''))) + (($it['icon'] ?? 'none') !== 'none' ? 2 : 0)
                 + (! empty($it['box']) || ($it['box_shape'] ?? '') === 'glass' ? 2.5 : 0)) * $roleSize($it);
+
+            // The contact strip is one row when its 2–4 facts fit across (the house style); the
+            // agent's own split into two rows only stays when the facts are too long for one.
+            $footerKeys = array_keys(array_filter($list, fn ($it) => ($it['position'] ?? '') === 'footer' && trim((string) ($it['text'] ?? '')) !== ''));
+            if (count($footerKeys) >= 2 && count($footerKeys) <= 4 && end($footerKeys) - reset($footerKeys) === count($footerKeys) - 1) {
+                $need = array_sum(array_map(function ($k) use ($list, $roleSize, $w, $h) {
+                    $it = $list[$k];
+                    $font = array_key_exists($it['font'] ?? '', self::FONTS) ? $it['font'] : 'bold_sans';
+
+                    return (mb_strlen((string) $it['text']) * self::WIDTH[$font] + (($it['icon'] ?? 'none') !== 'none' ? 1.8 : 0)) * $roleSize($it) * min($w, $h);
+                }, $footerKeys)) + (count($footerKeys) - 1) * $w * 0.05;
+                if ($need <= $w * 0.84) {
+                    foreach ($footerKeys as $n => $k) {
+                        $list[$k]['same_line'] = $n > 0;
+                    }
+                }
+            }
+
             $badge = fn ($it) => ! empty($it['box']); // filled pills (price, offer); glass chips may pair long labels
             foreach ($list as $j => $it) {
                 // Two badges side by side only when both are short (≤ 12 characters): a long offer pill beside the
@@ -218,9 +240,11 @@ class TextOverlay
                     $bottomLimit -= $lift;
                     File::put("{$dir}/band.png", $this->panel($w - 2 * $inset, $bandBottom - $lift - $bandTop, 'pill', $this->hex($footerColor ?: 'FFFFFF'), (int) round(($bandBottom - $bandTop) * 0.3)));
                     $panels[] = ['band.png', $inset, $bandTop, null];
+                    $this->footerArea = [$inset, $bandTop, $w - $inset, $bandBottom - $lift];
                 } else {
                     File::put("{$dir}/band.png", $this->band($w, $bandBottom - $bandTop, $this->hex($footerColor ?: '141414')));
                     $panels[] = ['band.png', 0, $bandTop, null];
+                    $this->footerArea = [0, $bandTop, $w, $bandBottom];
                 }
             }
 
@@ -539,6 +563,37 @@ class TextOverlay
         }
 
         return $busy;
+    }
+
+    /**
+     * Share (0–1) of the footer strip's area that lies over a detailed part of the clean
+     * image — the product or subject reaching into the strip rather than a plain surface.
+     */
+    public function footerOverDetail(string $cleanImage): float
+    {
+        $img = $this->footerArea ? @imagecreatefromstring((string) file_get_contents($cleanImage)) : null;
+        if (! $img) {
+            return 0.0;
+        }
+        [$x0, $y0, $x1, $y1] = [max(0, $this->footerArea[0]), max(0, $this->footerArea[1]), min(imagesx($img) - 3, $this->footerArea[2]), min(imagesy($img) - 3, $this->footerArea[3])];
+        $grey = fn (int $x, int $y) => (($c = imagecolorat($img, $x, $y)) >> 16 & 255) * 0.3 + ($c >> 8 & 255) * 0.59 + ($c & 255) * 0.11;
+        [$busy, $all] = [0, 0];
+        for ($ty = $y0; $ty < $y1; $ty += 32) {
+            for ($tx = $x0; $tx < $x1; $tx += 32) {
+                [$sum, $n] = [0.0, 0];
+                for ($y = $ty; $y < min($y1, $ty + 32); $y += 3) {
+                    for ($x = $tx; $x < min($x1, $tx + 32); $x += 3) {
+                        $v = $grey($x, $y);
+                        $sum += abs($grey($x + 2, $y) - $v) + abs($grey($x, $y + 2) - $v);
+                        $n++;
+                    }
+                }
+                $all++;
+                $busy += $n && $sum / $n > 8 ? 1 : 0;
+            }
+        }
+
+        return $all ? round($busy / $all, 2) : 0.0;
     }
 
     /** Top of the text block; keeps clear of app UI on reels and Stories (9:16). */
