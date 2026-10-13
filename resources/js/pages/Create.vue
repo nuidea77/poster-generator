@@ -196,6 +196,9 @@ async function submit() {
                 Энэ бүтээл <b class="text-fg">{{ cost }}</b> кредит · Үлдэгдэл <b class="text-fg">{{ balance }}</b> кредит
                 <span class="text-muted">· Амжилтгүй болбол кредит буцна</span>
             </p>
+            <p v-else class="mt-6 rounded-xl bg-surface-2 px-4 py-2 text-sm text-zinc-300">
+                Энэ бүтээл <b class="text-fg">{{ cost }}</b> кредит <span class="text-muted">· Админ тул кредит хасагдахгүй</span>
+            </p>
         </section>
 
         <Composer
@@ -203,8 +206,8 @@ async function submit() {
             :placeholder="form.type === 'poster' ? 'Юу сурталчлах вэ? Үйл явдал, бүтээгдэхүүн, мэдрэмж…' : 'Reels-ээр юуг, хэнд, ямар мэдрэмжээр харуулах вэ?'"
             :busy="busy"
             busy-label="Илгээж байна"
-            :label="balance === null ? 'Generate' : `Generate · ${cost}`"
-            :compact-label="balance === null ? '' : String(cost)"
+            :label="`Generate · ${cost}`"
+            :compact-label="String(cost)"
             @generate="submit"
         >
             <template #top>
