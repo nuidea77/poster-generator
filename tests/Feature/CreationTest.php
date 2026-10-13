@@ -858,6 +858,21 @@ class CreationTest extends TestCase
         $this->assertSame([], $overlay->lowContrastLines(sys_get_temp_dir()));  // band = panel; nothing to judge
     }
 
+    public function test_the_brief_lists_the_clients_last_designs_and_suggests_another_map(): void
+    {
+        Creation::create(['user_id' => $this->user->id, 'type' => 'poster', 'formats' => ['4:5'], 'prompt' => 'old', 'status' => 'done', 'steps' => [
+            ['name' => 'add_text', 'input' => ['footer_style' => 'band', 'footer_color' => '111111', 'items' => [['text' => 'X', 'role' => 'title', 'font' => 'condensed', 'position' => 'top', 'align' => 'left']]]],
+            ['name' => 'deliver_poster', 'input' => ['format' => '4:5', 'image_id' => 'img_1', 'design' => ['map' => 'split', 'style' => 'Swiss Industrial', 'palette' => '111111, FFD400', 'type' => 'condensed caps', 'idea' => 'hero number']]],
+        ]]);
+        $creation = Creation::create(['user_id' => $this->user->id, 'type' => 'poster', 'formats' => ['4:5'], 'prompt' => 'new', 'status' => 'running']);
+
+        $brief = collect((new \ReflectionMethod(CreativeAgent::class, 'brief'))->invoke(app(CreativeAgent::class), $creation))->last()['text'];
+
+        $this->assertStringContainsString('map: split · style: Swiss Industrial', $brief);
+        $this->assertStringContainsString('footer: band 111111', $brief);
+        $this->assertDoesNotMatchRegularExpression('/suggested: `split`/', $brief); // the map just used is not suggested again
+    }
+
     public function test_the_agent_designs_the_footer_rows_freely(): void
     {
         if (! Process::run([config('ai.ffmpeg'), '-version'])->successful()) {

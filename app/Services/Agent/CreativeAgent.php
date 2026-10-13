@@ -190,6 +190,50 @@ class CreativeAgent
         return str_replace('{{SKILLS}}', $this->skills->prompt(), file_get_contents(resource_path('ai/creative-director.md')));
     }
 
+    /** Composition maps of poster-design §4, rotated across a client's posters. */
+    public const MAPS = ['hero_type', 'split', 'frame_arch', 'bottom_heavy', 'centred_icon', 'diagonal', 'grid', 'full_bleed'];
+
+    /**
+     * What the client's last posters looked like, so this one is different: their
+     * maps, styles, palettes and fonts, and the map used least lately.
+     *
+     * @return list<string>
+     */
+    private function recentDesigns(Creation $creation): array
+    {
+        $recent = Creation::where('user_id', $creation->user_id)->where('type', Creation::POSTER)->where('status', Creation::DONE)
+            ->where('id', '!=', $creation->id)->latest('id')->limit(6)->get(['id', 'steps']);
+        $designs = $recent->map(function (Creation $c) {
+            $steps = collect($c->steps);
+            $design = $steps->first(fn ($s) => ($s['name'] ?? '') === 'deliver_poster' && isset($s['input']['design']))['input']['design'] ?? [];
+            $text = $steps->last(fn ($s) => ($s['name'] ?? '') === 'add_text' && ! isset($s['error']))['input'] ?? [];
+            $head = collect($text['items'] ?? [])->first(fn ($it) => in_array($it['role'] ?? '', ['display', 'title'], true));
+
+            return array_filter($design + [
+                'type' => $head ? ($head['font'] ?? '').' '.($head['position'] ?? '').'/'.($head['align'] ?? '') : null,
+                'footer' => isset($text['footer_style']) ? $text['footer_style'].' '.($text['footer_color'] ?? '') : null,
+                'boxes' => collect($text['items'] ?? [])->filter(fn ($it) => ! empty($it['box']) && ($it['position'] ?? '') !== 'footer')->count() ?: null,
+            ]);
+        })->filter()->values();
+
+        if ($designs->isEmpty()) {
+            return [];
+        }
+
+        $used = $designs->pluck('map')->filter()->countBy();
+        // The least used map; ties rotate with the job id so unused maps take turns.
+        $offset = $creation->id % count(self::MAPS);
+        $next = collect(self::MAPS)->keys()->sortBy(fn ($i) => [$used[self::MAPS[$i]] ?? 0, ($i - $offset + count(self::MAPS)) % count(self::MAPS)])->map(fn ($i) => self::MAPS[$i])->first();
+
+        $lines = ['', '## Variety — this client\'s last posters (newest first)'];
+        foreach ($designs as $d) {
+            $lines[] = '- '.collect($d)->map(fn ($v, $k) => "{$k}: {$v}")->implode(' · ');
+        }
+        $lines[] = "Make this one clearly different: another composition map (suggested: `{$next}`), another style direction, palette, headline font/treatment and footer look — while staying on brand. A feed of look-alike posters is a failure.";
+
+        return $lines;
+    }
+
     private function brief(Creation $creation): array
     {
         $content = [];
@@ -238,6 +282,10 @@ class CreativeAgent
         $lines[] = '';
         $lines[] = '## Client brief';
         $lines[] = $creation->prompt;
+
+        if ($creation->type === Creation::POSTER) {
+            array_push($lines, ...$this->recentDesigns($creation));
+        }
 
         $lines[] = '';
         $lines[] = '## Budget';
@@ -368,6 +416,14 @@ class CreativeAgent
                 [
                     'format' => ['type' => 'string', 'enum' => array_values($creation->formats)],
                     'image_id' => ['type' => 'string'],
+                    // Remembered so the client's next posters can be told what to do differently.
+                    'design' => ['type' => 'object', 'additionalProperties' => false, 'required' => ['map', 'style', 'palette', 'type', 'idea'], 'properties' => [
+                        'map' => ['type' => 'string', 'enum' => self::MAPS, 'description' => 'the composition map used (poster-design §4)'],
+                        'style' => ['type' => 'string', 'description' => 'the style direction, e.g. Swiss Industrial, Editorial Warmth, bold retail'],
+                        'palette' => ['type' => 'string', 'description' => 'main colours as hex, e.g. 1E3A8A, FFFFFF, FF6B4A'],
+                        'type' => ['type' => 'string', 'description' => 'headline font and treatment, e.g. condensed caps two-tone'],
+                        'idea' => ['type' => 'string', 'description' => 'the big idea in a few words'],
+                    ]],
                 ]);
         } else {
             $tools[] = $this->tool('deliver_reel',

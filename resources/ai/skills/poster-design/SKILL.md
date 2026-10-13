@@ -65,6 +65,8 @@ E CENTRED ICON    F DIAGONAL        G GRID/TILES      H FULL-BLEED MOOD
 - **G Grid/tiles** — 3–6 products or features in painted tiles (menu, catalogue, packages).
 - **H Full-bleed mood** — one atmospheric image, minimal type (premium, concerts, real estate).
 
+**Variety:** the brief lists the client's last posters (map, style, palette, type, footer). Make each new one clearly different in map, style, palette, headline treatment and footer — a feed of look-alikes is a failure. Report your choices in `deliver_poster`'s `design` so the next poster can differ from this one.
+
 ## 5. Type on the picture (add_text)
 - **Scale contrast:** the hero element (headline or number) is `display`/`title`, everything else `subtitle`/`small`. Two-tone accent on **one** word.
 - **Alignment:** one alignment axis per poster (all left on the same margin, or all centred). Mixed alignments look amateur.
