@@ -508,6 +508,55 @@ class CreationTest extends TestCase
         @unlink($out);
     }
 
+    public function test_out_of_quota_providers_are_paused_and_reported(): void
+    {
+        Http::fake([
+            'api.anthropic.com/*' => Http::sequence()
+                ->push($this->turn([['generate_image', ['provider' => 'openai', 'prompt' => 'x', 'aspect' => '1:1', 'reference_image_ids' => [], 'purpose' => 'x']]]))
+                ->push($this->turn([['finish', ['summary' => 'x']]])),
+            'api.openai.com/*' => Http::response(['error' => ['message' => 'You have no credits remaining.']], 429),
+        ]);
+
+        $creation = Creation::create(['user_id' => $this->user->id, 'type' => 'poster', 'formats' => ['1:1'], 'prompt' => 'x', 'status' => 'queued']);
+        RunCreation::dispatchSync($creation);
+
+        $ai = app(AiManager::class);
+        $this->assertTrue($ai->paused('openai'));
+        $this->assertNotContains('openai', $ai->available('image'));
+        $this->assertContains('gemini', $ai->available('image'));
+        $this->assertStringContainsString('paused', $creation->fresh()->steps[0]['error']);
+        $this->assertFalse($ai->noteFailure('gemini', 'Safety filter blocked the prompt')); // ordinary errors do not pause
+    }
+
+    public function test_animate_still_makes_a_free_clip_that_counts_toward_the_reel(): void
+    {
+        if (! Process::run([config('ai.ffmpeg'), '-version'])->successful()) {
+            $this->markTestSkipped('ffmpeg not installed');
+        }
+
+        Http::fake([
+            'api.anthropic.com/*' => Http::sequence()
+                ->push($this->turn([
+                    ['animate_still', ['image_id' => 'card', 'duration' => 6, 'motion' => 'push_in', 'purpose' => 'end card']],
+                    ['animate_still', ['image_id' => 'card', 'duration' => 8, 'motion' => 'still', 'purpose' => 'hold']],
+                ]))
+                ->push($this->turn([['deliver_reel', ['clip_ids' => ['vid_2', 'vid_3']]]]))
+                ->push($this->turn([['finish', ['summary' => 'ok']]])),
+        ]);
+
+        $creation = Creation::create(['user_id' => $this->user->id, 'type' => 'reel', 'duration' => 15, 'formats' => ['9:16'], 'prompt' => 'x', 'status' => 'queued']);
+        Storage::disk('public')->put('in/card.png', self::png(540, 960));
+        $creation->update(['assets' => [['id' => 'card', 'kind' => 'image', 'source' => 'generated', 'provider' => 'gemini_pro', 'path' => 'in/card.png', 'cost' => 0.134]]]);
+
+        RunCreation::dispatchSync($creation);
+        $creation->refresh();
+
+        $this->assertSame('done', $creation->status, json_encode($creation->steps));
+        $this->assertSame([['still', 6, 0.0], ['still', 8, 0.0]], array_map(fn ($a) => [$a['provider'], $a['duration'], (float) $a['cost']], array_slice($creation->assets, 1)));
+        $this->assertEqualsWithDelta(14.0, $creation->outputs[0]['duration'], 0.2);
+        $this->assertSame([1080, 1920], [$creation->outputs[0]['width'], $creation->outputs[0]['height']]);
+    }
+
     public function test_reel_delivery_needs_clips_and_respects_the_cap(): void
     {
         Http::fake([

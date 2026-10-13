@@ -87,6 +87,44 @@ class ReelAssembler
     }
 
     /**
+     * A silent clip made from one still (free, no video model): a locked shot or a
+     * slow Ken Burns move. Text and logos stay perfectly sharp, so it suits
+     * title / info / end cards — and it keeps a reel deliverable when the video
+     * models are out of quota.
+     *
+     * @param  'still'|'push_in'|'pull_out'|'pan_left'|'pan_right'  $motion
+     * @return string Absolute path of the MP4 (caller moves it).
+     */
+    public function stillClip(string $imagePath, int $seconds, string $motion, int $w, int $h): string
+    {
+        $fps = config('creations.reel.fps');
+        $frames = max(1, $seconds * $fps);
+        $last = max(1, $frames - 1);
+        [$z, $x, $y] = match ($motion) {
+            'push_in' => ["1+0.08*on/{$last}", 'iw/2-(iw/zoom/2)', 'ih/2-(ih/zoom/2)'],
+            'pull_out' => ["1.08-0.08*on/{$last}", 'iw/2-(iw/zoom/2)', 'ih/2-(ih/zoom/2)'],
+            'pan_left' => ['1.1', "(iw-iw/zoom)*(1-on/{$last})", 'ih/2-(ih/zoom/2)'],
+            'pan_right' => ['1.1', "(iw-iw/zoom)*on/{$last}", 'ih/2-(ih/zoom/2)'],
+            default => ['1', '0', '0'],
+        };
+
+        $out = storage_path('app/private/reels/'.Str::uuid().'.mp4');
+        File::ensureDirectoryExists(dirname($out));
+        $w2 = $w * 2;
+        $h2 = $h * 2;
+
+        // Work at 2× so the slow zoom does not shimmer, then render at the reel size.
+        $this->run([
+            config('ai.ffmpeg'), '-y', '-loop', '1', '-i', $imagePath,
+            '-vf', "scale={$w2}:{$h2}:force_original_aspect_ratio=increase,crop={$w2}:{$h2},zoompan=z='{$z}':x='{$x}':y='{$y}':d={$frames}:s={$w}x{$h}:fps={$fps},setsar=1,format=yuv420p",
+            '-frames:v', (string) $frames, '-an', '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '18',
+            $out,
+        ]);
+
+        return $out;
+    }
+
+    /**
      * JPEG frame from the reel for library tiles and the video poster.
      */
     public function thumbnail(string $video, float $at = 2.0): string

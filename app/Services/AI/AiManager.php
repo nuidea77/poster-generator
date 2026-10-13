@@ -9,6 +9,7 @@ use App\Services\AI\Providers\GeminiProvider;
 use App\Services\AI\Providers\OpenAIProvider;
 use App\Services\AI\Providers\SeedanceProvider;
 use App\Services\AI\Providers\VeoProvider;
+use Illuminate\Support\Facades\Cache;
 
 class AiManager
 {
@@ -37,10 +38,32 @@ class AiManager
     public function available(string $kind): array
     {
         return collect(config('ai.providers'))
-            ->filter(fn ($p) => ($p['kind'] ?? null) === $kind && filled($p['key'] ?? null))
+            ->filter(fn ($p, $name) => ($p['kind'] ?? null) === $kind && filled($p['key'] ?? null) && ! $this->paused($name))
             ->keys()
             ->values()
             ->all();
+    }
+
+    /**
+     * Pause a provider for a while when it says it is out of quota or credits,
+     * so jobs stop offering it to Fable and stop wasting turns on it.
+     *
+     * @return bool whether the error was a quota / billing one (provider paused)
+     */
+    public function noteFailure(string $name, string $error): bool
+    {
+        if (! preg_match('/quota|RESOURCE_EXHAUSTED|no credits|credit balance|billing|insufficient_quota|429/i', $error)) {
+            return false;
+        }
+
+        Cache::put("ai:paused:{$name}", $error, now()->addMinutes(config('ai.pause_minutes', 30)));
+
+        return true;
+    }
+
+    public function paused(string $name): bool
+    {
+        return Cache::has("ai:paused:{$name}");
     }
 
     public function claudeReady(): bool
@@ -50,6 +73,10 @@ class AiManager
 
     private function configured(string $name, string $kind): string
     {
+        if ($this->paused($name)) {
+            throw new AiException("Provider [{$name}] is paused: out of quota/credits. Use another model.");
+        }
+
         if (! in_array($name, $this->available($kind), true)) {
             throw new AiException("Provider [{$name}] is not a configured {$kind} model.");
         }

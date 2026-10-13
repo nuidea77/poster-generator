@@ -24,7 +24,7 @@ Beat menu: **Hook** (most striking image in the first 1–2 s — never the logo
 Video models garble text in motion, so text lives only on **held cards**:
 1. Make the card as a still with `generate_image` at the reel's aspect, with the exact strings per `poster-typography` (e.g. title card: event name over the key visual; end card: logo + `10.15 · 15:00 · Shangri-La` + CTA on a brand-colour background or a darkened hero frame).
 2. Check every letter.
-3. Animate it with **almost no motion**: "camera locked; only a very slow 3% push-in and subtle light shimmer in the background; the text and logo stay perfectly still and sharp" (4–6 s). Prefer `seedance` 5 s or `veo` 4–6 s.
+3. Turn it into a clip with **`animate_still`** (free, instant, no quota; text stays perfectly sharp): `push_in` or `still`, 3–6 s. Do not send text cards to a video model — it blurs and garbles letters.
 - Hook cards may carry a 1–3 word title over the first image (e.g. `НЭЭЛТТЭЙ ӨДӨРЛӨГ`) when the reel is an event or offer.
 - Keep text inside the safe area (9:16: away from the top 14% and bottom 35%).
 
@@ -37,9 +37,12 @@ Video models invent products from text. For the client's real product, venue pho
 - Carry something across cuts: a colour, a direction, a shape.
 - Design each clip per `cinematic-shot-design`; write prompts per `video-prompting`.
 
-## 6. Flow (parallel)
-1. Load `motion-art-director`, `cinematic-shot-design`, `video-prompting`, `poster-typography` (for cards) and the business skill.
+## 6. When video fails — still deliver
+If a video model fails or is paused (quota/credits), do not retry it. Use another video model if one is offered; otherwise build the missing beats with `animate_still` from the stills you already made (`push_in`, `pan_left`/`pan_right` on hero frames) so the clips still add up to the ordered length. A reel made partly of animated stills beats no reel.
+
+## 7. Flow (parallel)
+1. Load `motion-art-director`, `cinematic-shot-design`, `video-prompting`, `poster-typography` and `mongolian-ad-copy` (for cards) and the business skill.
 2. Request **all stills in one turn** (hero frames + title/info/end cards) — they generate in parallel. Review; fix only the failures.
-3. Call `generate_videos` **once** with all clips.
+3. Call `generate_videos` **once** with all live-action clips, and `animate_still` for the cards (same turn).
 4. Replace failed clips with one more `generate_videos` call.
 5. `deliver_reel` with ids in order (lengths must add up), then `finish`.

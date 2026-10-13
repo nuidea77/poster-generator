@@ -3,6 +3,8 @@
 return [
 
     'timeout' => (int) env('AI_TIMEOUT', 180),
+    // Minutes a provider stays paused after it reports it is out of quota / credits.
+    'pause_minutes' => (int) env('AI_PAUSE_MINUTES', 30),
 
     'ffmpeg' => env('FFMPEG_PATH', 'ffmpeg'),
     'ffprobe' => env('FFPROBE_PATH', 'ffprobe'),

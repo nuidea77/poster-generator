@@ -9,6 +9,7 @@ use App\Services\Billing\CostMeter;
 use App\Services\Billing\Credits;
 use App\Services\Media\MediaStore;
 use App\Services\Media\PosterFormatter;
+use App\Services\Media\ReelAssembler;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Pool;
 use Illuminate\Http\Client\Response;
@@ -31,6 +32,7 @@ class CreativeAgent
         private PosterFormatter $formatter,
         private Credits $credits,
         private CostMeter $cost,
+        private ReelAssembler $reels,
     ) {}
 
     public function run(Creation $creation): void
@@ -80,6 +82,9 @@ class CreativeAgent
                     $results[] = ['type' => 'tool_result', 'tool_use_id' => $block['id'], 'content' => $result['content']];
                     $creation->addStep(['type' => 'tool', 'name' => $block['name'], 'input' => $input, 'result' => $result['summary']]);
                 } catch (AiException|ConnectionException $e) {
+                    if ($block['name'] === 'generate_image' && $this->ai->noteFailure((string) ($input['provider'] ?? ''), $e->getMessage())) {
+                        $e = new AiException($e->getMessage().' — this model is out of quota/credits and is paused; use another image model.');
+                    }
                     $results[] = ['type' => 'tool_result', 'tool_use_id' => $block['id'], 'is_error' => true, 'content' => $e->getMessage()];
                     $creation->addStep(['type' => 'tool', 'name' => $block['name'], 'input' => $input, 'error' => $e->getMessage()]);
                 }
@@ -263,6 +268,17 @@ class CreativeAgent
                 ]);
         }
 
+        if ($creation->type === Creation::REEL) {
+            $tools[] = $this->tool('animate_still',
+                'Turn one of your images into a silent clip without a video model: free, instant, no quota. The picture does not change — only a locked shot or a slow camera move over it — so text and logos stay perfectly sharp. Use it for title / info / end cards, and to finish the reel when video clips fail.',
+                [
+                    'image_id' => ['type' => 'string'],
+                    'duration' => ['type' => 'integer', 'enum' => [2, 3, 4, 5, 6, 8, 10]],
+                    'motion' => ['type' => 'string', 'enum' => ['still', 'push_in', 'pull_out', 'pan_left', 'pan_right']],
+                    'purpose' => ['type' => 'string'],
+                ]);
+        }
+
         if ($creation->type === Creation::POSTER) {
             $tools[] = $this->tool('deliver_poster',
                 'Deliver the final image for one requested format. It is cropped (center) to the exact pixel size. Call once per format.',
@@ -307,6 +323,7 @@ class CreativeAgent
             'load_skill' => $this->loadSkill($input),
             'generate_image' => $this->generateImage($creation, $input),
             'generate_videos' => $this->generateVideos($creation, $input),
+            'animate_still' => $this->animateStill($creation, $input),
             'deliver_poster' => $this->deliverPoster($creation, $input),
             'deliver_reel' => $this->deliverReel($creation, $input),
             'finish' => $this->finish($creation, $input),
@@ -427,6 +444,31 @@ class CreativeAgent
         ];
     }
 
+    private function animateStill(Creation $creation, array $in): array
+    {
+        $asset = $creation->asset((string) ($in['image_id'] ?? '')) ?? throw new AiException("Unknown asset [{$in['image_id']}].");
+
+        if ($asset['kind'] !== 'image') {
+            throw new AiException('animate_still needs an image.');
+        }
+
+        $seconds = (int) ($in['duration'] ?? 4);
+        $motion = (string) ($in['motion'] ?? 'push_in');
+        $reel = $creation->reelFormat();
+        $tmp = $this->reels->stillClip(MediaStore::absolute($asset['path']), $seconds, $motion, $reel['width'], $reel['height']);
+        $file = MediaStore::put("creations/{$creation->public_id}/work", file_get_contents($tmp), 'video/mp4');
+        @unlink($tmp);
+
+        $id = $creation->addAsset([
+            'kind' => 'video', 'source' => 'generated', 'provider' => 'still',
+            'path' => $file['path'], 'prompt' => "{$motion} over {$asset['id']}", 'duration' => $seconds,
+            'note' => $in['purpose'] ?? '', 'cost' => 0.0,
+        ]);
+        $this->bumpProgress($creation);
+
+        return ['summary' => "{$id} ← {$asset['id']} ({$motion}, {$seconds} s)", 'content' => "Clip `{$id}` ({$seconds} s, {$motion}) made from `{$asset['id']}`."];
+    }
+
     private function generateVideos(Creation $creation, array $in): array
     {
         $clips = array_values($in['clips'] ?? []);
@@ -450,7 +492,9 @@ class CreativeAgent
                 $this->guardBudget($creation, $cost + array_sum(array_column($tasks, 'cost')));
                 $tasks[$i] = ['provider' => $provider, 'name' => $clip['provider'], 'id' => $provider->submit($clip['prompt'], $creation->reelFormat()['aspect'], $clip['duration'], $frame), 'clip' => $clip, 'cost' => $cost];
             } catch (AiException|ConnectionException $e) {
-                $report[$i] = 'clip #'.($i + 1).": FAILED to start — {$e->getMessage()}";
+                $paused = $this->ai->noteFailure((string) ($clip['provider'] ?? ''), $e->getMessage());
+                $report[$i] = 'clip #'.($i + 1).": FAILED to start — {$e->getMessage()}"
+                    .($paused ? ' — this video model is out of quota/credits and paused; do not retry it: use another video model, or animate_still for the remaining beats.' : '');
             }
         }
 

@@ -49,7 +49,7 @@ Steam rising, liquid pouring, fabric moving in wind, hair in slow motion, sparks
 - This is the safest way to get a real product moving — a video model from text alone will invent a product.
 
 ## Limits
-- Never ask the video model to write text, logos or labels — they come out garbled. Text and logos appear only on stills you made (title / info / end cards); animate those with a locked camera and minimal motion ("text and logo stay perfectly still and sharp").
+- Never ask the video model to write text, logos or labels — they come out garbled. Text and logos appear only on stills you made (title / info / end cards), turned into clips with `animate_still`, not with a video model.
 - Faces of real people from references are not reliable; use product/venue shots instead.
 - Generation takes 1–4 minutes per clip; always request all clips of a reel in a single `generate_videos` call so they render in parallel.
 - Reels are 9:16 or 16:9 (the job says which). Still frames used as `first_frame_image_id` must have the same aspect, or the clip is cropped.
