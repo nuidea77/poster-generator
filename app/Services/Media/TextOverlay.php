@@ -34,8 +34,17 @@ class TextOverlay
      * @param  bool  $still  an image (poster): static text, PNG out; else a clip: timed text, MP4 out
      * @return string Absolute path of the new file (caller moves it).
      */
+    /**
+     * Where the last burn() put each text block, in pixels — so the caller can check what lies under it.
+     *
+     * @var list<array{text: string, panel: bool, rect: array{0: int, 1: int, 2: int, 3: int}}>
+     */
+    public array $placed = [];
+
     public function burn(string $video, array $items, float $duration, bool $still = false, array $reserved = []): string
     {
+        $this->placed = [];
+
         if (! $items) {
             throw new AiException('Give at least one text item.');
         }
@@ -71,7 +80,7 @@ class TextOverlay
                 $position = in_array($item['position'] ?? '', ['top', 'center', 'lower_third', 'bottom'], true) ? $item['position'] : 'lower_third';
 
                 $display = ($item['role'] ?? '') === 'display'; // big digits/caps: no descenders, sits tight on the next line
-                $blocks[$position][] = compact('i', 'item', 'text', 'font', 'size', 'pad', 'soft') + ['height' => (int) round($size * ($display ? 0.9 : 1.2) * $lines + $size * 0.2 * ($lines - 1)) + 2 * $pad, 'gap' => (int) round($size * ($display ? 0.12 : 0.3))];
+                $blocks[$position][] = compact('i', 'item', 'text', 'font', 'size', 'pad', 'soft') + ['width' => (int) min($w * 0.9, $longest * self::WIDTH[$font] * $caps * $size) + 2 * $pad, 'height' => (int) round($size * ($display ? 0.9 : 1.2) * $lines + $size * 0.2 * ($lines - 1)) + 2 * $pad, 'gap' => (int) round($size * ($display ? 0.12 : 0.3))];
             }
 
             $filters = [];
@@ -129,6 +138,8 @@ class TextOverlay
                         $lineY = count($lines) === 1 ? $yExpr : "({$yExpr})+".($k * (int) round($size * 1.4) + (int) round($size * 0.92)).'-ascent';
                         $filters[] = "drawtext=fontfile=f{$i}.ttf:textfile=t{$i}_{$k}.txt:line_spacing=".round($size * 0.2).":y='{$lineY}':{$common}";
                     }
+                    $x0 = $left ? (int) round($w * 0.07) : (int) round(($w - $b['width']) / 2);
+                    $this->placed[] = ['text' => $b['text'], 'panel' => $pad > 0, 'rect' => [$x0, $y, $x0 + $b['width'], $y + $b['height']]];
                     $y += $b['height'] + $b['gap'];
                 }
 
@@ -161,6 +172,57 @@ class TextOverlay
         } finally {
             File::deleteDirectory($dir);
         }
+    }
+
+    /**
+     * Lines of the last burn() that sit on a detailed part of the clean image (the
+     * product, a face, hair, busy texture) without a panel — most likely overlapping
+     * the subject. Measured per 32 px tile as the mean brightness step between pixels.
+     *
+     * @return list<string>
+     */
+    public function busyLines(string $cleanImage): array
+    {
+        $img = @imagecreatefromstring((string) file_get_contents($cleanImage));
+        if (! $img) {
+            return [];
+        }
+
+        $W = imagesx($img);
+        $H = imagesy($img);
+        $grey = function (int $x, int $y) use ($img): float {
+            $c = imagecolorat($img, $x, $y);
+
+            return ($c >> 16 & 255) * 0.3 + ($c >> 8 & 255) * 0.59 + ($c & 255) * 0.11;
+        };
+
+        $busy = [];
+        foreach ($this->placed as $p) {
+            if ($p['panel']) {
+                continue;
+            }
+            [$x0, $y0, $x1, $y1] = [max(0, $p['rect'][0]), max(0, $p['rect'][1]), min($W - 3, $p['rect'][2]), min($H - 3, $p['rect'][3])];
+            $tiles = [];
+            for ($ty = $y0; $ty < $y1; $ty += 32) {
+                for ($tx = $x0; $tx < $x1; $tx += 32) {
+                    [$sum, $n] = [0.0, 0];
+                    for ($y = $ty; $y < min($y1, $ty + 32); $y += 2) {
+                        for ($x = $tx; $x < min($x1, $tx + 32); $x += 2) {
+                            $v = $grey($x, $y);
+                            $sum += abs($grey($x + 2, $y) - $v) + abs($grey($x, $y + 2) - $v);
+                            $n++;
+                        }
+                    }
+                    $tiles[] = $n ? $sum / $n : 0.0;
+                }
+            }
+            $share = count(array_filter($tiles, fn ($t) => $t > 6)) / max(1, count($tiles));
+            if ($share >= 0.2 || (max($tiles ?: [0]) >= 20 && $share >= 0.05)) {
+                $busy[] = str_replace("\n", ' / ', $p['text']);
+            }
+        }
+
+        return $busy;
     }
 
     /** Top of the text block; keeps clear of app UI on reels and Stories (9:16). */

@@ -597,6 +597,7 @@ class CreativeAgent
 
         $base = $this->exactFrame($asset);
         $tmp = $this->text->burn($base ?? MediaStore::absolute($asset['path']), $in['items'], (float) ($asset['duration'] ?? 0), $still, $asset['reserved'] ?? []);
+        $busy = $still ? $this->text->busyLines($base ?? MediaStore::absolute($asset['path'])) : [];
         $file = MediaStore::put("creations/{$creation->public_id}/work", file_get_contents($tmp), $still ? 'image/png' : 'video/mp4');
         @unlink($tmp);
         $base && @unlink($base);
@@ -610,6 +611,11 @@ class CreativeAgent
         ]);
 
         $content = "`{$new}` = `{$asset['id']}` with the text set in real fonts (letters exactly as given). Deliver `{$new}` instead of `{$asset['id']}`.";
+        if ($busy) {
+            // Measured, not guessed: these lines cover a detailed part of the picture (product, face, hair, texture).
+            $content .= ' WARNING — measured on the clean visual, these lines sit on a detailed area (likely the product, a face or busy texture): "'.implode('", "', $busy).'". '
+                .'Look closely; unless that is intended, call add_text again on `'.$asset['id'].'` with them in a calmer zone, fewer lines in that zone, or on a `box` panel — or regenerate the visual with more empty space.';
+        }
 
         return ['summary' => "{$new} ← {$asset['id']} + ".count($lines).' text', 'content' => $still ? [['type' => 'text', 'text' => $content.' Review it:'], $this->imageBlock($file['path'])] : $content];
     }

@@ -774,6 +774,42 @@ class CreationTest extends TestCase
         $this->assertGreaterThan(0.18 * 1080, $display); // Oswald digits are cap height, not sunk old-style figures
     }
 
+    public function test_text_over_a_detailed_area_is_flagged_to_the_agent(): void
+    {
+        if (! Process::run([config('ai.ffmpeg'), '-version'])->successful()) {
+            $this->markTestSkipped('ffmpeg not installed');
+        }
+
+        // Calm grey top half; a fine checkerboard (stand-in for the product / texture) in the bottom half.
+        $img = imagecreatetruecolor(1080, 1080);
+        imagefill($img, 0, 0, imagecolorallocate($img, 120, 120, 120));
+        for ($y = 540; $y < 1080; $y += 8) {
+            for ($x = ($y / 8 % 2) * 8; $x < 1080; $x += 16) {
+                imagefilledrectangle($img, $x, $y, $x + 7, $y + 7, imagecolorallocate($img, 230, 230, 230));
+            }
+        }
+        ob_start();
+        imagepng($img);
+        Storage::disk('public')->put('in/visual.png', ob_get_clean());
+
+        $item = fn (string $t, string $pos) => ['text' => $t, 'role' => 'subtitle', 'position' => $pos, 'align' => 'center', 'font' => 'sans', 'color' => 'FFFFFF', 'box' => false, 'box_color' => '', 'start' => 0, 'end' => 0, 'animation' => 'none'];
+        Http::fake([
+            'api.anthropic.com/*' => Http::sequence()
+                ->push($this->turn([['add_text', ['asset_id' => 'img_1', 'items' => [$item('Тайван хэсэг', 'top'), $item('Барааны дээр', 'bottom')]]]]))
+                ->push($this->turn([['finish', ['summary' => 'ok']]])),
+        ]);
+        $creation = Creation::create(['user_id' => $this->user->id, 'type' => 'poster', 'formats' => ['1:1'], 'prompt' => 'x', 'status' => 'running',
+            'assets' => [['id' => 'img_1', 'kind' => 'image', 'source' => 'generated', 'provider' => 'gemini', 'path' => 'in/visual.png', 'aspect' => '1:1', 'cost' => 0.039]]]);
+
+        app(CreativeAgent::class)->run($creation);
+
+        Http::assertSent(function ($r) {
+            $text = collect($r['messages'][2]['content'][0]['content'] ?? [])->firstWhere('type', 'text')['text'] ?? '';
+
+            return str_contains($text, 'WARNING') && str_contains($text, '"Барааны дээр"') && ! str_contains($text, 'Тайван хэсэг');
+        });
+    }
+
     public function test_a_reply_cut_off_at_max_tokens_does_not_end_the_job(): void
     {
         Http::fake([
