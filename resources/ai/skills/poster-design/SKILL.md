@@ -1,6 +1,6 @@
 ---
 name: poster-design
-description: Visual craft of a finished Instagram / Facebook ad poster — one big idea, art-directed visuals (not stock photos), scale contrast and restraint, composition maps where type and image interlock, colour systems, product hero shots, logo, the failure patterns that make posters look like cheap flyers, a quality bar to pass before delivery, and deriving a matching set across ratios. Load for every POSTER job.
+description: Visual craft of a finished Instagram / Facebook ad poster — hierarchy and reading path, colour harmony schemes and contrast, rule of thirds, grid and balance, negative space, image blending, one big idea, art-directed visuals (not stock photos), scale contrast and restraint, composition maps where type and image interlock, colour systems, product hero shots, logo, the failure patterns that make posters look like cheap flyers, a quality bar to pass before delivery, and deriving a matching set across ratios. Load for every POSTER job.
 ---
 
 # Poster design
@@ -21,6 +21,28 @@ The delivered image is the whole ad: picture **and** message. A good poster is *
 ## 2. The big idea first
 Before any prompt, write one sentence: **"The poster shows ___ so that the viewer feels ___; the eye goes ___ → ___ → ___."**
 Pick one hero: the product, a person's emotion, a bold number (`-40%`, `25 жил`, `1 ХОНОГ`), or a symbol (a rose for a rock band's anniversary). Everything else supports it.
+
+## 2b. Design fundamentals
+**Hierarchy and reading path.** The eye enters at the focal point, then follows a path — top-left → bottom-right (Z), or centre → out. Order the blocks along it: hook → hero → offer → action → contacts. Size, colour and isolation make something important; make only one thing loudest.
+
+**Colour harmony** — choose one scheme deliberately and name it in the prompt:
+| Scheme | Feel | Example |
+|---|---|---|
+| Monochromatic (one hue, many tones) | calm, premium, coherent | navy → cobalt → ice blue, white type |
+| Analogous (neighbours) | warm, natural, food, lifestyle | terracotta, amber, cream |
+| Complementary (opposites) | energy, sale, sport — use one as accent only | deep blue world + orange offer |
+| Split-complementary | lively but balanced | teal + coral + peach |
+| Neutral + one accent | editorial, luxury, minimal | black/white/stone + one red word |
+Topic colours as a starting point, never a rule: health → clean white + one confident green/blue; rock/night → black + red/amber; kids → bright primaries; luxury → black, cream, gold; eco → greens, kraft. Brand colours win. Contrast: type against what is behind it must be strong (white/yellow on dark, near-black on light); never mid-tone on mid-tone. Digital posters are RGB (sRGB JPEG); print CMYK is not our concern.
+
+**Composition and grid.**
+- **Rule of thirds:** put the face, the eye or the product on a third-line crossing, not dead centre (unless the map is symmetric by intent).
+- **Grid:** every text block starts on the same margin (≈ 6–8% of the width) and shares one or two column edges; gaps between groups are equal multiples. Ask the visual to respect the same margins.
+- **Balance:** symmetric (centred, formal, premium, events) or asymmetric (big subject one side, type the other — more dynamic). A heavy dark subject on one side needs a strong type block on the other.
+
+**Negative space.** Empty space is an element: it frames the hero and makes a poster look premium. Leave real air around the headline and the product; don't fill every corner with a badge, icon or line. Planned emptiness ≠ a dead hole between unrelated blocks.
+
+**Imagery quality and blending.** The visual is generated at full resolution; never upscale a tiny crop. The subject must belong to its background: same light direction, colour cast and shadow; edges blended, not pasted. When you combine a product photo with a new scene, ask for matching light, a contact shadow and reflections ("the product sits naturally in the scene, lit by the same warm window light, soft contact shadow").
 
 ## 3. Art-direct the visual (the image model's job)
 The image carries the design — colour world, shapes, light, space for the type. Never ask for "a photo of X with space for text". Ask for a **designed poster background**:
@@ -82,13 +104,15 @@ Palette from the logo / brand / packaging, as hex. Max 2 main + 1 accent; the ac
 Placed last with `add_logo` (the client's file, pixel-exact) — size, corner, clear space per **`logo-placement`**. In the visual prompt: "no logos", and keep a calm corner. Never invent a logo; without one the brand name may be a `small` text line.
 
 ## 8. Quality bar — check the result before delivering
-1. **Squint test:** blur your eyes — one shape dominates, and it is the hero.
+1. **Squint test:** blur your eyes — one shape dominates, and it is the hero; the reading path is obvious.
 2. **2-second test:** the hook and the offer are understood in 2 seconds.
 3. **Count the boxes:** ≤ 2 filled shapes besides the footer.
 4. **Count the sizes:** ≤ 4 text sizes; the headline clearly the largest.
-5. **Alignment:** everything on one axis or a deliberate grid.
-6. **Does it look designed?** Would it pass as an agency post for a real brand — or as a template flyer? If a template, change the visual (§3) or the map (§4), not just the text.
-7. Nothing covers the face or the product; no dead hole in the layout.
+5. **Alignment and balance:** everything on one axis or a deliberate grid; the hero on a thirds point (or symmetric by intent); the two halves balance.
+6. **Colour:** one named scheme, the accent used once or twice, every line in strong contrast.
+7. **Air:** real space around the headline and the hero; no stray badges in the corners.
+8. **Does it look designed?** Would it pass as an agency post for a real brand — or as a template flyer? If a template, change the visual (§3) or the map (§4), not just the text.
+9. Nothing covers the face or the product; no dead hole in the layout.
 
 ## 9. Formats and a matching set
 Formats are aspect ratios (`4:5`, `1:1`, `9:16`, `16:9` … or `auto`); the file is centre-cropped (short side 1080 px). Keep subject and text in the middle 80% — the middle 60% vertically for 9:16. Several ratios → `format-composition`.

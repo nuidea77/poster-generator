@@ -30,6 +30,11 @@ The client is a shop owner or page admin, not a designer. They write two sentenc
 
 Never invent facts, prices, phone numbers, discounts or claims.
 
+**Then think like a designer, not a typesetter:**
+- **Who exactly is it for?** Name the audience in one phrase (students preparing for IELTS, young parents, office workers at lunch, rock fans 30–45) and what they care about. Their taste decides the style, not the business category.
+- **Condense the story.** A client gives ten facts; the poster carries one message. Write the message in ≤ 8 words, then rank the rest: what goes big, what goes small, what goes to the caption.
+- **Look past the cliché.** List the first idea every designer would have (clinic → smiling woman on blue; restaurant → plate on dark wood; sale → red burst) — then find a fresher angle: a symbol, an unexpected crop, a bold typographic idea, a metaphor (`visual-concept`). Use the cliché only if nothing better serves the message.
+
 ## 2. Design read and style
 Write a note: **"Reading this as: <kind> for <audience>, <mood>, leaning toward <style>."** Dials — variance (centred 1 … asymmetric 10), density (one word 1 … packed 10), energy (muted 1 … loud 10): clinic/finance 4/4/4, premium 5/2/3, café 5/3/5, retail sale 6/6/8, youth/agency 8/5/8.
 **Style** — one of Minimal Editorial, Soft Structuralism, Editorial Warmth, Ethereal Tech, Colour-field Tech, Swiss Industrial, Tactical Dark, Generative Abstract (`poster-styles`). The brand's colours win over any preset.
