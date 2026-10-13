@@ -34,7 +34,7 @@ class TextOverlay
      * @param  bool  $still  an image (poster): static text, PNG out; else a clip: timed text, MP4 out
      * @return string Absolute path of the new file (caller moves it).
      */
-    public function burn(string $video, array $items, float $duration, bool $still = false): string
+    public function burn(string $video, array $items, float $duration, bool $still = false, array $reserved = []): string
     {
         if (! $items) {
             throw new AiException('Give at least one text item.');
@@ -84,6 +84,15 @@ class TextOverlay
 
                 foreach ($blocks[$position] ?? [] as $b) {
                     ['i' => $i, 'item' => $item, 'size' => $size, 'pad' => $pad, 'soft' => $soft] = $b;
+
+                    // Keep clear of the logo (or any reserved area): move below it when they would overlap.
+                    foreach ($reserved as [$x0, $y0, $x1, $y1]) {
+                        $top0 = $y0 * $h - $size * 0.3;
+                        $bottom0 = $y1 * $h + $size * 0.3;
+                        if ($y < $bottom0 && $y + $b['height'] > $top0) {
+                            $y = (int) round($bottom0);
+                        }
+                    }
                     File::copy(resource_path('fonts/'.self::FONTS[$b['font']]), "{$dir}/f{$i}.ttf");
                     File::put("{$dir}/t{$i}.txt", $b['text']);
 

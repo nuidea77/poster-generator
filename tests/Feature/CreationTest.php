@@ -10,6 +10,7 @@ use App\Models\Subscription;
 use App\Models\User;
 use App\Services\Agent\CreativeAgent;
 use App\Services\AI\AiManager;
+use App\Services\AI\Exceptions\AiException;
 use App\Services\Billing\BillingService;
 use App\Services\Media\ReelAssembler;
 use Database\Seeders\PlanSeeder;
@@ -530,6 +531,7 @@ class CreationTest extends TestCase
         $this->assertContains('gemini', $ai->available('image'));
         $this->assertStringContainsString('paused', $creation->fresh()->steps[0]['error']);
         $this->assertFalse($ai->noteFailure('gemini', 'Safety filter blocked the prompt')); // ordinary errors do not pause
+        $this->assertFalse($ai->noteFailure('gemini', 'Gemini: Resource exhausted. Please try again later. See error-code-429')); // rate limits are transient
 
         // Refusing a paused provider does not extend its pause.
         Cache::forget('ai:paused:openai:direct');
@@ -542,7 +544,7 @@ class CreationTest extends TestCase
         Http::fake();
         $ai = app(AiManager::class);
         foreach ($ai->available('image') as $name) {
-            $ai->noteFailure($name, 'RESOURCE_EXHAUSTED');
+            $ai->noteFailure($name, 'You exceeded your current quota.');
         }
 
         $creation = Creation::create(['user_id' => $this->user->id, 'type' => 'poster', 'formats' => ['1:1'], 'prompt' => 'x', 'status' => 'queued']);
@@ -710,6 +712,75 @@ class CreationTest extends TestCase
         $this->assertSame(1, $count('?status=active'));
         $this->assertSame(1, $count('?status=failed&type=poster'));
         $this->assertSame(0, $count('?status=failed&type=reel'));
+    }
+
+    public function test_text_moves_below_a_logo_placed_in_the_same_zone(): void
+    {
+        if (! Process::run([config('ai.ffmpeg'), '-version'])->successful()) {
+            $this->markTestSkipped('ffmpeg not installed');
+        }
+
+        $make = function (int $w, int $h, array $rgb) {
+            $img = imagecreatetruecolor($w, $h);
+            imagefill($img, 0, 0, imagecolorallocate($img, ...$rgb));
+            ob_start();
+            imagepng($img);
+
+            return ob_get_clean();
+        };
+        Storage::disk('public')->put('in/logo.png', $make(300, 300, [255, 0, 0]));
+        Storage::disk('public')->put('in/card.png', $make(1080, 1920, [0, 0, 0]));
+
+        $title = ['text' => 'НЭЭЛТТЭЙ ӨДӨРЛӨГ', 'role' => 'title', 'position' => 'top', 'align' => 'center', 'font' => 'bold_sans', 'color' => 'FFFFFF', 'box' => false, 'box_color' => '', 'start' => 0, 'end' => 0, 'animation' => 'none'];
+        Http::fake([
+            'api.anthropic.com/*' => Http::sequence()
+                ->push($this->turn([['add_logo', ['asset_id' => 'img_1', 'position' => 'top_center', 'width' => 0.3, 'remove_background' => false, 'plate' => 'none']]]))
+                ->push($this->turn([['add_text', ['asset_id' => 'img_2', 'items' => [$title]]]]))
+                ->push($this->turn([['finish', ['summary' => 'ok']]])),
+        ]);
+
+        $creation = Creation::create(['user_id' => $this->user->id, 'type' => 'poster', 'formats' => ['9:16'], 'prompt' => 'x', 'status' => 'running',
+            'inputs' => [['id' => 'logo', 'kind' => 'image', 'role' => 'logo', 'source' => 'upload', 'path' => 'in/logo.png']],
+            'assets' => [['id' => 'img_1', 'kind' => 'image', 'source' => 'generated', 'provider' => 'gemini', 'path' => 'in/card.png', 'aspect' => '9:16', 'cost' => 0.039]]]);
+
+        app(CreativeAgent::class)->run($creation);
+        $creation->refresh();
+
+        // Logo: 324 px square at top_center, from 13% of 1920 = 250 px down to 574 px.
+        [$x0, $y0, $x1, $y1] = $creation->asset('img_2')['reserved'][0];
+        $this->assertEqualsWithDelta([0.35, 0.1302, 0.65, 0.2990], [$x0, $y0, $x1, $y1], 0.002);
+        $this->assertSame($creation->asset('img_2')['reserved'], $creation->asset('img_3')['reserved']);
+
+        // The white title must start below the red logo: no white pixel inside the logo rows.
+        $img = imagecreatefromstring(Storage::disk('public')->get($creation->asset('img_3')['path']));
+        $white = 0;
+        for ($y = 250; $y < 574; $y += 4) {
+            for ($x = 0; $x < 1080; $x += 4) {
+                $c = imagecolorat($img, $x, $y);
+                $white += (($c >> 16 & 0xFF) > 200 && ($c >> 8 & 0xFF) > 200) ? 1 : 0;
+            }
+        }
+        $this->assertSame(0, $white, 'text overlaps the logo');
+        $found = false;
+        for ($y = 580; $y < 900 && ! $found; $y += 2) {
+            for ($x = 100; $x < 980 && ! $found; $x += 2) {
+                $c = imagecolorat($img, $x, $y);
+                $found = ($c >> 16 & 0xFF) > 200 && ($c >> 8 & 0xFF) > 200;
+            }
+        }
+        $this->assertTrue($found, 'title not found below the logo');
+    }
+
+    public function test_gemini_says_why_no_image_came_back(): void
+    {
+        Http::fake(['generativelanguage.googleapis.com/*' => Http::response(['candidates' => [['finishReason' => 'IMAGE_SAFETY', 'content' => ['parts' => []]]]])]);
+
+        try {
+            app(AiManager::class)->image('gemini')->generateImage('x', '1:1');
+            $this->fail('expected an exception');
+        } catch (AiException $e) {
+            $this->assertStringContainsString('IMAGE_SAFETY', $e->getMessage());
+        }
     }
 
     public function test_reel_delivery_needs_clips_and_respects_the_cap(): void

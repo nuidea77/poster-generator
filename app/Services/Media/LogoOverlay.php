@@ -20,9 +20,10 @@ class LogoOverlay
     /**
      * @param  float  $width  logo width as a share of the frame width (0.08–0.4)
      * @param  string  $plate  'none' | 'light' (solid white card — for logos on a white background) | 'dark' panel behind the logo
-     * @return string Absolute path of the new file (PNG for images, MP4 for clips).
+     * @return array{path: string, box: array{0: float, 1: float, 2: float, 3: float}} new file (PNG for images, MP4 for clips) and the area
+     *                                                                                 the logo covers as x0, y0, x1, y1 shares of the frame
      */
-    public function place(string $base, string $logo, string $position, float $width, string $plate, bool $still): string
+    public function place(string $base, string $logo, string $position, float $width, string $plate, bool $still): array
     {
         [$w, $h] = $this->size($base);
         $position = in_array($position, self::POSITIONS, true) ? $position : 'top_left';
@@ -84,10 +85,27 @@ class LogoOverlay
             $keep = storage_path('app/private/logo/'.Str::uuid().'.'.pathinfo($out, PATHINFO_EXTENSION));
             File::move("{$dir}/{$out}", $keep);
 
-            return $keep;
+            return ['path' => $keep, 'box' => $this->box($logo, $position, $logoW, $w, $h, $side, $top, $bottom, $plate)];
         } finally {
             File::deleteDirectory($dir);
         }
+    }
+
+    /** The logo's area (with its plate) as shares of the frame, so text can stay clear of it. */
+    private function box(string $logo, string $position, int $logoW, int $w, int $h, int $side, int $top, int $bottom, string $plate): array
+    {
+        [$lw, $lh] = (@getimagesize($logo) ?: [1, 1]);
+        $pad = in_array($plate, ['light', 'dark'], true) ? (int) round($logoW * 0.12) : 0;
+        [$bw, $bh] = [$logoW + 2 * $pad, (int) round($logoW * $lh / max(1, $lw)) + 2 * $pad];
+
+        $x = str_ends_with($position, '_left') ? $side : (str_ends_with($position, '_right') ? $w - $bw - $side : ($w - $bw) / 2);
+        $y = match (true) {
+            $position === 'center' => ($h - $bh) / 2,
+            str_starts_with($position, 'top') => $top,
+            default => $h - $bh - $bottom,
+        };
+
+        return [round($x / $w, 4), round($y / $h, 4), round(($x + $bw) / $w, 4), round(($y + $bh) / $h, 4)];
     }
 
     /** @return array{0: int, 1: int} */

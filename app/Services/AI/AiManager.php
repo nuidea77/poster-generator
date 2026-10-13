@@ -57,7 +57,8 @@ class AiManager
             return true;
         }
 
-        if (! preg_match('/quota|RESOURCE_EXHAUSTED|no credits|credits are depleted|prepayment|credit balance|billing|insufficient_quota|429/i', $error)) {
+        // Out of quota / credits pauses the provider; a transient "try again later" rate limit does not.
+        if (preg_match('/try again later/i', $error) || ! preg_match('/quota|no credits|credits are depleted|prepayment|credit balance|billing|insufficient_quota/i', $error)) {
             return false;
         }
 

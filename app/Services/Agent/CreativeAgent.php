@@ -398,7 +398,25 @@ class CreativeAgent
     {
         $job = $this->prepareImage($creation, $in);
 
-        return $this->storeImage($creation, $job, $job['provider']->generateImage($job['prompt'], $job['aspect'], $job['references']));
+        return $this->storeImage($creation, $job, $this->retryRateLimit(fn () => $job['provider']->generateImage($job['prompt'], $job['aspect'], $job['references'])));
+    }
+
+    /**
+     * A "try again later" rate limit (429) is transient: wait and retry a couple
+     * of times instead of failing the call (quota/billing errors are not retried).
+     */
+    private function retryRateLimit(callable $call): array
+    {
+        for ($attempt = 0; ; $attempt++) {
+            try {
+                return $call();
+            } catch (AiException $e) {
+                if ($attempt >= 2 || ! preg_match('/try again later|rate limit|Resource exhausted\\./i', $e->getMessage())) {
+                    throw $e;
+                }
+                sleep(config('ai.rate_limit_wait', 6) * ($attempt + 1));
+            }
+        }
     }
 
     /**
@@ -441,7 +459,16 @@ class CreativeAgent
                     throw new AiException('Image request failed: '.($response instanceof Throwable ? $response->getMessage() : 'no response'));
                 }
 
-                $out[$id] = $this->storeImage($creation, $job, $job['provider']->parseImage($response));
+                $out[$id] = $this->storeImage($creation, $job, $this->retryRateLimit(function () use ($job, $response) {
+                    static $first = true;
+                    if ($first) {
+                        $first = false;
+
+                        return $job['provider']->parseImage($response);
+                    }
+
+                    return $job['provider']->generateImage($job['prompt'], $job['aspect'], $job['references']);
+                }));
             } catch (AiException|ConnectionException $e) {
                 $out[$id] = $e;
             }
@@ -552,7 +579,7 @@ class CreativeAgent
             throw new AiException('In a reel, add_text needs a clip (use animate_still first for a card).');
         }
 
-        $tmp = $this->text->burn(MediaStore::absolute($asset['path']), array_values($in['items'] ?? []), (float) ($asset['duration'] ?? 0), $still);
+        $tmp = $this->text->burn(MediaStore::absolute($asset['path']), array_values($in['items'] ?? []), (float) ($asset['duration'] ?? 0), $still, $asset['reserved'] ?? []);
         $file = MediaStore::put("creations/{$creation->public_id}/work", file_get_contents($tmp), $still ? 'image/png' : 'video/mp4');
         @unlink($tmp);
 
@@ -560,7 +587,7 @@ class CreativeAgent
         $new = $creation->addAsset([
             'kind' => $asset['kind'], 'source' => 'generated', 'provider' => 'text',
             'path' => $file['path'], 'prompt' => 'text on '.$asset['id'].': '.implode(' | ', $lines),
-            'aspect' => $asset['aspect'] ?? null, 'duration' => $asset['duration'] ?? null,
+            'aspect' => $asset['aspect'] ?? null, 'duration' => $asset['duration'] ?? null, 'reserved' => $asset['reserved'] ?? [],
             'note' => 'typography', 'cost' => 0.0,
         ]);
 
@@ -577,17 +604,18 @@ class CreativeAgent
         $still = $asset['kind'] === 'image';
 
         $logoPath = ($in['remove_background'] ?? true) ? $this->logoCutout($creation, $logo) : MediaStore::absolute($logo['path']);
-        $tmp = $this->logos->place(
+        $placed = $this->logos->place(
             MediaStore::absolute($asset['path']), $logoPath,
             (string) ($in['position'] ?? 'top_left'), (float) ($in['width'] ?? 0.16), (string) ($in['plate'] ?? 'none'), $still,
         );
-        $file = MediaStore::put("creations/{$creation->public_id}/work", file_get_contents($tmp), $still ? 'image/png' : 'video/mp4');
-        @unlink($tmp);
+        $file = MediaStore::put("creations/{$creation->public_id}/work", file_get_contents($placed['path']), $still ? 'image/png' : 'video/mp4');
+        @unlink($placed['path']);
 
         $new = $creation->addAsset([
             'kind' => $asset['kind'], 'source' => 'generated', 'provider' => 'logo',
             'path' => $file['path'], 'prompt' => "logo {$in['position']} on {$asset['id']}",
             'aspect' => $asset['aspect'] ?? null, 'duration' => $asset['duration'] ?? null,
+            'reserved' => [...($asset['reserved'] ?? []), $placed['box']], // add_text keeps clear of it
             'note' => 'logo', 'cost' => 0.0,
         ]);
 

@@ -5,7 +5,9 @@ description: Where and how big to put the client's logo with add_logo on posters
 
 # Logo placement
 
-The logo **signs** the ad; it is not the headline. It goes on with `add_logo` — the client's own file, pixel-exact, only scaled evenly — never drawn by a model. Place it **last** (after `add_text`), on the final image or clip.
+The logo **signs** the ad; it is not the headline. It goes on with `add_logo` — the client's own file, pixel-exact, only scaled evenly — never drawn by a model.
+
+Order: on posters usually `add_text` then `add_logo` (pick a corner away from the headline). When the logo shares a zone with text (reel end cards, a centred logo above a title) do **`add_logo` first, then `add_text`** — text added afterwards is moved below the logo automatically. Never pad text with empty lines to push it around.
 
 ## 1. Read the logo first
 Look at the attached file and name its type:
@@ -54,7 +56,7 @@ In a set (4:5 + 9:16 + 16:9 …) keep the same corner and the same visual size r
 ## 6. Reels
 - Not in the hook (the first seconds belong to the product/idea); usually only on the **end card**, `center` or `top_center` at end-card size, with the CTA text below it.
 - Optionally a small corner logo (symbol size) on the hero clip; never on every clip.
-- End card order: clean still → `animate_still` → `add_logo` → `add_text`.
+- End card order: clean still → `animate_still` → `add_logo` → `add_text` (the text stacks under the logo by itself).
 
 ## 7. Two logos (co-branding, sponsors)
 Only when the brief asks: same visual height, side by side in one band (`bottom_center` area), the client's logo first/left. If only one file was given, the partner's name goes as a `small` text line.

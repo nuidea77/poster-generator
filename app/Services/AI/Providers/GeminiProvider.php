@@ -9,6 +9,7 @@ use GuzzleHttp\Promise\PromiseInterface;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 
 class GeminiProvider implements ImageProvider
 {
@@ -60,6 +61,13 @@ class GeminiProvider implements ImageProvider
             }
         }
 
-        throw new AiException('Gemini image: no image returned.');
+        $why = array_filter([
+            $response->json('promptFeedback.blockReason'),
+            $response->json('candidates.0.finishReason'),
+            $response->json('candidates.0.finishMessage'),
+            collect($response->json('candidates.0.content.parts') ?? [])->pluck('text')->filter()->implode(' '),
+        ]);
+
+        throw new AiException('Gemini image: no image returned'.($why ? ' ('.Str::limit(implode('; ', $why), 300).')' : '').'. Simplify or rephrase the prompt; if it was blocked for safety, avoid real people, brands or sensitive content.');
     }
 }
