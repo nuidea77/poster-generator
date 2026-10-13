@@ -759,6 +759,15 @@ class CreationTest extends TestCase
         $this->assertEqualsWithDelta(1080 - 76, $delivery[2], 2);     // delivery ends on the right edge
         $this->assertGreaterThan($phone[3], $address[1]);             // the next fact starts below the row
         $this->assertLessThan(0.034 * 1080 * 1.25, $phone[3] - $phone[1]); // small facts stay small (line = 1.2 × size)
+
+        // A footer: long small address on the left, bold subtitle phone on the right — the phone keeps its size.
+        $bg = imagecreatetruecolor(1080, 1350);
+        $file = sys_get_temp_dir().'/bg-'.uniqid().'.png';
+        imagepng($bg, $file);
+        @unlink($overlay->burn($file, [$item('БЗД, 26-р хороо, Номин тауэр 3 давхар', 'location', false), ['role' => 'subtitle', 'align' => 'right'] + $item('7700-4455', 'phone', true)], 0, true));
+        @unlink($file);
+        [$address, $phoneBig] = array_column($overlay->placed, 'rect');
+        $this->assertGreaterThan($address[3] - $address[1], $phoneBig[3] - $phoneBig[1]);
     }
 
     public function test_rows_of_three_share_columns_and_pills_are_drawn_under_the_text(): void

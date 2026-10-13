@@ -131,10 +131,12 @@ class TextOverlay
             foreach ($blocks as $position => $set) {
                 $rowMin = [];
                 foreach ($set as $b) {
-                    $rowMin[$b['rowNo']] = min($rowMin[$b['rowNo']] ?? PHP_INT_MAX, $b['size']);
+                    $key = $b['rowNo'].':'.($b['item']['role'] ?? '');
+                    $rowMin[$key] = min($rowMin[$key] ?? PHP_INT_MAX, $b['size']);
                 }
                 foreach ($set as $k => $b) {
-                    $size = $b['columns'] > 1 ? $rowMin[$b['rowNo']] : $b['size'];
+                    // Same role in one row → one size (a footer's address and bold phone keep their own).
+                    $size = $b['columns'] > 1 ? $rowMin[$b['rowNo'].':'.($b['item']['role'] ?? '')] : $b['size'];
                     $pad = (int) round($size * $b['ems']['pad']);
                     $blocks[$position][$k] = ['size' => $size, 'pad' => $pad,
                         'width' => (int) round($size * $b['ems']['width']) + 2 * $pad,
@@ -332,8 +334,8 @@ class TextOverlay
 
     /**
      * Lines of the last burn() that sit on a detailed part of the clean image (the
-     * product, a face, hair, busy texture) without a panel — most likely overlapping
-     * the subject. Measured per 32 px tile as the mean brightness step between pixels.
+     * product, a face, hair, busy texture), panel or not — most likely overlapping
+     * the subject. Lines on a scrim are left out. Measured per 32 px tile as the mean brightness step between pixels.
      *
      * @return list<string>
      */
@@ -356,7 +358,8 @@ class TextOverlay
         foreach ($this->placed as $p) {
             $mid = ($p['rect'][1] + $p['rect'][3]) / 2 / $H;
             $onScrim = ($mid < 0.4 && in_array($this->lastScrim, ['top', 'top_bottom'], true)) || ($mid > 0.55 && in_array($this->lastScrim, ['bottom', 'top_bottom'], true));
-            if ($p['panel'] || $onScrim) {
+            // Panels (pills, glass, boxes) still count: on the product they hide it even when readable.
+            if ($onScrim) {
                 continue;
             }
             [$x0, $y0, $x1, $y1] = [max(0, $p['rect'][0]), max(0, $p['rect'][1]), min($W - 3, $p['rect'][2]), min($H - 3, $p['rect'][3])];

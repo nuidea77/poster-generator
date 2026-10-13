@@ -40,7 +40,7 @@ A soft gradient from the frame edge (strongest at the edge, gone by mid-frame) s
 - `scrim_color`: `000000` with white text (default, cinematic); a light tone (`FFFFFF`, cream) with dark text on bright/airy photos; a deep brand tone for a branded feel.
 - Prefer a scrim over many `box` panels on photos; prefer a calm area in the visual over both. Don't scrim a flat studio background — it only muddies it.
 - On reels a `top_bottom` scrim on the hook clip + end card keeps every caption readable over moving footage.
-- If add_text warns that lines sit on a detailed area, a scrim on that zone is often the fix (lines on a scrim are not flagged).
+- If add_text warns that lines sit on a detailed area, a scrim on that zone is often the fix (lines on a scrim are not flagged; lines on a pill/glass/box panel still are — a panel does not stop them hiding the product).
 
 ## 3. Patterns (ask the image model, in the visual)
 Patterns add identity and texture to flat or minimal designs. They are part of the **visual prompt**, never drawn over text.

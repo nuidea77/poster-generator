@@ -13,11 +13,11 @@ Studied from professional Mongolian posters (a clinic package, a telecom promo, 
 | **Pill badge** | `box: true`, `box_shape: pill`, accent `box_color`, white bold text | `30% OFF`, `ШИНЭ`, `-20%`, a short CTA |
 | **CTA bar with icon** | pill + `icon` (calendar, gift, phone, arrow) — the icon sits inside the pill | `Зөвхөн 3 ХОНОГ үргэлжилнэ`, `Захиалах 7711-5566` |
 | **Glass chip** | `box_shape: glass`, dark text, small | labels above values (`СУПЕР БЭЛГИЙН ЭЗЭН`), app steps, tags |
-| **Two-column stat** | chip row (2 items, `same_line`) over a value row (2 items, `same_line`) | prize vs winners, before vs after, two plans |
+| **Two-column stat** | chip row: 2 `small` glass chips (`same_line`) — the **labels**; under it a value row: 2 `subtitle`/`title` bold values (`same_line`) — the **values are bigger than the labels** | prize vs winners, before vs after, two plans |
 | **Row of 3–4** | `small` bold items, the 2nd–4th with `same_line: true` → equal columns, one size | services (`ЭХО · РЕНТГЕН · ШИНЖИЛГЭЭ · ҮЗЛЭГ`), gifts, steps, features |
 | **Step flow** | 2–3 glass chips in a row, last one an accent pill with an icon | `Unitel app` → `Багц шилжих` → `Бэлэг авах` |
 | **Checklist** | 3–4 `small` lines, `icon: check`, `align: left` | benefits of a service or package |
-| **Footer info bar** | `small` address with `location`, `align: left`; phone `subtitle` bold with `phone`, `same_line`, `align: right`; `scrim: bottom` or a band in the visual | contact on every service poster |
+| **Footer info bar** | `small` address with `location`, `align: left`; phone **`subtitle` bold** with `phone`, `same_line`, `align: right` (different roles keep their own sizes, so the phone stays big); `scrim: bottom` or a band in the visual | contact on every service poster |
 
 Rows of 3–4 work best when the **visual already has matching spots** (round photo insets, product tiles, icons in a row) — ask the image model for "a row of four round photo insets evenly spaced across the lower third, empty below each for a caption", then put the captions in `lower_third` / `bottom` as one row. Without matching spots, a row of words alone is still clean.
 
@@ -42,7 +42,9 @@ Rows of 3–4 work best when the **visual already has matching spots** (round ph
 - **Headline 2–3 words, huge** (title or display); everything else ≤ 1/3 of its size.
 - **Air:** at least a third of the poster is calm background. Don't fill every zone.
 - **Facts are elements, not sentences:** chips, pills, rows, a checklist — 1–5 words each.
-- **Pills hold one short phrase** (≤ 25 characters); a long sentence in a pill looks like a button bar gone wrong.
+- **Pills and chips hold one short phrase** (≤ 25 characters). A sentence ("Дараа төлбөрт багцаа ахиулаад хожих боломж") is a plain `subtitle`, never a glass/pill.
+- **Panels never cover the product.** A glass chip or pill on the phone/bottle/face hides it as much as plain text does — add_text warns about it; move the element to a calm zone.
+- **Steps are steps:** a step flow holds only the actions in order (`Апп` → `Багц шилжих`); a deadline or date is its own element (a CTA pill or a fact), not the last step.
 - **Same element, same style:** all chips glass, all CTAs accent pills, all captions bold small; same in every ratio.
 - **Mixed emphasis** ("Зөвхөн **3 ХОНОГ** үргэлжилнэ") is not possible inside one item — make the key part its own item (pill or bold) or keep the line uniform.
 - Image models must **not** draw the chips, pills or text themselves — ask for empty shapes or nothing, then add_text.
