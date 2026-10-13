@@ -3,6 +3,7 @@
 namespace App\Services\Billing;
 
 use App\Models\Creation;
+use App\Models\Payment;
 use App\Models\Subscription;
 
 /**
@@ -229,6 +230,62 @@ class CostMeter
     }
 
     /**
+     * The whole picture in one place: what was made, what it cost (Fable tokens vs
+     * images vs video), the money that came in (paid invoices) and the profit.
+     *
+     * @return array<string, mixed>
+     */
+    public function summary(?int $days = null): array
+    {
+        $jobs = $this->since($days)->whereIn('status', [Creation::DONE, Creation::FAILED])
+            ->get(['id', 'type', 'status', 'cost_usd', 'assets', 'input_tokens', 'output_tokens', 'cache_read_tokens', 'cache_write_tokens']);
+        $assets = $jobs->flatMap(fn (Creation $c) => $c->assets ?? []);
+        $images = $assets->filter(fn ($a) => ($a['kind'] ?? '') === 'image' && ($a['cost'] ?? 0) > 0);
+        $videos = $assets->filter(fn ($a) => ($a['kind'] ?? '') === 'video' && ($a['source'] ?? '') === 'generated' && ($a['cost'] ?? 0) > 0);
+        $total = (float) $jobs->sum('cost_usd');
+        $imageUsd = (float) $images->sum('cost');
+        $videoUsd = (float) $videos->sum('cost');
+        $claudeUsd = max(0, $total - $imageUsd - $videoUsd);
+
+        $made = fn (string $type) => [
+            'done' => $jobs->where('type', $type)->where('status', Creation::DONE)->count(),
+            'failed' => $jobs->where('type', $type)->where('status', Creation::FAILED)->count(),
+            'cost_mnt' => $this->mnt((float) $jobs->where('type', $type)->sum('cost_usd')),
+            'avg_mnt' => $this->mnt((float) $jobs->where('type', $type)->sum('cost_usd') / max(1, $jobs->where('type', $type)->where('status', Creation::DONE)->count())),
+        ];
+
+        // QPAY_FAKE invoices (FAKE-…) are local tests, not money: counted apart.
+        $paid = Payment::where('status', Payment::PAID)
+            ->when($days, fn ($q) => $q->where('paid_at', '>=', now()->subDays($days)))
+            ->get(['amount', 'invoice_id']);
+        [$fake, $real] = $paid->partition(fn (Payment $p) => str_starts_with((string) $p->invoice_id, 'FAKE-'));
+        $cash = (int) $real->sum('amount');
+        $spent = $this->mnt($total);
+
+        return [
+            'posters' => $made(Creation::POSTER),
+            'reels' => $made(Creation::REEL),
+            'spent_usd' => round($total, 2),
+            'spent_mnt' => $spent,
+            'parts' => [
+                ['label' => 'Fable (token)', 'usd' => round($claudeUsd, 2), 'mnt' => $this->mnt($claudeUsd), 'count' => null],
+                ['label' => 'Зураг', 'usd' => round($imageUsd, 2), 'mnt' => $this->mnt($imageUsd), 'count' => $images->count()],
+                ['label' => 'Видео', 'usd' => round($videoUsd, 2), 'mnt' => $this->mnt($videoUsd), 'count' => $videos->count()],
+            ],
+            'tokens' => [
+                'input' => (int) $jobs->sum('input_tokens'),
+                'output' => (int) $jobs->sum('output_tokens'),
+                'cache_read' => (int) $jobs->sum('cache_read_tokens'),
+                'cache_write' => (int) $jobs->sum('cache_write_tokens'),
+            ],
+            'payments' => $real->count(),
+            'cash_mnt' => $cash,
+            'test_payments' => ['count' => $fake->count(), 'mnt' => (int) $fake->sum('amount')],
+            'profit_mnt' => $cash - $spent,
+        ];
+    }
+
+    /**
      * Money in vs API money out, and where it was lost: failed jobs (credits
      * refunded, API cost kept), jobs nobody paid for (admin / free credits) and
      * finished jobs that cost more than they earned. Revenue is what the
@@ -296,8 +353,8 @@ class CostMeter
     {
         $ids = $jobs->flatMap(fn (Creation $c) => array_column($c->charges ?? [], 'subscription_id'))->unique()->values();
 
-        return Subscription::with('payment:id,amount')->whereIn('id', $ids)->get(['id', 'payment_id', 'credits'])
-            ->mapWithKeys(fn (Subscription $s) => [$s->id => $s->payment && $s->credits > 0 ? $s->payment->amount / $s->credits : 0.0])
+        return Subscription::with('payment:id,amount,invoice_id')->whereIn('id', $ids)->get(['id', 'payment_id', 'credits'])
+            ->mapWithKeys(fn (Subscription $s) => [$s->id => $s->payment && $s->credits > 0 && ! str_starts_with((string) $s->payment->invoice_id, 'FAKE-') ? $s->payment->amount / $s->credits : 0.0])
             ->all();
     }
 

@@ -126,6 +126,17 @@ class BillingTest extends TestCase
 
         $this->actingAs($admin)->getJson('/api/v1/admin/costs?days=30')->assertOk()->assertJsonPath('losses.net_mnt', -600);
 
+        // Overview: what was made and what it cost; a QPAY_FAKE invoice is not money.
+        Payment::create(['user_id' => $admin->id, 'plan_id' => $standard->id, 'amount' => 999000, 'status' => Payment::PAID, 'invoice_id' => 'FAKE-X', 'paid_at' => now(), 'sender_invoice_no' => 'L2', 'callback_token' => 'tok-l2']);
+        $payment->forceFill(['paid_at' => now()])->save();
+        $sum = app(CostMeter::class)->summary(30);
+        $this->assertSame(['done' => 3, 'failed' => 1], collect($sum['posters'])->only(['done', 'failed'])->all());
+        $this->assertSame(16200, $sum['spent_mnt']);
+        $this->assertSame(72000, $sum['cash_mnt']);
+        $this->assertSame(['count' => 1, 'mnt' => 999000], $sum['test_payments']);
+        $this->assertSame(72000 - 16200, $sum['profit_mnt']);
+        $this->assertSame([1800, 1, 0], [collect($sum['parts'])->firstWhere('label', 'Зураг')['mnt'], collect($sum['parts'])->firstWhere('label', 'Зураг')['count'], collect($sum['parts'])->firstWhere('label', 'Видео')['mnt']]);
+
         // Job by job, admin tests included: tokens, real cost and the list price it is measured against.
         $recent = collect(app(CostMeter::class)->recent(30));
         $mine = $recent->firstWhere('admin', true);

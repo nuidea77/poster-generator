@@ -33,6 +33,66 @@ const signed = (n) => (n < 0 ? `−${money(-n)}` : money(n));
         <p v-if="error" class="rounded-xl bg-red-950 p-3 text-sm text-red-200">{{ error }}</p>
 
         <template v-if="data">
+            <!-- The whole picture: what was made, what it cost, what came in. -->
+            <div class="mb-3 flex flex-wrap items-center gap-2">
+                <h2 class="font-semibold">Нийт тойм</h2>
+                <div class="ml-auto flex gap-1.5">
+                    <button v-for="p in periods" :key="p[0]" class="chip chip-sm" :class="{ 'chip-active': days === p[0] }" @click="days = p[0]">{{ p[1] }}</button>
+                </div>
+            </div>
+            <div class="mb-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <div class="panel">
+                    <div class="text-xs text-muted">Нийт зардал (API)</div>
+                    <div class="mt-1 text-2xl font-semibold tabular-nums">{{ money(data.summary.spent_mnt) }}</div>
+                    <div class="text-[11px] text-muted">{{ usd(data.summary.spent_usd) }}</div>
+                </div>
+                <div class="panel">
+                    <div class="text-xs text-muted">Орж ирсэн мөнгө (QPay)</div>
+                    <div class="mt-1 text-2xl font-semibold tabular-nums">{{ money(data.summary.cash_mnt) }}</div>
+                    <div class="text-[11px] text-muted">{{ data.summary.payments }} төлбөр<template v-if="data.summary.test_payments.count"> · тест төлбөр {{ data.summary.test_payments.count }} ({{ money(data.summary.test_payments.mnt) }}) тооцоонд ороогүй</template></div>
+                </div>
+                <div class="panel">
+                    <div class="text-xs text-muted">{{ data.summary.profit_mnt < 0 ? 'Алдагдал' : 'Ашиг' }}</div>
+                    <div class="mt-1 text-2xl font-semibold tabular-nums" :class="data.summary.profit_mnt < 0 ? 'text-red-300' : 'text-lime'">{{ signed(data.summary.profit_mnt) }}</div>
+                    <div class="text-[11px] text-muted">орж ирсэн мөнгө − API зардал</div>
+                </div>
+                <div class="panel">
+                    <div class="text-xs text-muted">Хийсэн бүтээл</div>
+                    <div class="mt-1 text-sm">
+                        <div><span class="text-xl font-semibold tabular-nums">{{ data.summary.posters.done }}</span> постер <span class="text-xs text-muted">· дундаж {{ money(data.summary.posters.avg_mnt) }}</span></div>
+                        <div><span class="text-xl font-semibold tabular-nums">{{ data.summary.reels.done }}</span> reel <span class="text-xs text-muted">· дундаж {{ money(data.summary.reels.avg_mnt) }}</span></div>
+                    </div>
+                    <div class="text-[11px] text-muted">бүтэлгүйтсэн: {{ data.summary.posters.failed }} постер, {{ data.summary.reels.failed }} reel</div>
+                </div>
+            </div>
+            <div class="mb-8 overflow-x-auto rounded-2xl border border-line">
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-surface text-xs text-muted uppercase">
+                        <tr><th class="px-3 py-2">Юунд зарцуулсан</th><th class="px-3 py-2">Тоо</th><th class="px-3 py-2">₮</th><th class="px-3 py-2">$</th><th class="px-3 py-2">Хувь</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="p in data.summary.parts" :key="p.label" class="border-t border-line">
+                            <td class="px-3 py-2 font-semibold">{{ p.label }}</td>
+                            <td class="px-3 py-2 text-xs tabular-nums text-muted">
+                                <template v-if="p.count !== null">{{ p.count }}</template>
+                                <template v-else>гаралт {{ k(data.summary.tokens.output) }} · cache унших {{ k(data.summary.tokens.cache_read) }} · бичих {{ k(data.summary.tokens.cache_write) }}</template>
+                            </td>
+                            <td class="px-3 py-2 tabular-nums">{{ money(p.mnt) }}</td>
+                            <td class="px-3 py-2 tabular-nums text-muted">{{ usd(p.usd) }}</td>
+                            <td class="px-3 py-2 tabular-nums text-muted">{{ data.summary.spent_mnt ? Math.round((p.mnt / data.summary.spent_mnt) * 100) : 0 }}%</td>
+                        </tr>
+                        <tr class="border-t border-line bg-surface/50">
+                            <td class="px-3 py-2 font-semibold">Постер</td><td class="px-3 py-2 tabular-nums">{{ data.summary.posters.done + data.summary.posters.failed }}</td>
+                            <td class="px-3 py-2 tabular-nums">{{ money(data.summary.posters.cost_mnt) }}</td><td></td><td></td>
+                        </tr>
+                        <tr class="border-t border-line bg-surface/50">
+                            <td class="px-3 py-2 font-semibold">Reel</td><td class="px-3 py-2 tabular-nums">{{ data.summary.reels.done + data.summary.reels.failed }}</td>
+                            <td class="px-3 py-2 tabular-nums">{{ money(data.summary.reels.cost_mnt) }}</td><td></td><td></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
             <p class="mb-4 max-w-3xl text-sm text-muted">
                 Кредитийн үнийг CostMeter нэгж үнээс автоматаар тооцоолно: хамгийн үнэтэй зураг, видео модель (Fable + медиа),
                 ашиг муу тохиолдолд ≥ ×{{ data.margin.worst }}, ердийн үед ≥ ×{{ data.margin.typical }}. 1 кредит = {{ money(data.credit_mnt) }}, $1 = {{ money(data.usd_mnt) }}.
@@ -65,9 +125,6 @@ const signed = (n) => (n < 0 ? `−${money(-n)}` : money(n));
 
             <div class="mb-3 flex flex-wrap items-center gap-2">
                 <h2 class="font-semibold">Орлого ба алдагдал</h2>
-                <div class="ml-auto flex gap-1.5">
-                    <button v-for="p in periods" :key="p[0]" class="chip chip-sm" :class="{ 'chip-active': days === p[0] }" @click="days = p[0]">{{ p[1] }}</button>
-                </div>
             </div>
             <div class="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
                 <div class="panel">

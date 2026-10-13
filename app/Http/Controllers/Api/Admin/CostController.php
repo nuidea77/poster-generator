@@ -22,6 +22,7 @@ class CostController extends Controller
             'usd_mnt' => config('pricing.usd_mnt'),
             'margin' => config('pricing.margin'),
             'costs' => config('pricing.costs'),
+            'summary' => $meter->summary($days),
             'price_book' => $meter->priceBook(),
             'actuals' => $meter->actuals($days),
             'losses' => $meter->losses($days),
