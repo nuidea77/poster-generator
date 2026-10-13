@@ -30,20 +30,27 @@ class TextOverlay
     private const WIDTH = ['bold_sans' => 0.74, 'sans' => 0.6, 'condensed' => 0.5, 'serif' => 0.6, 'rounded' => 0.68];
 
     /**
-     * @param  list<array{text: string, role: string, position: string, align?: string, font: string, color: string, box: bool, box_color: string, start: float, end: float, animation: string}>  $items
-     * @param  bool  $still  an image (poster): static text, PNG out; else a clip: timed text, MP4 out
-     * @return string Absolute path of the new file (caller moves it).
-     */
-    /**
      * Where the last burn() put each text block, in pixels — so the caller can check what lies under it.
      *
      * @var list<array{text: string, panel: bool, rect: array{0: int, 1: int, 2: int, 3: int}}>
      */
     public array $placed = [];
 
-    public function burn(string $video, array $items, float $duration, bool $still = false, array $reserved = []): string
+    /** The scrim of the last burn(): lines on it are readable like on a panel. */
+    private string $lastScrim = 'none';
+
+    public const SCRIMS = ['none', 'top', 'bottom', 'top_bottom'];
+
+    /**
+     * @param  list<array{text: string, role: string, position: string, align?: string, font: string, color: string, box: bool, box_color: string, start: float, end: float, animation: string, icon?: string}>  $items
+     * @param  bool  $still  an image (poster): static text, PNG out; else a clip: timed text, MP4 out
+     * @param  string  $scrim  soft gradient behind the text zones: none | top | bottom | top_bottom
+     * @return string Absolute path of the new file (caller moves it).
+     */
+    public function burn(string $video, array $items, float $duration, bool $still = false, array $reserved = [], string $scrim = 'none', string $scrimColor = '000000'): string
     {
         $this->placed = [];
+        $this->lastScrim = $scrim;
 
         if (! $items) {
             throw new AiException('Give at least one text item.');
@@ -84,6 +91,7 @@ class TextOverlay
             }
 
             $filters = [];
+            $icons = []; // [file, x, y, enable]
             $floor = 0;
 
             foreach (['top', 'center', 'lower_third', 'bottom'] as $position) {
@@ -121,6 +129,21 @@ class TextOverlay
                         : (string) $top;
                     $left = ($item['align'] ?? 'center') === 'left';
                     $x = $left ? (string) round($w * 0.07 + $pad) : '(w-text_w)/2';
+                    $width = $b['width'];
+
+                    // An icon sits before a one-line item, the pair centred (or on the left edge) together.
+                    $icon = in_array($item['icon'] ?? 'none', IconSet::NAMES, true) && ! str_contains($b['text'], "\n") ? $item['icon'] : null;
+                    if ($icon) {
+                        $box = imagettfbbox($size * 0.75, 0, resource_path('fonts/'.self::FONTS[$b['font']]), $b['text']);
+                        $textW = $box[2] - $box[0];
+                        $iconPx = (int) round($size * 0.95);
+                        $lead = $iconPx + (int) round($size * 0.35);
+                        $iconX = $left ? (int) round($w * 0.07) : (int) round(($w - $lead - $textW - 2 * $pad) / 2);
+                        $x = (string) ($iconX + $lead + $pad);
+                        $width = $lead + $textW + 2 * $pad;
+                        File::put("{$dir}/i{$i}.png", app(IconSet::class)->png($icon, $iconPx, $this->hex($item['color'] ?? '')));
+                        $icons[] = ["i{$i}.png", $iconX, $top + (int) round($size * 0.37 - $iconPx / 2), $still ? null : "between(t,{$start},{$end})"];
+                    }
                     $style = match (true) {
                         // Small lines get a soft dark panel so they stay readable over busy footage.
                         $soft => ":box=1:boxcolor=black@0.38:boxborderw={$pad}:shadowcolor=black@0.4:shadowx=0:shadowy=1",
@@ -138,8 +161,8 @@ class TextOverlay
                         $lineY = count($lines) === 1 ? $yExpr : "({$yExpr})+".($k * (int) round($size * 1.4) + (int) round($size * 0.92)).'-ascent';
                         $filters[] = "drawtext=fontfile=f{$i}.ttf:textfile=t{$i}_{$k}.txt:line_spacing=".round($size * 0.2).":y='{$lineY}':{$common}";
                     }
-                    $x0 = $left ? (int) round($w * 0.07) : (int) round(($w - $b['width']) / 2);
-                    $this->placed[] = ['text' => $b['text'], 'panel' => $pad > 0, 'rect' => [$x0, $y, $x0 + $b['width'], $y + $b['height']]];
+                    $x0 = $left ? (int) round($w * 0.07) : (int) round(($w - $width) / 2);
+                    $this->placed[] = ['text' => $b['text'], 'panel' => $pad > 0, 'rect' => [$x0, $y, $x0 + $width, $y + $b['height']]];
                     $y += $b['height'] + $b['gap'];
                 }
 
@@ -152,12 +175,35 @@ class TextOverlay
 
             $ext = $still ? 'png' : 'mp4';
             File::copy($video, "{$dir}/in.".pathinfo($video, PATHINFO_EXTENSION));
-            $input = 'in.'.pathinfo($video, PATHINFO_EXTENSION);
+
+            // Graph: [scrim under everything] → text → icons. Images loop on clips; overlays end with the clip.
+            $inputs = ['-i', 'in.'.pathinfo($video, PATHINFO_EXTENSION)];
+            $image = fn (string $file) => [...($still ? [] : ['-loop', '1']), '-i', $file];
+            $end = $still ? '' : ':shortest=1';
+            $graph = [];
+            $label = '[0:v]';
+            $n = 1;
+
+            if (in_array($scrim, ['top', 'bottom', 'top_bottom'], true)) {
+                File::put("{$dir}/scrim.png", $this->scrim($w, $h, $scrim, $this->hex($scrimColor)));
+                $inputs = [...$inputs, ...$image('scrim.png')];
+                $graph[] = "{$label}[{$n}:v]overlay=0:0{$end}[s]";
+                [$label, $n] = ['[s]', $n + 1];
+            }
+
+            $graph[] = $label.implode(',', $filters).'[t0]';
+            $label = '[t0]';
+            foreach ($icons as $k => [$file, $ix, $iy, $enable]) {
+                $inputs = [...$inputs, ...$image($file)];
+                $graph[] = "{$label}[{$n}:v]overlay={$ix}:{$iy}".($enable ? ":enable='{$enable}'" : '')."{$end}[t".($k + 1).']';
+                [$label, $n] = ['[t'.($k + 1).']', $n + 1];
+            }
+
             $result = Process::path($dir)->timeout(600)->run($still
-                ? [config('ai.ffmpeg'), '-y', '-i', $input, '-vf', implode(',', $filters), '-frames:v', '1', 'out.png']
+                ? [config('ai.ffmpeg'), '-y', ...$inputs, '-filter_complex', implode(';', $graph), '-map', $label, '-frames:v', '1', 'out.png']
                 : [
-                    config('ai.ffmpeg'), '-y', '-i', $input, '-vf', implode(',', $filters),
-                    '-map', '0:v', '-map', '0:a?', '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '18', '-pix_fmt', 'yuv420p', '-c:a', 'copy',
+                    config('ai.ffmpeg'), '-y', ...$inputs, '-filter_complex', implode(';', $graph),
+                    '-map', $label, '-map', '0:a?', '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '18', '-pix_fmt', 'yuv420p', '-c:a', 'copy',
                     'out.mp4',
                 ]);
 
@@ -198,7 +244,9 @@ class TextOverlay
 
         $busy = [];
         foreach ($this->placed as $p) {
-            if ($p['panel']) {
+            $mid = ($p['rect'][1] + $p['rect'][3]) / 2 / $H;
+            $onScrim = ($mid < 0.4 && in_array($this->lastScrim, ['top', 'top_bottom'], true)) || ($mid > 0.55 && in_array($this->lastScrim, ['bottom', 'top_bottom'], true));
+            if ($p['panel'] || $onScrim) {
                 continue;
             }
             [$x0, $y0, $x1, $y1] = [max(0, $p['rect'][0]), max(0, $p['rect'][1]), min($W - 3, $p['rect'][2]), min($H - 3, $p['rect'][3])];
@@ -237,6 +285,38 @@ class TextOverlay
             'bottom' => $ui ? ($h > $w ? 0.62 : 0.78) : 0.82,
             default => $ui ? ($h > $w ? 0.55 : 0.66) : 0.64, // lower_third
         });
+    }
+
+    /**
+     * A soft gradient (scrim) from the frame edge into the picture, so text reads on a
+     * photo without a hard panel: strongest at the edge, gone by the middle.
+     */
+    private function scrim(int $w, int $h, string $where, string $hex): string
+    {
+        $img = imagecreatetruecolor($w, $h);
+        imagesavealpha($img, true);
+        imagealphablending($img, false);
+        imagefill($img, 0, 0, imagecolorallocatealpha($img, 0, 0, 0, 127));
+        [$r, $g, $b] = sscanf($hex, '%02x%02x%02x');
+        $light = (0.299 * $r + 0.587 * $g + 0.114 * $b) / 255 > 0.55;
+        $peak = $light ? 0.62 : 0.72;
+
+        for ($y = 0; $y < $h; $y++) {
+            $fromTop = in_array($where, ['top', 'top_bottom'], true) ? max(0, 1 - $y / ($h * 0.5)) : 0;
+            $fromBottom = in_array($where, ['bottom', 'top_bottom'], true) ? max(0, 1 - ($h - 1 - $y) / ($h * 0.55)) : 0;
+            $a = $peak * max($fromTop, $fromBottom) ** 1.6;
+            imageline($img, 0, $y, $w - 1, $y, imagecolorallocatealpha($img, $r, $g, $b, 127 - (int) round($a * 127)));
+        }
+
+        ob_start();
+        imagepng($img);
+
+        return (string) ob_get_clean();
+    }
+
+    private function hex(string $hex): string
+    {
+        return substr($this->color($hex, 'FFFFFF'), 2);
     }
 
     /** Light text needs a shadow to separate it from photos; dark text does not. */

@@ -600,8 +600,9 @@ class CreationTest extends TestCase
         $text = fn (string $t, string $role, string $pos, string $font) => ['text' => $t, 'role' => $role, 'position' => $pos, 'align' => 'center', 'font' => $font, 'color' => 'FFFFFF', 'box' => $role === 'price', 'box_color' => 'E85D04', 'start' => 0.2, 'end' => 3, 'animation' => 'slide_up'];
         Http::fake([
             'api.anthropic.com/*' => Http::sequence()
-                ->push($this->turn([['add_text', ['asset_id' => 'vid_1', 'items' => [
+                ->push($this->turn([['add_text', ['asset_id' => 'vid_1', 'scrim' => 'top_bottom', 'scrim_color' => '000000', 'items' => [
                     $text('ӨВЛИЙН ХЯМДРАЛ', 'title', 'top', 'condensed'),
+                    ['icon' => 'location'] + $text('Их Дэлгүүр', 'small', 'bottom', 'sans'), // icon + scrim images loop on the clip
                     $text('4,500₮', 'price', 'lower_third', 'serif'), // serif has no ₮: falls back to bold sans
                     $text("Захиалах\n9911-2233", 'small', 'bottom', 'sans'),
                 ]]]]))

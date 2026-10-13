@@ -7,6 +7,7 @@ use App\Services\AI\AiManager;
 use App\Services\AI\Exceptions\AiException;
 use App\Services\Billing\CostMeter;
 use App\Services\Billing\Credits;
+use App\Services\Media\IconSet;
 use App\Services\Media\LogoCutout;
 use App\Services\Media\LogoOverlay;
 use App\Services\Media\MediaStore;
@@ -308,6 +309,8 @@ class CreativeAgent
                 : 'Set the poster\'s words in real fonts on one of your images (exact letters incl. Mongolian Cyrillic and ₮ — no misspellings). Generate the visual WITHOUT text but with calm zones for it, then call this and deliver the returned image. start/end/animation are ignored on images; use \\n for a second line.',
             [
                 'asset_id' => ['type' => 'string', 'description' => $creation->type === Creation::REEL ? 'Clip id' : 'Image id'],
+                'scrim' => ['type' => 'string', 'enum' => TextOverlay::SCRIMS, 'description' => 'Soft gradient from the frame edge behind the text zones, when the photo is too busy or bright for the text; none if the zone is already calm'],
+                'scrim_color' => ['type' => 'string', 'description' => 'Hex of the scrim: 000000 (dark, for white text) or a light/brand tone for dark text'],
                 'items' => [
                     'type' => 'array',
                     'items' => [
@@ -324,8 +327,9 @@ class CreativeAgent
                             'start' => ['type' => 'number'],
                             'end' => ['type' => 'number'],
                             'animation' => ['type' => 'string', 'enum' => ['fade', 'slide_up', 'none']],
+                            'icon' => ['type' => 'string', 'enum' => ['none', ...IconSet::NAMES], 'description' => 'Small icon before a one-line fact (phone, location, clock, calendar, web, mail, delivery, gift …) in the text colour; none for headlines'],
                         ],
-                        'required' => ['text', 'role', 'position', 'align', 'font', 'color', 'box', 'box_color', 'start', 'end', 'animation'],
+                        'required' => ['text', 'role', 'position', 'align', 'font', 'color', 'box', 'box_color', 'start', 'end', 'animation', 'icon'],
                         'additionalProperties' => false,
                     ],
                 ],
@@ -596,7 +600,7 @@ class CreativeAgent
             : $item, array_values($in['items'] ?? []));
 
         $base = $this->exactFrame($asset);
-        $tmp = $this->text->burn($base ?? MediaStore::absolute($asset['path']), $in['items'], (float) ($asset['duration'] ?? 0), $still, $asset['reserved'] ?? []);
+        $tmp = $this->text->burn($base ?? MediaStore::absolute($asset['path']), $in['items'], (float) ($asset['duration'] ?? 0), $still, $asset['reserved'] ?? [], (string) ($in['scrim'] ?? 'none'), (string) ($in['scrim_color'] ?? '000000'));
         $busy = $still ? $this->text->busyLines($base ?? MediaStore::absolute($asset['path'])) : [];
         $file = MediaStore::put("creations/{$creation->public_id}/work", file_get_contents($tmp), $still ? 'image/png' : 'video/mp4');
         @unlink($tmp);
