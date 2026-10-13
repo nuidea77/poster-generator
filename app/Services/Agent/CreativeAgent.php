@@ -7,6 +7,7 @@ use App\Services\AI\AiManager;
 use App\Services\AI\Exceptions\AiException;
 use App\Services\Billing\CostMeter;
 use App\Services\Billing\Credits;
+use App\Services\Media\LogoCutout;
 use App\Services\Media\LogoOverlay;
 use App\Services\Media\MediaStore;
 use App\Services\Media\PosterFormatter;
@@ -16,6 +17,7 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Pool;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use Throwable;
 
 /**
@@ -37,6 +39,7 @@ class CreativeAgent
         private ReelAssembler $reels,
         private TextOverlay $text,
         private LogoOverlay $logos,
+        private LogoCutout $cutout,
     ) {}
 
     public function run(Creation $creation): void
@@ -324,7 +327,8 @@ class CreativeAgent
                     'asset_id' => ['type' => 'string'],
                     'position' => ['type' => 'string', 'enum' => LogoOverlay::POSITIONS],
                     'width' => ['type' => 'number', 'description' => 'Logo width as a share of the frame width: about 0.12–0.18 for a symbol, 0.2–0.3 for a wordmark (0.08–0.4)'],
-                    'plate' => ['type' => 'string', 'enum' => ['none', 'light', 'dark'], 'description' => 'light = solid white card (use it when the logo file has a white background and the area is not white); dark = panel for a light logo on a busy area; none = transparent logo or matching background'],
+                    'remove_background' => ['type' => 'boolean', 'description' => 'true (normal): a plain background around the logo (e.g. white on a JPG) is removed; the logo itself, including its white inner parts, stays exact. false: keep the file as is.'],
+                    'plate' => ['type' => 'string', 'enum' => ['none', 'light', 'dark'], 'description' => 'none (normal) = the logo straight on the poster; light = white card behind it; dark = dark panel — only when the logo would not stand out from the area behind it'],
                 ]);
         }
 
@@ -572,8 +576,9 @@ class CreativeAgent
         $asset = $creation->asset($id) ?? throw new AiException("Unknown asset [{$id}].");
         $still = $asset['kind'] === 'image';
 
+        $logoPath = ($in['remove_background'] ?? true) ? $this->logoCutout($creation, $logo) : MediaStore::absolute($logo['path']);
         $tmp = $this->logos->place(
-            MediaStore::absolute($asset['path']), MediaStore::absolute($logo['path']),
+            MediaStore::absolute($asset['path']), $logoPath,
             (string) ($in['position'] ?? 'top_left'), (float) ($in['width'] ?? 0.16), (string) ($in['plate'] ?? 'none'), $still,
         );
         $file = MediaStore::put("creations/{$creation->public_id}/work", file_get_contents($tmp), $still ? 'image/png' : 'video/mp4');
@@ -589,6 +594,27 @@ class CreativeAgent
         $content = "`{$new}` = `{$asset['id']}` with the original logo placed ({$in['position']}, ".round(((float) ($in['width'] ?? 0.16)) * 100).'% wide). Deliver `'.$new.'`.';
 
         return ['summary' => "{$new} ← {$asset['id']} + logo", 'content' => $still ? [['type' => 'text', 'text' => $content.' Review it:'], $this->imageBlock($file['path'])] : $content];
+    }
+
+    /**
+     * The logo with its plain outer background removed (made once per job and
+     * kept next to the upload); the original when there is nothing to remove.
+     */
+    private function logoCutout(Creation $creation, array $logo): string
+    {
+        $path = dirname($logo['path']).'/logo-cutout.png';
+
+        if (! Storage::disk('public')->exists($path)) {
+            $png = $this->cutout->cut(MediaStore::read($logo['path'])['data']);
+
+            if ($png === null) {
+                return MediaStore::absolute($logo['path']);
+            }
+
+            Storage::disk('public')->put($path, $png);
+        }
+
+        return MediaStore::absolute($path);
     }
 
     private function generateVideos(Creation $creation, array $in): array

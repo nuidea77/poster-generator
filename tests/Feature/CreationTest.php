@@ -674,7 +674,7 @@ class CreationTest extends TestCase
 
         Http::fake([
             'api.anthropic.com/*' => Http::sequence()
-                ->push($this->turn([['add_logo', ['asset_id' => 'img_1', 'position' => 'top_left', 'width' => 0.2, 'plate' => 'none']]]))
+                ->push($this->turn([['add_logo', ['asset_id' => 'img_1', 'position' => 'top_left', 'width' => 0.2, 'remove_background' => true, 'plate' => 'none']]]))
                 ->push($this->turn([['finish', ['summary' => 'ok']]])),
         ]);
 
