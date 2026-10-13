@@ -6,6 +6,9 @@ return [
     // Minutes a provider stays paused after it reports it is out of quota / credits.
     'pause_minutes' => (int) env('AI_PAUSE_MINUTES', 30),
 
+    // Pin one provider per kind (e.g. AI_IMAGE_ONLY=gemini_pro); the rest are fallbacks.
+    'only' => ['image' => env('AI_IMAGE_ONLY'), 'video' => env('AI_VIDEO_ONLY')],
+
     'ffmpeg' => env('FFMPEG_PATH', 'ffmpeg'),
     'ffprobe' => env('FFPROBE_PATH', 'ffprobe'),
 

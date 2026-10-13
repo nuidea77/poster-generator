@@ -35,13 +35,19 @@ class AiManager
      *
      * @return list<string>
      */
-    public function available(string $kind): array
+    public function available(string $kind, bool $pinned = true): array
     {
-        return collect(config('ai.providers'))
+        $names = collect(config('ai.providers'))
             ->filter(fn ($p, $name) => ($p['kind'] ?? null) === $kind && $this->ready($p) && ! $this->paused($name))
             ->keys()
             ->values()
             ->all();
+
+        // A pinned provider (AI_IMAGE_ONLY / AI_VIDEO_ONLY) is the only one offered while it works;
+        // when it is paused or not set up, the others step in.
+        $only = config("ai.only.{$kind}");
+
+        return $pinned && $only && in_array($only, $names, true) ? [$only] : $names;
     }
 
     /**
@@ -117,7 +123,7 @@ class AiManager
             throw new AiException("Provider [{$name}] is paused: out of quota/credits. Use another model.");
         }
 
-        if (! in_array($name, $this->available($kind), true)) {
+        if (! in_array($name, $this->available($kind, false), true)) {
             throw new AiException("Provider [{$name}] is not a configured {$kind} model.");
         }
 

@@ -57,6 +57,17 @@ class VertexTest extends TestCase
         $this->assertCount(1, collect(Http::recorded())->filter(fn ($p) => str_contains($p[0]->url(), 'oauth2'))); // token cached
     }
 
+    public function test_a_pinned_image_provider_is_the_only_one_offered_until_paused(): void
+    {
+        config(['ai.providers.gemini.key' => 'k', 'ai.providers.gemini_pro.key' => 'k', 'ai.providers.gemini_pro.via' => 'gemini_api', 'ai.only.image' => 'gemini_pro']);
+        $ai = app(AiManager::class);
+
+        $this->assertSame(['gemini_pro'], $ai->available('image'));
+        $ai->noteFailure('gemini_pro', 'Your prepayment credits are depleted.');
+        $this->assertContains('gemini', $ai->available('image'));
+        $this->assertNotContains('gemini_pro', $ai->available('image'));
+    }
+
     public function test_vertex_api_key_uses_express_mode_for_images_but_not_veo(): void
     {
         config([
