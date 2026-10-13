@@ -23,7 +23,7 @@ Artisan::command('app:make-admin {email}', function (string $email) {
     $this->info("{$email} is now an admin.");
 })->purpose('Grant admin rights to a registered user');
 
-Artisan::command('pricing:report', function (CostMeter $meter) {
+Artisan::command('pricing:report {--days= : Only jobs from the last N days}', function (CostMeter $meter) {
     $usd = fn (float $v) => '$'.number_format($v, 2);
     $mnt = fn (int $v) => number_format($v).'₮';
 
@@ -49,7 +49,21 @@ Artisan::command('pricing:report', function (CostMeter $meter) {
             $a['label'], $a['jobs'], $usd($a['avg_usd']), $usd($a['avg_claude_usd']), $usd($a['avg_media_usd']), $usd($a['max_usd']), $a['margin'] === null ? '—' : '×'.$a['margin'],
         ], $actuals))
         : $this->line('  No finished jobs yet.');
-})->purpose('Show credit prices derived from unit costs, and real job costs');
+
+    $l = $meter->losses($this->option('days') ? (int) $this->option('days') : null);
+    $this->info('Revenue and losses'.($l['days'] ? " (last {$l['days']} days)" : ' (all time)'));
+    $this->table(['', 'Jobs', '₮', 'Fable', 'Media'], [
+        ['Revenue (paid credits)', '', $mnt($l['revenue_mnt']), '', ''],
+        ['API cost, all jobs', '', $mnt($l['cost_mnt']), '', ''],
+        ['Net', '', ($l['net_mnt'] < 0 ? '-' : '').$mnt(abs($l['net_mnt'])), '', ''],
+        ['Lost on failed jobs', $l['failed']['jobs'], $mnt($l['failed']['cost_mnt']), $usd($l['failed']['claude_usd']), $usd($l['failed']['media_usd'])],
+        ['Unpaid (admin / free credits)', $l['unpaid']['jobs'], $mnt($l['unpaid']['cost_mnt']), $usd($l['unpaid']['claude_usd']), $usd($l['unpaid']['media_usd'])],
+        ['Finished below cost', $l['underwater']['jobs'], $mnt($l['underwater']['lost_mnt']), '', ''],
+    ]);
+    foreach ($l['failed']['reasons'] as $r) {
+        $this->line("  {$r['jobs']}× {$mnt($r['cost_mnt'])}  {$r['reason']}");
+    }
+})->purpose('Show credit prices derived from unit costs, real job costs and losses');
 
 Artisan::command('skills:export {--to= : Folder for the skill folders and zips} {--install : Also copy them into ~/.claude/skills for Claude Code}', function (ClaudeSkillExporter $exporter) {
     $to = $this->option('to') ?: storage_path('app/claude-skills');

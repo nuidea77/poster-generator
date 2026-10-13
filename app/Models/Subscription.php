@@ -30,6 +30,11 @@ class Subscription extends Model
         return $query->whereHas('plan', fn ($q) => $q->where('price', '>', 0));
     }
 
+    public function payment(): BelongsTo
+    {
+        return $this->belongsTo(Payment::class);
+    }
+
     public function plan(): BelongsTo
     {
         return $this->belongsTo(Plan::class);

@@ -3,6 +3,7 @@
 namespace App\Services\Billing;
 
 use App\Models\Creation;
+use App\Models\Subscription;
 
 /**
  * API list prices (config/pricing.php) turned into USD per call. Used to
@@ -140,11 +141,11 @@ class CostMeter
      *
      * @return list<array<string, mixed>>
      */
-    public function actuals(): array
+    public function actuals(?int $days = null): array
     {
-        return Creation::where('status', Creation::DONE)->where('cost_usd', '>', 0)
+        return $this->since($days)->where('status', Creation::DONE)->where('cost_usd', '>', 0)
             ->get(['type', 'duration', 'formats', 'credits', 'cost_usd', 'assets'])
-            ->groupBy(fn (Creation $c) => $c->type === Creation::REEL ? "Reels {$c->reelDuration()} сек" : 'Постер')
+            ->groupBy(fn (Creation $c) => $this->kind($c))
             ->map(function ($jobs, $label) {
                 $media = $jobs->map(fn (Creation $c) => array_sum(array_column($c->assets, 'cost')));
                 $cost = $jobs->sum('cost_usd');
@@ -163,6 +164,89 @@ class CostMeter
             ->sortKeys()
             ->values()
             ->all();
+    }
+
+    /**
+     * Money in vs API money out, and where it was lost: failed jobs (credits
+     * refunded, API cost kept), jobs nobody paid for (admin / free credits) and
+     * finished jobs that cost more than they earned. Revenue is what the
+     * customer actually paid for the credits spent (payment amount ÷ the
+     * period's credits); free-tier credits earn nothing.
+     *
+     * @return array<string, mixed>
+     */
+    public function losses(?int $days = null): array
+    {
+        $jobs = $this->since($days)
+            ->whereIn('status', [Creation::DONE, Creation::FAILED])
+            ->with('user:id,is_admin')
+            ->get(['id', 'user_id', 'type', 'duration', 'status', 'credits', 'charges', 'cost_usd', 'assets', 'error_detail']);
+
+        $perCredit = $this->pricePerCredit($jobs);
+        $revenue = fn (Creation $c) => (int) round(collect($c->charges ?? [])->sum(fn ($ch) => $ch['credits'] * ($perCredit[$ch['subscription_id']] ?? 0)));
+
+        $rows = $jobs->map(fn (Creation $c) => [
+            'job' => $c,
+            'cost' => $this->mnt($c->cost_usd),
+            'media_usd' => array_sum(array_column($c->assets, 'cost')),
+            'revenue' => $c->status === Creation::DONE ? $revenue($c) : 0,
+        ]);
+
+        $failed = $rows->filter(fn ($r) => $r['job']->status === Creation::FAILED && $r['cost'] > 0);
+        $unpaid = $rows->filter(fn ($r) => $r['job']->status === Creation::DONE && $r['revenue'] === 0 && $r['cost'] > 0);
+        $underwater = $rows->filter(fn ($r) => $r['job']->status === Creation::DONE && $r['revenue'] > 0 && $r['revenue'] < $r['cost']);
+
+        $sum = fn ($set) => [
+            'jobs' => $set->count(),
+            'cost_mnt' => $set->sum('cost'),
+            'claude_usd' => round($set->sum(fn ($r) => $r['job']->cost_usd - $r['media_usd']), 4),
+            'media_usd' => round($set->sum('media_usd'), 4),
+        ];
+
+        $revenueTotal = $rows->sum('revenue');
+        $costTotal = $rows->sum('cost');
+
+        return [
+            'days' => $days,
+            'revenue_mnt' => $revenueTotal,
+            'cost_mnt' => $costTotal,
+            'net_mnt' => $revenueTotal - $costTotal,
+            'failed' => $sum($failed) + [
+                'by_kind' => $failed->groupBy(fn ($r) => $this->kind($r['job']))->map(fn ($set, $label) => ['label' => $label] + $sum($set))->sortKeys()->values()->all(),
+                'reasons' => $failed->groupBy(fn ($r) => mb_strimwidth(trim((string) $r['job']->error_detail) ?: '—', 0, 140, '…'))
+                    ->map(fn ($set, $reason) => ['reason' => $reason] + $sum($set))
+                    ->sortByDesc('cost_mnt')->take(8)->values()->all(),
+            ],
+            'unpaid' => $sum($unpaid) + [
+                'by_who' => $unpaid->groupBy(fn ($r) => $r['job']->user?->is_admin ? 'Админ / тест' : 'Үнэгүй кредит')
+                    ->map(fn ($set, $label) => ['label' => $label] + $sum($set))->values()->all(),
+            ],
+            'underwater' => $sum($underwater) + ['lost_mnt' => $underwater->sum(fn ($r) => $r['cost'] - $r['revenue'])],
+        ];
+    }
+
+    /**
+     * ₮ the customer paid per credit, by subscription id (0 for free grants).
+     *
+     * @return array<int, float>
+     */
+    private function pricePerCredit($jobs): array
+    {
+        $ids = $jobs->flatMap(fn (Creation $c) => array_column($c->charges ?? [], 'subscription_id'))->unique()->values();
+
+        return Subscription::with('payment:id,amount')->whereIn('id', $ids)->get(['id', 'payment_id', 'credits'])
+            ->mapWithKeys(fn (Subscription $s) => [$s->id => $s->payment && $s->credits > 0 ? $s->payment->amount / $s->credits : 0.0])
+            ->all();
+    }
+
+    private function since(?int $days)
+    {
+        return Creation::query()->when($days, fn ($q) => $q->where('created_at', '>=', now()->subDays($days)));
+    }
+
+    private function kind(Creation $c): string
+    {
+        return $c->type === Creation::REEL ? "Reels {$c->reelDuration()} сек" : 'Постер';
     }
 
     private function priciestImage(): float

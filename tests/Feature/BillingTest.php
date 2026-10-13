@@ -96,6 +96,37 @@ class BillingTest extends TestCase
             ->assertJsonPath('actuals.0.avg_media_usd', 8);
     }
 
+    public function test_loss_report_counts_failed_unpaid_and_below_cost_jobs(): void
+    {
+        config(['pricing.usd_mnt' => 3600]);
+        $customer = User::factory()->create();
+        $admin = User::factory()->create(['is_admin' => true]);
+        $standard = Plan::where('slug', 'standard')->first(); // 72,000₮ for 60 credits = 1,200₮ a credit
+        $payment = Payment::create(['user_id' => $customer->id, 'plan_id' => $standard->id, 'amount' => 72000, 'status' => Payment::PAID, 'sender_invoice_no' => 'L1', 'callback_token' => 'tok-l1']);
+        $paid = Subscription::create(['user_id' => $customer->id, 'plan_id' => $standard->id, 'payment_id' => $payment->id, 'starts_at' => now(), 'ends_at' => now()->addMonth(), 'credits' => 60]);
+        $job = fn (array $a) => Creation::create($a + ['user_id' => $customer->id, 'type' => 'poster', 'prompt' => 'x', 'credits' => 0, 'charges' => []]);
+
+        $job(['status' => 'done', 'credits' => 12, 'charges' => [['subscription_id' => $paid->id, 'credits' => 12]], 'cost_usd' => 1.0]); // earns 14,400₮, costs 3,600₮
+        $job(['status' => 'done', 'credits' => 1, 'charges' => [['subscription_id' => $paid->id, 'credits' => 1]], 'cost_usd' => 1.0]); // earns 1,200₮, costs 3,600₮
+        $job(['status' => 'failed', 'cost_usd' => 2.0, 'error_detail' => 'Veo: bad request', 'assets' => [['id' => 'img_1', 'kind' => 'image', 'cost' => 0.5]]]);
+        $job(['status' => 'done', 'user_id' => $admin->id, 'cost_usd' => 0.5]); // admin: nobody paid
+        $job(['status' => 'failed', 'cost_usd' => 0.4])->forceFill(['created_at' => now()->subDays(40)])->save();
+
+        $l = app(CostMeter::class)->losses(30);
+
+        $this->assertSame(15600, $l['revenue_mnt']);
+        $this->assertSame(16200, $l['cost_mnt']);
+        $this->assertSame(-600, $l['net_mnt']);
+        $this->assertSame(['jobs' => 1, 'cost_mnt' => 7200, 'claude_usd' => 1.5, 'media_usd' => 0.5], collect($l['failed'])->only(['jobs', 'cost_mnt', 'claude_usd', 'media_usd'])->all());
+        $this->assertSame('Veo: bad request', $l['failed']['reasons'][0]['reason']);
+        $this->assertSame([['label' => 'Админ / тест', 'jobs' => 1, 'cost_mnt' => 1800, 'claude_usd' => 0.5, 'media_usd' => 0.0]], $l['unpaid']['by_who']);
+        $this->assertSame(1, $l['underwater']['jobs']);
+        $this->assertSame(2400, $l['underwater']['lost_mnt']);
+        $this->assertSame(2, app(CostMeter::class)->losses()['failed']['jobs']); // all time includes the old one
+
+        $this->actingAs($admin)->getJson('/api/v1/admin/costs?days=30')->assertOk()->assertJsonPath('losses.net_mnt', -600);
+    }
+
     public function test_checkout_creates_qpay_invoice_and_reuses_pending(): void
     {
         $this->fakeQpay();
