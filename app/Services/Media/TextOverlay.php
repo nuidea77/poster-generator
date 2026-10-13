@@ -61,7 +61,7 @@ class TextOverlay
         // The model sometimes fires a stray call whose only "text" is a placeholder; refuse it
         // instead of rendering the word "text" on the poster.
         $words = array_map(fn ($it) => mb_strtolower(preg_replace('/^[\s.…]+|[\s.…]+$/u', '', (string) ($it['text'] ?? ''))), $items);
-        if (! array_diff($words, ['', 'text', 'placeholder', 'tbd', 'todo', 'x', 'lorem ipsum'])) {
+        if (! array_diff($words, ['', 'text', 'placeholder', 'tbd', 'todo', 'x', 'lorem ipsum', 'dummy', 'sample', 'test', 'example', 'foo', 'abc'])) {
             throw new AiException('That call held only placeholder text ("'.trim((string) ($items[0]['text'] ?? '')).'"). Send the real items — every string, in one call.');
         }
 
