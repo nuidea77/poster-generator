@@ -29,6 +29,12 @@ class ClaudeSkillExporter
         $written = [];
 
         foreach ($skills as $skill) {
+            // Skills taken unchanged from coreyhaines31/marketingskills are installed from
+            // that repo itself; a studio- copy would only duplicate them.
+            if (str_contains((string) $skill['origin'], 'marketingskills')) {
+                continue;
+            }
+
             $name = self::PREFIX.$skill['name'];
             $dir = "{$to}/{$name}";
             File::deleteDirectory($dir);
@@ -41,6 +47,9 @@ class ClaudeSkillExporter
 
             if ($hasLicense) {
                 File::copy($license, "{$dir}/LICENSE.txt");
+            }
+            if ($skill['source'] === 'bundled' && File::isDirectory($refs = resource_path("ai/skills/{$skill['name']}/references"))) {
+                File::copyDirectory($refs, "{$dir}/references");
             }
 
             $written[] = ['name' => $name, 'dir' => $dir, 'zip' => $this->zip($dir, "{$to}/{$name}.zip", $name)];
@@ -56,7 +65,8 @@ class ClaudeSkillExporter
 
         $front = ['---', "name: {$name}", 'description: '.$this->yaml($skill['description'])];
         if ($hasLicense) {
-            $front[] = 'license: Apache-2.0 (see LICENSE.txt)';
+            $spdx = str_starts_with(trim(File::get(resource_path("ai/skills/{$skill['name']}/LICENSE.txt"))), 'MIT') ? 'MIT' : 'Apache-2.0';
+            $front[] = "license: {$spdx} (see LICENSE.txt)";
         }
         $front[] = '---';
 
@@ -79,8 +89,8 @@ class ClaudeSkillExporter
         $zip = new ZipArchive;
         $zip->open($path, ZipArchive::CREATE);
 
-        foreach (File::files($dir) as $file) {
-            $zip->addFile($file->getPathname(), "{$name}/{$file->getFilename()}");
+        foreach (File::allFiles($dir) as $file) {
+            $zip->addFile($file->getPathname(), "{$name}/".str_replace('\\', '/', $file->getRelativePathname()));
         }
 
         $zip->close();

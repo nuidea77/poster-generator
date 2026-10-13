@@ -78,6 +78,38 @@ class SkillTest extends TestCase
         $this->assertStringContainsString('`poster-art-director`', file_get_contents(resource_path('ai/creative-director.md')));
     }
 
+    public function test_marketing_skills_are_bundled_with_licence_and_references_on_demand(): void
+    {
+        $library = app(SkillLibrary::class);
+        $skills = collect($library->index())->keyBy('name');
+
+        foreach (['ad-creative', 'copywriting', 'social', 'offers', 'marketing-psychology', 'image', 'video', 'launch'] as $name) {
+            $this->assertStringContainsString('coreyhaines31/marketingskills (MIT', $skills[$name]['origin']);
+            $this->assertStringStartsWith('MIT License', file_get_contents(resource_path("ai/skills/{$name}/LICENSE.txt")));
+        }
+
+        $this->assertContains('hook-system.md', $library->references('ad-creative'));
+        $this->assertNotEmpty($library->reference('ad-creative', 'hook-system.md'));
+        $this->assertNull($library->reference('ad-creative', '../../creative-director.md')); // never leaves the folder
+        $this->assertNull($library->reference('ad-creative', 'missing.md'));
+
+        // The agent loads a reference with load_skill + reference.
+        Http::fake(['api.anthropic.com/*' => Http::sequence()
+            ->push(['stop_reason' => 'tool_use', 'content' => [['type' => 'tool_use', 'id' => 't1', 'name' => 'load_skill', 'input' => ['name' => 'ad-creative', 'reference' => 'hook-system.md']]], 'usage' => []])
+            ->push(['stop_reason' => 'tool_use', 'content' => [['type' => 'tool_use', 'id' => 't2', 'name' => 'finish', 'input' => ['summary' => 'ok']]], 'usage' => []])]);
+        $user = User::factory()->create();
+        $creation = Creation::create(['user_id' => $user->id, 'type' => 'poster', 'formats' => ['1:1'], 'prompt' => 'x', 'status' => 'running']);
+        app(CreativeAgent::class)->run($creation);
+        $this->assertSame('ad-creative/hook-system.md', $creation->fresh()->steps[0]['result']);
+
+        // Exported for Claude only as the originals (no studio- duplicate); others carry their references.
+        $to = storage_path('framework/testing/claude-skills-mk');
+        $written = collect(app(ClaudeSkillExporter::class)->export($to))->keyBy('name');
+        $this->assertFalse($written->has('studio-ad-creative'));
+        $this->assertTrue($written->has('studio-poster-typography'));
+        File::deleteDirectory($to);
+    }
+
     public function test_admin_can_import_a_claude_skill_file(): void
     {
         $admin = User::factory()->create();

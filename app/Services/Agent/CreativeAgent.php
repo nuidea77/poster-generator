@@ -252,8 +252,11 @@ class CreativeAgent
         $tools = [];
 
         $tools[] = $this->tool('load_skill',
-            'Read one skill from the library in full. Call before the work that skill covers.',
-            ['name' => ['type' => 'string', 'enum' => array_column($this->skills->index(enabledOnly: true), 'name') ?: ['none']]]);
+            'Read one skill from the library in full. Call before the work that skill covers. Some skills point to files under references/: pass `reference` (the file name) to read one of those instead.',
+            [
+                'name' => ['type' => 'string', 'enum' => array_column($this->skills->index(enabledOnly: true), 'name') ?: ['none']],
+                'reference' => ['type' => 'string', 'description' => 'Optional: a file from the skill\'s references/ folder, e.g. hook-system.md'],
+            ]);
 
         if ($images) {
             $tools[] = $this->tool('generate_image',
@@ -404,6 +407,14 @@ class CreativeAgent
     private function loadSkill(array $in): array
     {
         $name = (string) ($in['name'] ?? '');
+
+        if (filled($in['reference'] ?? null)) {
+            $content = $this->skills->reference($name, (string) $in['reference'])
+                ?? throw new AiException("No reference [{$in['reference']}] in skill [{$name}]. Available: ".(implode(', ', $this->skills->references($name)) ?: 'none').'.');
+
+            return ['summary' => "{$name}/{$in['reference']}", 'content' => "<skill-reference skill=\"{$name}\" file=\"{$in['reference']}\">\n{$content}\n</skill-reference>"];
+        }
+
         $content = $this->skills->get($name) ?? throw new AiException("Unknown skill [{$name}].");
 
         return ['summary' => $name, 'content' => "<skill name=\"{$name}\">\n{$content}\n</skill>"];

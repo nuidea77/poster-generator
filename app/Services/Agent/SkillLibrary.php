@@ -58,6 +58,29 @@ class SkillLibrary
     }
 
     /**
+     * Reference files a bundled skill keeps under references/ (loaded on demand).
+     *
+     * @return list<string>
+     */
+    public function references(string $name): array
+    {
+        return isset($this->bundled()[$name])
+            ? array_map('basename', File::glob(resource_path("ai/skills/{$name}/references/*.md")))
+            : [];
+    }
+
+    /** One reference file of an enabled skill, or null. */
+    public function reference(string $name, string $file): ?string
+    {
+        $file = basename(str_replace('\\', '/', $file)); // never leave the skill's folder
+        if ($this->get($name) === null || ! in_array($file, $this->references($name), true)) {
+            return null;
+        }
+
+        return File::get(resource_path("ai/skills/{$name}/references/{$file}"));
+    }
+
+    /**
      * Text for the admin editor, also for skills that are switched off.
      *
      * @return array{content: string, original: ?string}|null original = the bundled file's text
