@@ -14,7 +14,7 @@ description: Prompt recipes for product, food and venue shots, and how to use th
 ## When there is no reference
 Use `openai` for photorealism. Prompt skeleton:
 
-`[product] on [surface], [environment], [lighting], [lens], [mood/colours], [composition + negative space], no text, no logos`
+`[product] on [surface], [environment], [lighting], [lens], [mood/colours], [composition + calm zones for the poster text], no text, no logos` (the poster's typography is added in a second step — see `poster-typography`)
 
 Examples:
 - Coffee: "A ceramic latte cup with latte art on a light oak table, warm morning window light from the left, 85mm lens, shallow depth of field, cosy beige and brown palette, cup in the upper half, soft empty table surface in the lower third"

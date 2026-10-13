@@ -29,6 +29,9 @@ Find a quiet conceptual thread from the brief and weave it into form and colour 
 
 The result should look like it was made by a top art director and photographer who laboured over every detail: deliberate light, clean edges, considered colour, nothing accidental. When refining, do not add more objects or effects — ask how to make what is already there more coherent and more striking. Fewer, stronger elements beat busy scenes.
 
+## Beyond the podium
+The default AI ad — a product on a round podium in front of a plain wall — reads as cheap stock. Prefer an idea: the product in its world (a T-shirt on a sunlit Ulaanbaatar street, not on a hanger), an exaggeration (a giant serum drop the bottle stands in), a transformation (winter outside, warm café inside), a pattern (twenty cups in a grid, one different), a split (before the coffee / after), a strong graphic shape in the brand colour. Leave room for the poster's text (see `poster-typography`).
+
 ## Examples
 
 - **"Monumental Product"** — the product enormous and centred like a sculpture, low camera angle, pure colour-field background in the brand colour, one hard light from above, deep shadow.

@@ -1,83 +1,70 @@
 ---
 name: poster-art-director
-description: Art direction for a business's Facebook / Instagram poster — reading a short brief, deciding the visual idea, writing text-free image prompts, choosing between drafts, reviewing every image, and poster templates (sale, new product, greeting, hiring, announcement). Load first for every POSTER job, before poster-design.
+description: Art direction for a business's Facebook / Instagram ad poster — reading a short brief, extracting the message (offer, price, date, place), choosing a design archetype and layout, making the visual with the real product and logo, adding the typography, reviewing every image, and templates (sale, new product, event, greeting, hiring, menu, service). Load first for every POSTER job, before poster-design and poster-typography.
 origin: Claude skill "poster-art-director" (adapted for this studio)
 ---
 
 # Poster art director
 
-The client is usually a shop owner or page admin, not a designer. They know what they sell and what the post must say; they cannot write an image prompt. Your value is everything between their two sentences and a finished, good-looking poster.
+The client is a shop owner or page admin, not a designer. They write two sentences; you deliver a poster that looks like a good agency made it and **sells in one second on a phone**. A beautiful product photo with no message is a failed poster. So is a busy flyer with ten messages.
 
-Three things make this better than typing a prompt into an image model. Protect them.
-
-1. **A brief, not a prompt.** You extract the facts and decide the visual idea yourself.
-2. **The image model never paints text.** Image models misspell Mongolian (Ө and Ү especially) and invent prices. This studio delivers the image itself, so by default the poster carries no words at all. Only when the brief explicitly demands exact words on the image, request them short and verify every letter; if they come out wrong, deliver without them.
-3. **You look before you deliver.** Review every image against the brief, fix or regenerate, and only then deliver.
+Three things make this better than typing a prompt into an image model:
+1. **A brief, not a prompt.** You extract the facts and the message and decide the design yourself.
+2. **Message + design, not just a picture.** The poster carries the hook, the offer and the facts the client gave, laid out with clear hierarchy (see `poster-typography`).
+3. **You look before you deliver.** Every image is reviewed (see `image-review`); text is checked letter by letter.
 
 ## 1. Read the brief
+| Extract | Notes |
+|---|---|
+| Business, what it sells | Names exactly as written; Mongolian typed in Latin ("zunii hyamdral") means Cyrillic ("Зуны хямдрал") |
+| Purpose | Sale, new product, event/opening, greeting, hiring, menu, service (see Templates) |
+| Facts | Offer %, price, old/new price, dates, time, place, phone, URL — **these go on the poster** |
+| Audience & mood | Who buys (young, family, premium, B2B) and the feeling |
+| Assets | Product photo (stays identical), logo (small, unaltered), style reference |
+| Format | Aspect ratios or `auto` — see `format-composition` |
 
-| Needed | Notes |
-| --- | --- |
-| Business and what it sells | Use the name exactly as written |
-| Purpose | Sale, new product, greeting, hiring, announcement (see Templates) |
-| Facts | Offer, price, dates — they shape the picture even when not printed (abundance for a sale, a calendar mood for a deadline) |
-| Format | Given by the job: aspect ratios (`4:5`, `1:1`, `9:16`, `16:9` …) or `auto` — see `format-composition` |
-| Assets | Product photo, logo, brand colour |
+Never invent facts, prices, phone numbers, discounts or claims.
 
-Never invent facts. Mongolian typed in Latin letters ("zunii hyamdral") means Cyrillic ("Зуны хямдрал"); read it that way.
+## 2. Decide the design (write 5 lines for yourself)
+- **Message:** the one thing the viewer must get ("UV sterilizer, 18% off, now 123,000₮").
+- **Archetype** (pick one, matching business and mood):
+  - *Bold retail* — saturated brand-colour field, big offer badge, product cut-out with shadow, high contrast.
+  - *Premium editorial* — calm luxurious photo, lots of air, small elegant type, one accent colour.
+  - *Lifestyle photo + headline* — real moment with the product, headline on a calm area.
+  - *3D / playful* — glossy 3D props and shapes around the product, bright palette (kids, summer, youth).
+  - *Graphic / flat* — colour blocks, geometric shapes, product on a colour split; clean and modern.
+  - *Event key visual* — atmospheric scene or symbol + a strong info band (date · time · place).
+  - *Food close-up* — appetising macro with warm light and a price tag/badge.
+- **Layout:** where the hook, product, facts, CTA and logo sit (layout table in `poster-typography`).
+- **Palette & light:** from the logo / brand (see `brand-identity`); otherwise `color-themes`.
+- **Concept twist:** one idea that makes it memorable (see `visual-concept` for premium/creative briefs): the product as a monument, a summer world built around a T-shirt, steam forming a heart over coffee…
 
-## 2. Decide the art direction before generating anything
+Avoid the default "product on a podium in front of a plain wall" unless the archetype calls for it.
 
-Write three to five lines for yourself:
-
-- **Idea:** one sentence on what the viewer sees and feels.
-- **Subject and setting.** With a product photo, the product is the hero and must stay unchanged.
-- **Composition:** where the subject sits; keep it inside the format's safe area.
-- **Light and palette,** built around the brand colour when there is one (see `color-themes` when there is none).
-- **One message.** If the brief lists five messages, the picture carries the strongest one.
-
-## 3. Write the image prompts
-
-English. Order: subject, setting, composition, light, style or medium, palette, exclusions. End every prompt with: `No text, no letters, no numbers, no logos, no watermark.` (drop only the part the brief explicitly overrides).
-
-Example (sale, 4:5):
-
-> Product photography of a pair of white leather sneakers on a sunlit concrete step, soft morning light from the left, shallow depth of field, pastel blue wall behind. Vertical 4:5 composition, sneakers large in the centre with generous clean space around them. Fresh summer palette of white, sky blue and warm sand. No text, no letters, no numbers, no logos, no watermark.
-
-- With a product photo, use Gemini with the photo as reference and say: "keep the product exactly as in the reference photo: same shape, colours, label and proportions; change only the background, surface and lighting".
-- The logo is passed as a reference and placed small and unaltered; never ask a model to draw a logo from words.
-- Include people only when the message needs them (service, hiring, greeting). Describe them plainly, e.g. "a Mongolian woman in her thirties, natural smile, modern casual clothes". No real persons, celebrities or look-alikes.
-- Local setting details help when relevant (a small Ulaanbaatar café, winter street light, open steppe). Skip costume clichés unless the occasion is traditional (see `mongolian-culture`).
+## 3. Make it
+**Visual (step 1):** English prompt — subject, setting, composition **with the empty zones for text**, light, style, palette. With a product photo: `gemini` + reference, phrased as an edit ("keep the product exactly as in the reference: same shape, colours, label; change only the scene"). Logo passed as reference, placed **small** in a corner or on the info band — never huge in the centre. If you will add text in step 2, end with "No text, no letters, no logos except the provided one."
+**Typography (step 2):** the approved visual + logo as references → add the exact strings per `poster-typography`. Simple graphic posters can be one shot.
+Ask for independent drafts **in the same turn** (they run in parallel) when you want to compare two archetypes.
 
 ## 4. Budget
+Per format: one strong attempt + up to two corrections. A weak first idea → try a **different archetype**, not another seed. Derive other formats from the approved poster (same scene, re-laid-out text for the new ratio) and check the text again in each.
 
-Default per format: one strong attempt, up to two corrections. When the first idea is weak, try a genuinely different idea (product close-up → lifestyle scene → graphic flat lay) rather than another seed of the same one. Derive the other formats from the approved image so the set matches.
-
-## 5. Review every image
-
-Reject or fix when:
-
-- it contains text, pseudo-letters, an invented logo or a watermark (unless the brief asked for exact words, which must then be correct);
-- the product differs from the reference photo, or the logo is warped;
-- hands, faces or objects are malformed;
-- it does not say what the brief says (wrong season, product, mood);
-- in 9:16, something important sits where the app interface covers it: the top 14% and the bottom 20%;
-- the subject would be cut by the format crop.
-
-When you regenerate, change the prompt deliberately.
+## 5. Review
+Reject or fix when: the message is missing or wrong; any text is misspelled or has extra pseudo-letters; hierarchy is unclear (several things shout); the product differs from the photo; the logo is warped, huge or redrawn; text sits over the product or faces; hands/faces/objects are malformed; something important is outside the safe area (9:16: top 14%, bottom 20%). Change the prompt deliberately when you regenerate.
 
 ## Templates
-
-| Template | Picture |
-| --- | --- |
-| Sale or promotion (хямдрал, урамшуулал) | Product as hero, energetic colour, a sense of abundance or value |
-| New product (шинэ бүтээгдэхүүн) | Close-up, premium light, the product alone |
-| Greeting (баярын мэндчилгээ) | Symbolic still life in warm light; faces are not needed |
-| Hiring (ажлын зар) | The workplace or team at work, or a calm brand-colour scene |
-| Announcement (мэдэгдэл) | Calm brand-colour scene, the venue or the thing that changes |
+| Template | Picture | On the poster |
+|---|---|---|
+| Sale / promo (хямдрал, урамшуулал) | Product hero, energetic brand colours, sense of value | `-18%` badge, headline (`ХЯМДРАЛ`), old → new price, short CTA |
+| New product (шинэ) | Close-up, premium light, product alone, one prop telling its benefit | `ШИНЭ` or product name, one benefit line, price if given |
+| Event / opening (нээлт, өдөрлөг) | Venue, symbol of the cause or the atmosphere | Event name, **date · time · place** band, CTA (`Бүгдийг урьж байна`) |
+| Greeting (баярын мэндчилгээ) | Symbolic still life, warm light (see `mongolian-culture`) | Occasion title, short wish, brand line |
+| Hiring (ажлын зар) | Workplace or team, or calm brand field | `АЖИЛД УРЬЖ БАЙНА`, position, contact |
+| Menu / price list | Hero dish + clean panel | 3–5 items with prices |
+| Service / booking | Result or service in action | Service name, "from" price, booking contact |
 
 ## What not to do
-
-- No claims the client did not make: medical effects, "№1", guarantees.
-- Regulated products (alcohol, tobacco, medicines, financial services): stay literal and conservative; tobacco advertising is banned in Mongolia.
-- No real person's likeness, no other brand's logo or character, no state symbols (see `mongolian-culture`).
+- No claims the client did not make (medical effects, "№1", guarantees) — see `ad-compliance`.
+- Regulated products: literal and conservative; tobacco ads are banned in Mongolia.
+- No real person's likeness, other brands' logos or characters, state symbols (see `mongolian-culture`).
+- Never ship misspelled text — use the fallback ladder in `poster-typography`.

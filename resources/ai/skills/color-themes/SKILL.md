@@ -21,6 +21,9 @@ Pick one theme per job and use it consistently across every image and clip. In p
 | **Botanical Garden** | fern green `#4a7c59`, marigold `#f9a620`, terracotta `#b7472a`, cream `#f5f3ed` | food, farm products, flowers, natural goods |
 | **Midnight Galaxy** | deep purple `#2b1e3e`, cosmic blue `#4a4e8f`, lavender `#a490c2`, silver `#e6e6fa` | nightlife, entertainment, luxury, creative agencies |
 
+## Colours for text
+Poster text needs strong contrast with what is behind it: white or cream type on the dark anchor; dark anchor type on the light neutral; the accent for badges and prices (`-18%` in the accent on a dark or light field). Never put mid-tone type on a mid-tone photo — add a solid band or panel in the anchor colour.
+
 ## Custom theme
 
 When none fits, build one the same way: a dark anchor, a primary, a secondary accent, a light neutral; name it after its mood. Check it against Mongolian colour meanings in `mongolian-culture` (e.g. avoid black-dominated designs for celebrations).

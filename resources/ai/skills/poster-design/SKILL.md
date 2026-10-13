@@ -1,34 +1,45 @@
 ---
 name: poster-design
-description: How to make a finished, text-free advertising poster image for Instagram / Facebook formats — composition, product hero shots, logo use, colour, and deriving a matching set across sizes. Load for every POSTER job.
+description: Visual craft of a finished Instagram / Facebook ad poster — composition with text zones, product hero shots, depth and shadow, logo size and placement, colour contrast for readable type, the archetype recipes (bold retail, premium editorial, lifestyle, 3D playful, graphic, event, food), and deriving a matching set across ratios. Load for every POSTER job.
 ---
 
-# Poster design (image-only)
+# Poster design
 
-The delivered image is the whole poster. No headline or button is added later, so the picture must sell on its own: one clear subject, a strong idea, brand colours, and the logo when one is given.
+The delivered image is the whole ad: picture **and** message. Design it like a layout, not a photo: a focal point, a reading order (hook → product → facts → action → brand) and calm space where the type will sit.
 
 ## Formats and safe areas
-Formats are aspect ratios (`4:5`, `1:1`, `9:16`, `16:9` … or `auto`). Generate at the ordered aspect; the file is centre-cropped to it (short side 1080 px). Keep the subject in the middle 80% — the middle 60% vertically for 9:16, whose top and bottom are covered by app UI. Several ratios, `auto` or unusual ratios → load `format-composition`.
+Formats are aspect ratios (`4:5`, `1:1`, `9:16`, `16:9` … or `auto`). Generate at the ordered aspect; the file is centre-cropped to it (short side 1080 px). Keep subject and text in the middle 80% — the middle 60% vertically for 9:16, whose top and bottom are covered by app UI. Several ratios, `auto` or unusual ratios → `format-composition`.
 
-## Composition patterns
-- **Product hero** — the product large, sharp, centred or on a third; clean surface; soft shadow; brand-coloured background or a scene that tells the use.
-- **Lifestyle** — the product in use by a person or in its real setting (café table, gym, kitchen); product still clearly readable.
-- **Flat lay** — overhead arrangement of the product with props that suggest the story (ingredients, accessories).
-- **Event / opening** — the venue or atmosphere (lights, crowd, ribbon, balloons, confetti) with the product or brand colours dominant.
-- **Offer** — make abundance or value visible (stacked products, gift wrapping, bundle) instead of writing "-30%".
+## Composition
+- **One focal point** — the product or key visual is the largest, sharpest, most contrasted thing.
+- **Zones** — decide them in the prompt: e.g. "top 30% calm brand-colour space for the headline; product centred in the middle 45%; clean solid band in the bottom 20% for price and CTA".
+- **Depth** — foreground prop slightly out of focus, product sharp, soft background; a real contact shadow under products (no floating unless the style is deliberately playful).
+- **Scale** — products should fill 35–60% of the frame height; tiny products read as stock.
+- **Contrast for type** — text areas are plain, darker or lighter than the type colour; add a solid panel, band or gradient when the scene is busy.
+
+## Archetype recipes (prompt fragments)
+- **Bold retail:** "product cut-out with a crisp drop shadow on a saturated [brand colour] background, a large diagonal colour block, dynamic angle, punchy studio light, high contrast".
+- **Premium editorial:** "minimal luxurious set, soft raking light, one accent colour, matte surfaces, vast negative space, magazine-cover feel".
+- **Lifestyle + headline:** "real moment of use in [setting], natural light, shallow depth of field, calm sky/wall area in the top third".
+- **3D playful:** "glossy 3D render style, floating rounded shapes and props around the product, candy colours, soft studio light, toy-like".
+- **Graphic / flat:** "two flat colour fields split diagonally, product sitting on the split line, geometric shapes, clean modern poster".
+- **Event key visual:** "atmospheric [scene/symbol], dramatic light, solid [brand colour] band across the bottom fifth for event details".
+- **Food close-up:** "appetising macro at 45°, steam, warm side light, dark textured surface, space top-left for a headline".
 
 ## Logo
-- If a logo is attached, include it via `reference_image_ids` and ask for it **small, clean and unaltered**, e.g. "place the provided logo exactly as given, small, in the top-left corner on a calm area". Check the result: a warped or redrawn logo means regenerate (or leave the logo out rather than ship a broken one).
-- Never invent a logo when none is given.
+- Pass it as reference; "place the provided logo exactly as given, in the [top-left] corner / on the bottom band, with clear space around it" — about 10–15% of the frame width for a symbol, **18–20% for a logo with a wordmark** (smaller and its letters break). Never huge, never centred over the subject, never redrawn.
+- Add the logo in the **final** generation step together with the text; every later edit re-renders and degrades it.
+- On a busy area give it a calm patch or put it on the info band. A warped logo → regenerate, or deliver without it.
+- Never invent a logo when none was given; then the brand name may appear as text if the brief names it.
 
-## Colour and mood
-- Take the palette from the logo / brand / product packaging. State it in the prompt ("deep navy and warm gold palette").
-- Match mood to the business: premium → dark, moody, rim light; fresh/food → bright daylight; youth/sport → saturated, high contrast; family → warm, soft.
+## Colour
+- Palette from the logo / brand / packaging; state it as hex or names. Max 2 main colours + 1 accent; text colour must contrast strongly with its background.
+- Mood: premium → dark/neutral + gold or one jewel tone; fresh/food → warm daylight; youth/sport → saturated, high contrast; family → warm, soft; tech → cool with one neon accent.
 
 ## Text
-Default: no words in the image. Only when the client explicitly asks for specific words (e.g. a price) put them in, short and exact, and verify spelling on the result. Cyrillic is often rendered poorly — if it comes out wrong, deliver without it.
+Messages, prices, dates and CTAs from the brief go on the poster — follow `poster-typography` (hierarchy, exact strings, two-step method, letter-by-letter check). No invented facts.
 
 ## A matching set
-1. Generate the most important format first (the first one listed, usually `4:5`).
-2. Review it. Then for each other format call `generate_image` with the same model, aspect of that format, and the first image (plus logo/product) as references: "same scene and style, recomposed for a vertical 9:16 story".
-3. `deliver_poster` each format with its own image.
+1. Make and approve the most important ratio first (the first listed, usually `4:5`).
+2. For each other ratio, in **one turn** (they run in parallel): same model, that aspect, the approved poster (+ logo/product) as references — "same design, scene and typography, re-laid-out for a wide 16:9 frame: product left, text block right".
+3. Re-check the text of every ratio; `deliver_poster` each with its own image.

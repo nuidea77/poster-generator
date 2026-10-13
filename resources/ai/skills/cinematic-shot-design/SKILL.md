@@ -67,4 +67,4 @@ Keep it compact, critical space before style:
 `[shot job + first frame / blocking] [camera placement + FOV + move] [timed action] [physics] [light] [style / texture] [quality: sharp readable holds, natural motion blur, stable picture, no flicker]`
 
 ## 10. Self-check before generate_videos
-One job? FOV matches content? Camera physically possible? First frame occupied and consistent with the still? Left/right kept across clips? Requested device preserved, none invented? Physics and light grounded? No text, logos or dialogue asked from the model? Shorter is better — do not add bloat to satisfy a checklist.
+One job? FOV matches content? Camera physically possible? First frame occupied and consistent with the still? Left/right kept across clips? Requested device preserved, none invented? Physics and light grounded? No text, logos or dialogue asked from the video model (text only on held cards made from stills)? Shorter is better — do not add bloat to satisfy a checklist.

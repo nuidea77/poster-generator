@@ -1,6 +1,6 @@
 ---
 name: motion-art-director
-description: Motion-design thinking for the reel — one message, the motion metaphor, hook in the first two seconds, one idea per shot, rhythm and breathing, transitions that carry something across cuts, vertical safe areas, and Mongolian legal/cultural limits. Load for every REEL job together with reels-storyboard.
+description: Motion-design thinking for the reel — one message, the motion metaphor, hook in the first two seconds, one idea per shot, rhythm and breathing, transitions that carry something across cuts, text cards that make it work muted, vertical safe areas, and Mongolian legal/cultural limits. Load for every REEL job together with reels-storyboard.
 origin: Claude skill "motion-graphic-designer" (adapted for AI video clips)
 ---
 
@@ -33,7 +33,8 @@ A reel whose motion has nothing to do with the message is just moving wallpaper.
 - **One shot, one idea.** Do not ask one clip to show the product, the venue and the people at once.
 - **Breathing.** Alternate intense shots with calmer ones (e.g. fast hook → slow world → medium desire → slow hero). Constant intensity tires; constant calm bores.
 - **Hold the ending.** The final shot (logo end card or hero) is calm and readable — at least 3–5 seconds of stillness-like motion.
-- **Understandable without sound.** Reels autoplay muted; the pictures alone must tell the story.
+- **Understandable without sound.** Reels autoplay muted; pictures plus short text cards must tell the story. The offer, date, place or CTA from the brief appear as text on a held card (end card, or an info card mid-reel) — see `reels-storyboard` §3.
+- **Read time.** A card needs about 1 s per 3 words plus 1 s; never more than ~8 words per card.
 
 ## 4. Continuity and transitions
 

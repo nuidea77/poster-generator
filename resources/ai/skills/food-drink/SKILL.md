@@ -27,7 +27,7 @@ Buuz, khuushuur, tsuivan, bansh, khorkhog, suutei tsai, boortsog, aaruul: show t
 Glass with condensation, ice and a garnish; coffee with latte art, a saucer and a spoon, beans or a pastry as a prop; backlight makes drinks glow.
 
 ## Offers & menus
-Show value with abundance: a combo laid out together, a full table for a family set, two drinks for a 1+1 offer. No prices or text in the image unless the client asks.
+Show value with abundance: a combo laid out together, a full table for a family set, two drinks for a 1+1 offer. Prices, combo names and the offer from the brief go on the poster as text — see `poster-typography` (menu / price list layout).
 
 ## Food reels
 Hook shots: cheese pull, sauce pour, steam rising, a slow push-in on a sizzling pan, pouring a drink over ice, cutting into a dessert. 4–6 s clips, one action each; end on the full dish or the table with the logo still.

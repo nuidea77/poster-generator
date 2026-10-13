@@ -1,43 +1,45 @@
 ---
 name: reels-storyboard
-description: Planning a complete reel (9:16 or 16:9, at the length the client ordered) from AI video clips — beat structure, shot list, still frames for product and logo shots, continuity, and the parallel generate → deliver flow. Load for every REEL job.
+description: Planning a complete reel (9:16 or 16:9, at the length the client ordered) from AI video clips — message, beat structure per length, title and info cards that carry the offer / date / place as text on held stills, real product and logo shots from stills, continuity, and the parallel stills → clips → deliver flow. Load for every REEL job.
 ---
 
 # Reel storyboard
 
-The reel is assembled from your clips in order and is exactly as long as they are together. The client ordered the length (15, 30, 45 or 60 s) and the orientation (9:16 or 16:9); the clips must add up to the ordered length ± 3 s. There is no text overlay, voiceover or music added afterwards, so the visuals must carry the story.
+The reel is assembled from your clips in order and is exactly as long as they are together. The client ordered the length (15, 30, 45 or 60 s) and the orientation (9:16 or 16:9); the clips must add up to the ordered length ± 3 s. Reels autoplay **muted** and nothing is overlaid later, so the pictures — and the text cards you build into them — must carry the whole message.
 
-## Length
-Plan the beats for the ordered length: **15 s** ≈ 3 clips (hook, product, end card), **30 s** ≈ 4–6, **45 s** ≈ 6–8, **60 s** ≈ 8–10. Choose clip lengths that add up (Seedance 5/10 s, Veo 4/6/8 s). Every clip must earn its place — vary shots rather than stretching one idea.
+## 1. Message first
+One sentence: what the viewer must know and do at the end ("Snow-leopard open day, 15 Oct, 15:00, Shangri-La — come"). Every fact the brief gives (offer, price, date, time, place, phone) must appear **on screen** somewhere, as text on a held card.
 
-## Beat menu (use the ones that fit, in this order)
-| # | Beat | Typical shot |
-|---|---|---|
-| 1 | Hook | The most striking visual: dramatic product reveal, fast dolly-in, splash, light burst |
-| 2 | World | Setting / atmosphere: the venue, the city, the kitchen, the gym |
-| 3 | Desire | A person who wants/needs it; anticipation |
-| 4 | Product hero | The real product, slow orbit or push-in (animate a still made from the client's photo) |
-| 5 | Detail | Macro: texture, steam, pour, stitching, ingredients |
-| 6 | In use | Hands / person using it |
-| 7 | Joy / result | Satisfaction, social moment, transformation |
-| 8 | Product again | Second hero angle, brand colours dominant |
-| 9 | End card | The logo on a brand-coloured background, gentle motion (animate a still made with the logo) |
+## 2. Beats by length
+| Length | Structure (clip lengths: Seedance 5/10 s, Veo 4/6/8 s) |
+|---|---|
+| **15 s** | Hook (4–5 s) → product/hero (5–6 s) → **end card with message** (4–5 s) |
+| **30 s** | Hook → world/desire → product hero → detail or in use → **end card** (5–6 clips) |
+| **45 s** | Hook → world → desire → hero → detail → in use → result → **end card** |
+| **60 s** | As 45 s plus a second hero angle and a mid-reel **info card** (offer or date) |
 
-Adapt the beats to the brief (event, service, food, fashion), but keep: hook first, product clearly shown at least twice, logo end card last when a logo exists. Short reels merge beats (e.g. hook → product hero → in use → end card). Mix short clips for quick cuts and longer ones for hero shots.
+Beat menu: **Hook** (most striking image in the first 1–2 s — never the logo, never empty) · **World** (venue, city, kitchen) · **Desire** (a person who wants it) · **Product hero** (real product, from a still) · **Detail** (macro: texture, steam, pour) · **In use** · **Result / joy** · **Info card** · **End card**.
 
-## Real product & logo shots
-Video models invent products from text. For any shot that must show the client's real product or logo:
-1. Make a still with `generate_image` (provider `gemini`, aspect = the reel's orientation, `9:16` or `16:9`, the product/logo as references), e.g. "the provided product on a dark slate pedestal, rim light, vertical composition".
-2. Review it, then use its id as `first_frame_image_id` in the clip, describing only the motion.
+## 3. Text on screen = cards made from stills
+Video models garble text in motion, so text lives only on **held cards**:
+1. Make the card as a still with `generate_image` at the reel's aspect, with the exact strings per `poster-typography` (e.g. title card: event name over the key visual; end card: logo + `10.15 · 15:00 · Shangri-La` + CTA on a brand-colour background or a darkened hero frame).
+2. Check every letter.
+3. Animate it with **almost no motion**: "camera locked; only a very slow 3% push-in and subtle light shimmer in the background; the text and logo stay perfectly still and sharp" (4–6 s). Prefer `seedance` 5 s or `veo` 4–6 s.
+- Hook cards may carry a 1–3 word title over the first image (e.g. `НЭЭЛТТЭЙ ӨДӨРЛӨГ`) when the reel is an event or offer.
+- Keep text inside the safe area (9:16: away from the top 14% and bottom 35%).
 
-## Continuity
-- Write one style line and repeat it in every clip prompt: palette, lighting, film look ("warm golden-hour light, teal-orange grade, shallow depth of field, cinematic").
-- Vary camera moves between neighbouring clips (push-in → pan → orbit → static with subject motion).
-- No on-screen text, captions, UI, or logos generated by the video model itself.
+## 4. Real product & logo shots
+Video models invent products from text. For the client's real product, venue photo or logo: make a still with `gemini` + the reference at the reel's aspect, review it, then use it as `first_frame_image_id` and describe only the motion.
 
-## Flow
-1. Load `video-prompting` (and `product-photography` / `brand-identity` if relevant).
-2. Create the needed still frames (usually 2–3).
+## 5. Continuity
+- One style line repeated in every clip prompt: palette, light, grade ("warm golden-hour light, teal-orange grade, shallow depth of field").
+- Vary scale and camera move between neighbours (wide → close; push-in → orbit → static with subject motion).
+- Carry something across cuts: a colour, a direction, a shape.
+- Design each clip per `cinematic-shot-design`; write prompts per `video-prompting`.
+
+## 6. Flow (parallel)
+1. Load `motion-art-director`, `cinematic-shot-design`, `video-prompting`, `poster-typography` (for cards) and the business skill.
+2. Request **all stills in one turn** (hero frames + title/info/end cards) — they generate in parallel. Review; fix only the failures.
 3. Call `generate_videos` **once** with all clips.
-4. Replace any failed clips with a second `generate_videos` call.
-5. `deliver_reel` with the ids in order, then `finish`.
+4. Replace failed clips with one more `generate_videos` call.
+5. `deliver_reel` with ids in order (lengths must add up), then `finish`.

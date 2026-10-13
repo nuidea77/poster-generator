@@ -11,7 +11,7 @@ description: Writing prompts for the video models (Seedance, Veo) — camera mov
 | `seedance` | 5 / 10 s | longer continuous shots, steady product orbits, stylised looks, quick 5 s cuts |
 | `veo` | 4 / 6 / 8 s | photoreal people, natural physics (liquids, fabric, hair), realistic light; 8 s clips render in 1080p |
 
-Use one model for the whole reel when you can, so the look stays consistent. Mix only when a beat clearly needs the other model's strength, or to replace clips that failed. Both take an image as the first frame. Veo also renders sound, but the reel is delivered silent, so never rely on audio.
+Use one model for the whole reel when you can, so the look stays consistent. Mix only when a beat clearly needs the other model's strength, or to replace clips that failed. Both take an image as the first frame. Veo also renders sound, but the reel is delivered silent, so never rely on audio — carry the message with pictures and text cards.
 
 ## Prompt skeleton
 For shot design (one job per clip, first frame, camera placement, field of view, creative devices) follow `cinematic-shot-design`; this is the short form.
@@ -42,7 +42,7 @@ Steam rising, liquid pouring, fabric moving in wind, hair in slow motion, sparks
 - This is the safest way to get a real product moving — a video model from text alone will invent a product.
 
 ## Limits
-- No on-screen text, logos or readable labels from text prompts — they come out garbled. Show a logo only by animating a still that already contains it.
+- Never ask the video model to write text, logos or labels — they come out garbled. Text and logos appear only on stills you made (title / info / end cards); animate those with a locked camera and minimal motion ("text and logo stay perfectly still and sharp").
 - Faces of real people from references are not reliable; use product/venue shots instead.
 - Generation takes 1–4 minutes per clip; always request all clips of a reel in a single `generate_videos` call so they render in parallel.
 - Reels are 9:16 or 16:9 (the job says which). Still frames used as `first_frame_image_id` must have the same aspect, or the clip is cropped.
