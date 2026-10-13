@@ -346,7 +346,7 @@ class CreationTest extends TestCase
                     ['provider' => 'seedance', 'prompt' => 'city at night', 'duration' => 5, 'first_frame_image_id' => '', 'purpose' => 'world'],
                     ['provider' => 'veo', 'prompt' => 'barista pours milk', 'duration' => 5, 'first_frame_image_id' => 'img_1', 'purpose' => 'in use'],
                 ]]]]))
-                ->push($this->turn([['deliver_reel', ['clip_ids' => ['vid_4', 'vid_2']]]]))
+                ->push($this->turn([['deliver_reel', ['clip_ids' => ['vid_4', 'vid_3']]]]))
                 ->push($this->turn([['finish', ['summary' => 'ok']]])),
             "{$veo}/models/veo-3.1-generate-preview:predictLongRunning" => Http::response(['name' => 'models/veo-3.1-generate-preview/operations/op1']),
             "{$veo}/models/veo-3.1-generate-preview/operations/op1" => Http::sequence()
@@ -362,7 +362,7 @@ class CreationTest extends TestCase
             'cdn.test/*' => Http::response($clipBytes),
         ]);
 
-        $creation = Creation::create(['user_id' => $this->user->id, 'type' => 'reel', 'prompt' => 'Бүтээгдэхүүний reels', 'status' => 'queued']);
+        $creation = Creation::create(['user_id' => $this->user->id, 'type' => 'reel', 'duration' => 15, 'prompt' => 'Бүтээгдэхүүний reels', 'status' => 'queued']);
         Storage::disk('public')->put('in/p.png', self::png());
         $creation->update(['inputs' => [['id' => 'product_1', 'kind' => 'image', 'role' => 'product', 'source' => 'upload', 'path' => 'in/p.png']]]);
 
@@ -370,7 +370,7 @@ class CreationTest extends TestCase
         $creation->refresh();
 
         $this->assertSame('done', $creation->status, (string) $creation->error_detail);
-        $this->assertSame(['vid_4', 'vid_2'], $creation->reel_clips);
+        $this->assertSame(['vid_4', 'vid_3'], $creation->reel_clips);
         // Ids follow completion order: the 5 s Seedance clip finishes first.
         $this->assertSame([['seedance', 5], ['seedance', 10], ['veo', 6]], array_map(fn ($a) => [$a['provider'], $a['duration']], array_slice($creation->assets, 1)));
         $this->assertSame('veo', $creation->asset('vid_4')['provider']);
