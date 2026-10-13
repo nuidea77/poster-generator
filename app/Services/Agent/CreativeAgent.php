@@ -37,6 +37,11 @@ class CreativeAgent
 
     public function run(Creation $creation): void
     {
+        // Every job needs at least one image model; do not spend Fable tokens when all are paused.
+        if (! $this->ai->available('image')) {
+            throw new AiException('No image model available (all out of quota/credits).');
+        }
+
         $creation->update(['model' => config('ai.agent.model')]);
         $creation->setStage('planning', 5);
 

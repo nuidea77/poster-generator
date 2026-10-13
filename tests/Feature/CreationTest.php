@@ -528,6 +528,22 @@ class CreationTest extends TestCase
         $this->assertFalse($ai->noteFailure('gemini', 'Safety filter blocked the prompt')); // ordinary errors do not pause
     }
 
+    public function test_job_fails_fast_without_calling_fable_when_no_image_model_is_left(): void
+    {
+        Http::fake();
+        $ai = app(AiManager::class);
+        foreach ($ai->available('image') as $name) {
+            $ai->noteFailure($name, 'RESOURCE_EXHAUSTED');
+        }
+
+        $creation = Creation::create(['user_id' => $this->user->id, 'type' => 'poster', 'formats' => ['1:1'], 'prompt' => 'x', 'status' => 'queued']);
+        RunCreation::dispatchSync($creation);
+
+        $this->assertSame('failed', $creation->fresh()->status);
+        $this->assertStringContainsString('No image model available', $creation->fresh()->error_detail);
+        Http::assertNothingSent();
+    }
+
     public function test_animate_still_makes_a_free_clip_that_counts_toward_the_reel(): void
     {
         if (! Process::run([config('ai.ffmpeg'), '-version'])->successful()) {
