@@ -317,7 +317,7 @@ class CreativeAgent
                 'asset_id' => ['type' => 'string', 'description' => $creation->type === Creation::REEL ? 'Clip id' : 'Image id'],
                 'scrim' => ['type' => 'string', 'enum' => TextOverlay::SCRIMS, 'description' => 'Soft gradient from the frame edge behind the text zones, when the photo is too busy or bright for the text; none if the zone is already calm'],
                 'scrim_color' => ['type' => 'string', 'description' => 'Hex of the scrim: 000000 (dark, for white text) or a light/brand tone for dark text'],
-                'footer_color' => ['type' => 'string', 'description' => 'Hex of the footer band behind footer items: the brand\'s dark colour (deep teal, navy, brown) or 141414; text on it white'],
+                'footer_color' => ['type' => 'string', 'description' => 'Hex of the footer strip. House style: the brand\'s main colour (or its dark tone) with white text and circle icons; white (FFFFFF) only when the poster itself is that brand colour all over'],
                 'footer_style' => ['type' => 'string', 'enum' => ['band', 'pill'], 'description' => 'band = full-width strip at the foot; pill = rounded contact bar inset from the edges (white with dark text, or the brand colour)'],
                 'items' => [
                     'type' => 'array',
@@ -649,6 +649,8 @@ class CreativeAgent
         $cramped = array_column(array_filter($this->text->placed, fn ($p) => $p['position'] === 'footer' && $p['shrunk']), 'text');
         if ($footerRows > 2 || count($footer) > 6) {
             $content .= ' LAYOUT — the footer holds '.count($footer).' facts in '.$footerRows.' rows; keep it to 2 rows (up to 3 short facts per row with same_line; the phone bold on the right). Drop the weakest fact or move it to a pill.';
+        } elseif (count($footer) <= 3 && $footerRows > 1) {
+            $content .= ' LAYOUT — the footer\'s '.count($footer).' facts fit one row: put them side by side (same_line on the 2nd and 3rd, the phone last on the right) instead of '.$footerRows.' rows.';
         } elseif ($cramped) {
             $content .= ' LAYOUT — footer facts had to shrink to fit their row ("'.implode('", "', $cramped).'"): shorten them (address without the district, "07:30–22:00" not "Цагийн хуваарь 07:30–22:00") or move one to the other row.';
         }
