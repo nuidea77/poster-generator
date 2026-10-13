@@ -125,6 +125,14 @@ class BillingTest extends TestCase
         $this->assertSame(2, app(CostMeter::class)->losses()['failed']['jobs']); // all time includes the old one
 
         $this->actingAs($admin)->getJson('/api/v1/admin/costs?days=30')->assertOk()->assertJsonPath('losses.net_mnt', -600);
+
+        // Job by job, admin tests included: tokens, real cost and the list price it is measured against.
+        $recent = collect(app(CostMeter::class)->recent(30));
+        $mine = $recent->firstWhere('admin', true);
+        $this->assertSame([1800, 0], [$mine['cost_mnt'], $mine['charged_mnt']]);
+        $this->assertSame(app(CostMeter::class)->credits('poster') * config('pricing.credit_mnt'), $mine['list_mnt']);
+        $this->assertSame(4, $recent->count()); // the 40-day-old job is outside the window
+        $this->assertArrayHasKey('cache_read', $mine['tokens']);
     }
 
     public function test_checkout_creates_qpay_invoice_and_reuses_pending(): void

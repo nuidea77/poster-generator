@@ -23,11 +23,7 @@ class Credits
 
     public function price(Creation $creation): int
     {
-        $extra = max(0, count($creation->formats ?? []) - 1);
-
-        return $creation->type === Creation::REEL
-            ? $this->meter->credits('reel', $creation->reelDuration())
-            : $this->meter->credits('poster') + $extra * $this->meter->credits('poster_extra_format');
+        return $this->meter->listCredits($creation);
     }
 
     /**

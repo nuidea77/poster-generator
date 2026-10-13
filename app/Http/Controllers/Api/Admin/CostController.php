@@ -25,6 +25,7 @@ class CostController extends Controller
             'price_book' => $meter->priceBook(),
             'actuals' => $meter->actuals($days),
             'losses' => $meter->losses($days),
+            'recent' => $meter->recent($days),
         ]);
     }
 }

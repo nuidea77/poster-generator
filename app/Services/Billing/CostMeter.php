@@ -143,13 +143,16 @@ class CostMeter
      */
     public function actuals(?int $days = null): array
     {
+        // Every finished job counts, admin tests and free credits too: the margin is
+        // the job's list price (what a customer pays for it) over its real cost.
         return $this->since($days)->where('status', Creation::DONE)->where('cost_usd', '>', 0)
-            ->get(['type', 'duration', 'formats', 'credits', 'cost_usd', 'assets'])
+            ->get(['type', 'duration', 'formats', 'credits', 'cost_usd', 'assets', 'input_tokens', 'output_tokens', 'cache_read_tokens', 'cache_write_tokens'])
             ->groupBy(fn (Creation $c) => $this->kind($c))
             ->map(function ($jobs, $label) {
                 $media = $jobs->map(fn (Creation $c) => array_sum(array_column($c->assets, 'cost')));
                 $cost = $jobs->sum('cost_usd');
-                $revenue = $jobs->sum('credits') * config('pricing.credit_mnt');
+                $list = $jobs->sum(fn (Creation $c) => $this->listCredits($c)) * config('pricing.credit_mnt');
+                $first = $jobs->first();
 
                 return [
                     'label' => $label,
@@ -158,10 +161,69 @@ class CostMeter
                     'avg_claude_usd' => round(($cost - $media->sum()) / $jobs->count(), 4),
                     'avg_media_usd' => round($media->avg(), 4),
                     'max_usd' => round($jobs->max('cost_usd'), 4),
-                    'margin' => $cost > 0 ? round($revenue / $this->mnt($cost), 2) : null,
+                    // What the price book assumes for a typical job of this kind.
+                    'estimate_usd' => $first->type === Creation::REEL
+                        ? $this->estimate('reel', 'typical', $first->reelDuration())['total']
+                        : $this->estimate('poster', 'typical')['total'],
+                    'avg_tokens' => [
+                        'input' => (int) $jobs->avg('input_tokens'),
+                        'output' => (int) $jobs->avg('output_tokens'),
+                        'cache_read' => (int) $jobs->avg('cache_read_tokens'),
+                        'cache_write' => (int) $jobs->avg('cache_write_tokens'),
+                    ],
+                    'list_mnt' => (int) round($list / $jobs->count()),
+                    'margin' => $cost > 0 ? round($list / $this->mnt($cost), 2) : null,
                 ];
             })
             ->sortKeys()
+            ->values()
+            ->all();
+    }
+
+    /** Credits a customer is charged for this job (its list price), whoever ran it. */
+    public function listCredits(Creation $creation): int
+    {
+        $extra = max(0, count($creation->formats ?? []) - 1);
+
+        return $creation->type === Creation::REEL
+            ? $this->credits('reel', $creation->reelDuration())
+            : $this->credits('poster') + $extra * $this->credits('poster_extra_format');
+    }
+
+    /**
+     * The latest jobs one by one: tokens, Fable and media cost, list price and
+     * margin, admin tests included, so the real cost of a job is visible.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function recent(?int $days = null, int $limit = 40): array
+    {
+        return $this->since($days)->whereIn('status', [Creation::DONE, Creation::FAILED])->where('cost_usd', '>', 0)
+            ->with('user:id,email,is_admin')->latest('id')->limit($limit)
+            ->get(['id', 'user_id', 'type', 'duration', 'formats', 'status', 'credits', 'cost_usd', 'assets', 'input_tokens', 'output_tokens', 'cache_read_tokens', 'cache_write_tokens', 'created_at'])
+            ->map(function (Creation $c) {
+                $media = array_sum(array_column($c->assets, 'cost'));
+                $list = $this->listCredits($c) * config('pricing.credit_mnt');
+
+                return [
+                    'id' => $c->id,
+                    'at' => $c->created_at?->toIso8601String(),
+                    'who' => $c->user?->email,
+                    'admin' => (bool) $c->user?->is_admin,
+                    'kind' => $this->kind($c),
+                    'formats' => $c->formats,
+                    'status' => $c->status,
+                    'images' => count(array_filter($c->assets, fn ($a) => ($a['kind'] ?? '') === 'image' && ($a['cost'] ?? 0) > 0)),
+                    'tokens' => ['input' => $c->input_tokens, 'output' => $c->output_tokens, 'cache_read' => $c->cache_read_tokens, 'cache_write' => $c->cache_write_tokens],
+                    'claude_usd' => round($c->cost_usd - $media, 4),
+                    'media_usd' => round($media, 4),
+                    'usd' => round($c->cost_usd, 4),
+                    'cost_mnt' => $this->mnt($c->cost_usd),
+                    'charged_mnt' => $c->credits * config('pricing.credit_mnt'),
+                    'list_mnt' => $list,
+                    'margin' => round($list / max(1, $this->mnt($c->cost_usd)), 2),
+                ];
+            })
             ->values()
             ->all();
     }

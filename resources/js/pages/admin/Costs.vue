@@ -22,6 +22,7 @@ watch(days, load);
 
 const usd = (v) => `$${Number(v).toFixed(2)}`;
 const tone = (m, min) => (m === null ? 'text-muted' : m < min ? 'text-red-300' : 'text-lime');
+const k = (n) => (n >= 1000 ? `${Math.round(n / 1000)}k` : String(n ?? 0));
 const signed = (n) => (n < 0 ? `−${money(-n)}` : money(n));
 </script>
 
@@ -129,14 +130,16 @@ const signed = (n) => (n < 0 ? `−${money(-n)}` : money(n));
                 </div>
             </div>
 
-            <h2 class="mb-2 font-semibold">Бодит зардал (дууссан бүтээлүүд)</h2>
+            <h2 class="mb-1 font-semibold">Бодит зардал (дууссан бүтээлүүд)</h2>
+            <p class="mb-2 max-w-3xl text-xs text-muted">Админы тест, үнэгүй кредитийн ажлыг оролцуулна. Ашиг = тухайн ажлын жагсаалтын үнэ ÷ бодит API зардал. «Таамаг» нь үнийн тооцооны ердийн ажлын зардал — бодит дундаж үүнээс их бол үнэ хангалтгүй.</p>
             <p v-if="!data.actuals.length" class="rounded-2xl border border-line p-4 text-sm text-muted">Одоогоор дууссан бүтээл алга.</p>
             <div v-else class="overflow-x-auto rounded-2xl border border-line">
                 <table class="w-full text-left text-sm">
                     <thead class="bg-surface text-xs text-muted uppercase">
                         <tr>
                             <th class="px-3 py-2">Бүтээл</th><th class="px-3 py-2">Тоо</th><th class="px-3 py-2">Дундаж</th><th class="px-3 py-2">Fable</th>
-                            <th class="px-3 py-2">Медиа</th><th class="px-3 py-2">Хамгийн их</th><th class="px-3 py-2">Бодит ашиг</th>
+                            <th class="px-3 py-2">Медиа</th><th class="px-3 py-2">Хамгийн их</th><th class="px-3 py-2">Таамаг</th>
+                            <th class="px-3 py-2">Дундаж token (гаралт · cache унших · бичих)</th><th class="px-3 py-2">Үнэ</th><th class="px-3 py-2">Бодит ашиг</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -147,7 +150,38 @@ const signed = (n) => (n < 0 ? `−${money(-n)}` : money(n));
                             <td class="px-3 py-2 tabular-nums">{{ usd(a.avg_claude_usd) }}</td>
                             <td class="px-3 py-2 tabular-nums">{{ usd(a.avg_media_usd) }}</td>
                             <td class="px-3 py-2 tabular-nums">{{ usd(a.max_usd) }}</td>
-                            <td class="px-3 py-2 tabular-nums" :class="tone(a.margin, data.margin.worst)">{{ a.margin === null ? '—' : `×${a.margin}` }}</td>
+                            <td class="px-3 py-2 tabular-nums" :class="a.avg_usd > a.estimate_usd ? 'text-amber-300' : 'text-muted'">{{ usd(a.estimate_usd) }}</td>
+                            <td class="px-3 py-2 text-xs tabular-nums">{{ k(a.avg_tokens.output) }} · {{ k(a.avg_tokens.cache_read) }} · {{ k(a.avg_tokens.cache_write) }}</td>
+                            <td class="px-3 py-2 tabular-nums">{{ money(a.list_mnt) }}</td>
+                            <td class="px-3 py-2 tabular-nums" :class="tone(a.margin, data.margin.typical)">{{ a.margin === null ? '—' : `×${a.margin}` }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h2 class="mt-8 mb-2 font-semibold">Бүтээл тус бүрийн бодит зардал</h2>
+            <div class="overflow-x-auto rounded-2xl border border-line">
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-surface text-xs text-muted uppercase">
+                        <tr>
+                            <th class="px-3 py-2">#</th><th class="px-3 py-2">Хэн</th><th class="px-3 py-2">Бүтээл</th><th class="px-3 py-2">Төлөв</th>
+                            <th class="px-3 py-2">Token: гаралт · cache унших · бичих</th><th class="px-3 py-2">Fable</th><th class="px-3 py-2">Медиа (зураг)</th>
+                            <th class="px-3 py-2">Нийт</th><th class="px-3 py-2">Үнэ</th><th class="px-3 py-2">Төлсөн</th><th class="px-3 py-2">Ашиг</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="r in data.recent" :key="r.id" class="border-t border-line">
+                            <td class="px-3 py-2 tabular-nums text-muted">{{ r.id }}</td>
+                            <td class="px-3 py-2 text-xs">{{ r.who }} <span v-if="r.admin" class="ml-1 rounded bg-surface px-1.5 py-0.5 text-[10px] text-muted">админ</span></td>
+                            <td class="px-3 py-2 text-xs">{{ r.kind }} · {{ r.formats.join(', ') }}</td>
+                            <td class="px-3 py-2 text-xs" :class="r.status === 'failed' ? 'text-red-300' : 'text-muted'">{{ r.status === 'failed' ? 'Амжилтгүй' : 'Дууссан' }}</td>
+                            <td class="px-3 py-2 text-xs tabular-nums">{{ k(r.tokens.output) }} · {{ k(r.tokens.cache_read) }} · {{ k(r.tokens.cache_write) }}</td>
+                            <td class="px-3 py-2 tabular-nums">{{ usd(r.claude_usd) }}</td>
+                            <td class="px-3 py-2 tabular-nums">{{ usd(r.media_usd) }} <span class="text-xs text-muted">({{ r.images }})</span></td>
+                            <td class="px-3 py-2 tabular-nums font-semibold">{{ money(r.cost_mnt) }}</td>
+                            <td class="px-3 py-2 tabular-nums">{{ money(r.list_mnt) }}</td>
+                            <td class="px-3 py-2 tabular-nums text-muted">{{ money(r.charged_mnt) }}</td>
+                            <td class="px-3 py-2 tabular-nums" :class="r.status === 'failed' ? 'text-red-300' : tone(r.margin, data.margin.typical)">{{ r.status === 'failed' ? '—' : `×${r.margin}` }}</td>
                         </tr>
                     </tbody>
                 </table>
