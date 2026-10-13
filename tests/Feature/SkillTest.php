@@ -110,6 +110,30 @@ class SkillTest extends TestCase
         File::deleteDirectory($to);
     }
 
+    public function test_system_prompt_stays_fixed_while_a_job_runs(): void
+    {
+        $systems = [];
+        $turn = 0;
+        Http::fake(['api.anthropic.com/*' => function (Request $request) use (&$systems, &$turn) {
+            $systems[] = $request['system'][0]['text'];
+            if ($turn++ === 0) {
+                // An admin adds a skill while the job is running: it changes the skill index.
+                Skill::create(['name' => 'added-mid-job', 'description' => 'new', 'content' => 'x']);
+
+                return Http::response(['stop_reason' => 'tool_use', 'content' => [['type' => 'tool_use', 'id' => 't1', 'name' => 'load_skill', 'input' => ['name' => 'poster-design']]], 'usage' => []]);
+            }
+
+            return Http::response(['stop_reason' => 'tool_use', 'content' => [['type' => 'tool_use', 'id' => 't2', 'name' => 'finish', 'input' => ['summary' => 'ok']]], 'usage' => []]);
+        }]);
+
+        $creation = Creation::create(['user_id' => User::factory()->create()->id, 'type' => 'poster', 'formats' => ['1:1'], 'prompt' => 'x', 'status' => 'running']);
+        app(CreativeAgent::class)->run($creation);
+
+        $this->assertCount(2, $systems);
+        $this->assertSame($systems[0], $systems[1]); // thinking blocks stay valid
+        $this->assertStringNotContainsString('added-mid-job', $systems[1]);
+    }
+
     public function test_admin_can_import_a_claude_skill_file(): void
     {
         $admin = User::factory()->create();

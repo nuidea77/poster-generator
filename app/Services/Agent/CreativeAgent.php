@@ -53,11 +53,14 @@ class CreativeAgent
         $creation->update(['model' => config('ai.agent.model')]);
         $creation->setStage('planning', 5);
 
+        // Fixed for the whole run: Fable's thinking blocks are bound to the exact system
+        // prompt, so editing a skill or the director prompt mid-job must not change it.
+        $system = $this->systemPrompt();
         $tools = $this->tools($creation);
         $messages = [['role' => 'user', 'content' => $this->brief($creation)]];
 
         for ($step = 0; $step < config('ai.agent.max_steps'); $step++) {
-            $response = $this->claude($tools, $messages);
+            $response = $this->claude($system, $tools, $messages);
 
             $usage = $response['usage'] ?? [];
             $creation->incrementEach([
@@ -128,7 +131,7 @@ class CreativeAgent
 
     // ---------------------------------------------------------------- Claude
 
-    private function claude(array $tools, array $messages): array
+    private function claude(string $system, array $tools, array $messages): array
     {
         $cfg = config('ai.providers.anthropic');
         $agent = config('ai.agent');
@@ -139,7 +142,7 @@ class CreativeAgent
             'max_tokens' => $agent['max_tokens'] ?? 32000,
             'system' => [[
                 'type' => 'text',
-                'text' => $this->systemPrompt(),
+                'text' => $system,
                 'cache_control' => ['type' => 'ephemeral'],
             ]],
             'tools' => $tools,
@@ -330,7 +333,7 @@ class CreativeAgent
                             'start' => ['type' => 'number'],
                             'end' => ['type' => 'number'],
                             'animation' => ['type' => 'string', 'enum' => ['fade', 'slide_up', 'none']],
-                            'icon' => ['type' => 'string', 'enum' => ['none', ...IconSet::NAMES], 'description' => 'Small icon before a one-line fact (phone, location, clock, calendar, web, mail, delivery, gift …) in the text colour; none for headlines'],
+                            'icon' => ['type' => 'string', 'enum' => ['none', ...IconSet::NAMES], 'description' => 'Small icon before a one-line fact (phone, location, clock, calendar, web, mail, delivery, gift …) in the text colour; none for headlines. One fact per icon item: hours and phone are two items, not one line joined with ·'],
                         ],
                         'required' => ['text', 'role', 'position', 'align', 'font', 'color', 'box', 'box_color', 'start', 'end', 'animation', 'icon'],
                         'additionalProperties' => false,
