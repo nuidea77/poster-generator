@@ -31,7 +31,8 @@ You write very little — a headline, a fact line, a CTA — so every word must 
 
 ## Facts — how to write them
 - **Price:** `4,500₮`, `150,000₮` (comma thousands, ₮ right after the number, no space). Old → new: `1,200,000₮ → 840,000₮`. Large: `3.5 сая₮`. "From": `3.5 сая₮-өөс`.
-- **Discount:** `-30%`, `30% ХЯМДРАЛ`.
+- **Discount:** `-30%`, `30% ХЯМДРАЛ`. A discount on part of the order is spelled out, not a bare minus: `2 ДАХЬ АЯГА 50% ХЯМД`, `1+1`, `2 дахь нь ҮНЭГҮЙ` — `2 дахь аяга -50%` reads like a typo.
+- **Validity:** `10.20–11.20` or `11.20 хүртэл` — one form, in its own fact (with `calendar`), not glued to the offer.
 - **Date:** `11 сарын 1`, `10 сарын 15` or compact `11.01`, `10.15`; with weekday `10 сарын 15 (Лхагва)`. Weekdays: Даваа, Мягмар, Лхагва, Пүрэв, Баасан, Бямба, Ням.
 - **Time:** `15:00 цагт`; ranges `10:00–20:00`.
 - **Phone:** `9911-2233` (4-4); several: `9911-2233, 8800-1122`.

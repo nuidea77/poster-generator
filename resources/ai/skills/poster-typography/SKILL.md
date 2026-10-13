@@ -20,6 +20,8 @@ From the brief, pick at most these, in this order of size:
 | 4. Action | CTA or contact | small | `Захиалах: 9911-2233`, `Одоо ирээрэй` |
 | 5. Brand | The logo — `add_logo`, pixel-exact | small | — |
 
+**The offer is never a footnote.** When the brief has an offer ("2 дахь нь 50% хямд", 1+1, -30%, gift with purchase, free delivery for a period) it is the hook or a pill badge right under the hook — never a small line beside the dates. If the product name is the headline, the offer is the badge.
+
 Rules: **max ~12 words on the whole poster**; headline ≤ 4 words; one hook only. Headlines, CTAs, dates and prices in Mongolian: follow `mongolian-ad-copy`. Never invent prices, dates, phone numbers, % or claims — use only what the brief says. You may write a short Mongolian headline yourself when the brief clearly implies it (sale → `ХЯМДРАЛ`, opening → `НЭЭЛТ`, new item → `ШИНЭ`, greeting → the occasion's name) — spelled correctly.
 
 Compute derived numbers exactly (150,000₮ with 18% off = 123,000₮) and show both only when the brief gives the price and the discount.

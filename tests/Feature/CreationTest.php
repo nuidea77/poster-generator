@@ -802,6 +802,13 @@ class CreationTest extends TestCase
         $this->assertFalse($green($pill[0] + 1, $pill[1] + 1));
     }
 
+    public function test_placeholder_text_calls_are_refused(): void
+    {
+        $this->expectException(AiException::class);
+        $this->expectExceptionMessage('placeholder');
+        app(TextOverlay::class)->burn(__FILE__, [['text' => '	text', 'role' => 'small']], 0, true);
+    }
+
     public function test_wide_serif_capitals_keep_clear_of_the_edges(): void
     {
         if (! Process::run([config('ai.ffmpeg'), '-version'])->successful()) {
