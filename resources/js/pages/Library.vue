@@ -17,6 +17,8 @@ const statuses = [
 const isActive = (c) => ["queued", "running", "assembling"].includes(c.status);
 const page = ref(1);
 const lastPage = ref(1);
+const total = ref(0);
+const loadingMore = ref(false);
 let timer;
 
 const hasActive = computed(() => items.value.some(isActive));
@@ -28,9 +30,12 @@ async function load(reset = true) {
         const res = await api.get(
             `/creations?page=${reset ? 1 : page.value}${type}${state}`,
         );
-        items.value = reset ? res.data : [...items.value, ...res.data];
+        // Appending skips anything already shown (a new job can shift the pages by one).
+        const seen = new Set(reset ? [] : items.value.map((c) => c.id));
+        items.value = reset ? res.data : [...items.value, ...res.data.filter((c) => !seen.has(c.id))];
         page.value = res.meta.current_page;
         lastPage.value = res.meta.last_page;
+        total.value = res.meta.total;
     } catch (e) {
         error.value = e.message;
     } finally {
@@ -38,9 +43,26 @@ async function load(reset = true) {
     }
 }
 
-function more() {
+async function more() {
+    if (loadingMore.value) return;
+    loadingMore.value = true;
     page.value++;
-    load(false);
+    await load(false);
+    loadingMore.value = false;
+}
+
+// Polling refreshes only the jobs still in progress, so pages loaded with
+// "Цааш үзэх" stay on screen.
+async function refreshActive() {
+    for (const c of items.value.filter(isActive)) {
+        try {
+            const { data } = await api.get(`/creations/${c.id}`);
+            const i = items.value.findIndex((x) => x.id === c.id);
+            if (i !== -1) items.value[i] = data;
+        } catch {
+            // keep the old card; the next tick tries again
+        }
+    }
 }
 
 watch([filter, status], () => {
@@ -50,7 +72,7 @@ watch([filter, status], () => {
 
 onMounted(async () => {
     await load();
-    timer = setInterval(() => hasActive.value && load(), 5000);
+    timer = setInterval(() => hasActive.value && refreshActive(), 5000);
 });
 
 onBeforeUnmount(() => clearInterval(timer));
@@ -153,14 +175,15 @@ const aspect = (c) => {
                     >{{ g.items.length }} бүтээл</span
                 >
             </h2>
+            <!-- A grid, not CSS columns: cards read left to right, newest first. -->
             <div
-                class="columns-2 gap-4 sm:columns-3 xl:columns-4 2xl:columns-5"
+                class="grid grid-cols-2 items-start gap-4 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"
             >
                 <RouterLink
                     v-for="c in g.items"
                     :key="c.id"
                     :to="`/c/${c.id}`"
-                    class="group media-card mb-4 block break-inside-avoid"
+                    class="group media-card block"
                     :class="{ 'ring-1 ring-red-500/40': c.status === 'failed' }"
                 >
                     <img
@@ -241,8 +264,12 @@ const aspect = (c) => {
             </div>
         </section>
 
-        <div v-if="page < lastPage" class="mt-4 text-center">
-            <button class="btn btn-ghost" @click="more">Цааш үзэх</button>
+        <div v-if="items.length" class="mt-4 text-center">
+            <p class="mb-2 text-xs text-muted">{{ items.length }} / {{ total }} бүтээл</p>
+            <button v-if="page < lastPage" class="btn btn-ghost" :disabled="loadingMore" @click="more">
+                <span v-if="loadingMore" class="spinner text-lime" />
+                <template v-else>Цааш үзэх</template>
+            </button>
         </div>
     </div>
 </template>

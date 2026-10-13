@@ -28,6 +28,7 @@ class CreationResource extends JsonResource
             'inputs' => collect($this->inputs)->map(fn ($i) => ['role' => $i['role'], 'url' => MediaStore::url($i['path'])])->values(),
             'outputs' => collect($this->outputs)->map(fn ($o) => collect($o)->only(['kind', 'format', 'label', 'width', 'height', 'duration', 'url', 'thumb_url'])->all())->values(),
             'error' => $this->status === Creation::FAILED ? 'Бүтээх явцад алдаа гарлаа. Дахин оролдоно уу.' : null,
+            'credits' => $this->credits,
             'created_at' => $this->created_at,
             'finished_at' => $this->finished_at,
         ];

@@ -56,6 +56,19 @@ async function remove() {
     router.push('/library');
 }
 
+const stamp = (d) => {
+    if (!d) return '—';
+    const t = new Date(d);
+    return `${date(d)} ${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')}`;
+};
+const took = computed(() => {
+    const c = creation.value;
+    if (!c?.finished_at || !c?.created_at) return null;
+    const s = Math.max(0, Math.round((new Date(c.finished_at) - new Date(c.created_at)) / 1000));
+    return s < 60 ? `${s} сек` : `${Math.floor(s / 60)} мин ${s % 60} сек`;
+});
+const statusLabel = { done: 'Амжилттай', failed: 'Амжилтгүй', queued: 'Дараалалд', running: 'Хийгдэж байна', assembling: 'Хийгдэж байна' };
+const roleLabel = { logo: 'Лого', product: 'Бүтээгдэхүүн', reference: 'Жишээ зураг' };
 const clock = (s) => `${Math.floor(Math.round(s) / 60)}:${String(Math.round(s) % 60).padStart(2, '0')}`;
 const fileName = (o) => `poster-studio-${creation.value.id.slice(-6).toLowerCase()}-${o.label.replace(':', 'x')}.${o.kind === 'video' ? 'mp4' : 'jpg'}`;
 </script>
@@ -76,7 +89,42 @@ const fileName = (o) => `poster-studio-${creation.value.id.slice(-6).toLowerCase
                 </span>
             </div>
 
-            <h1 class="display mb-6 line-clamp-2 text-2xl leading-tight md:text-3xl">{{ creation.prompt }}</h1>
+            <h1 class="display mb-4 line-clamp-2 text-2xl leading-tight md:text-3xl">{{ creation.prompt }}</h1>
+
+            <!-- Everything about the job: the full brief, settings, times and uploaded files. -->
+            <details class="panel mb-6 p-4" open>
+                <summary class="cursor-pointer text-sm font-semibold">Дэлгэрэнгүй мэдээлэл</summary>
+                <div class="mt-3 grid gap-4 md:grid-cols-[2fr_1fr]">
+                    <div>
+                        <div class="mb-1 text-xs text-muted">Бриф</div>
+                        <p class="text-sm leading-relaxed whitespace-pre-line">{{ creation.prompt }}</p>
+                        <template v-if="creation.product">
+                            <div class="mt-3 mb-1 text-xs text-muted">Бүтээгдэхүүн</div>
+                            <p class="text-sm whitespace-pre-line">{{ creation.product }}</p>
+                        </template>
+                        <template v-if="creation.inputs.length">
+                            <div class="mt-3 mb-1 text-xs text-muted">Оруулсан зураг</div>
+                            <div class="flex flex-wrap gap-2">
+                                <a v-for="(i, n) in creation.inputs" :key="n" :href="i.url" target="_blank" class="block w-20 text-center">
+                                    <img :src="i.url" class="h-20 w-20 rounded-lg border border-line bg-white/5 object-contain" alt="" />
+                                    <span class="text-[10px] text-muted">{{ roleLabel[i.role] ?? i.role }}</span>
+                                </a>
+                            </div>
+                        </template>
+                    </div>
+                    <dl class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 self-start text-sm">
+                        <dt class="text-muted">Төрөл</dt><dd>{{ creation.type === 'reel' ? 'Reels' : 'Постер' }}</dd>
+                        <dt class="text-muted">Төлөв</dt><dd :class="creation.status === 'failed' ? 'text-red-300' : creation.status === 'done' ? 'text-lime' : ''">{{ statusLabel[creation.status] ?? creation.status }}</dd>
+                        <template v-if="creation.formats.length"><dt class="text-muted">Хэмжээ</dt><dd>{{ creation.formats.join(', ') }}</dd></template>
+                        <template v-if="creation.type === 'reel' && creation.duration"><dt class="text-muted">Урт</dt><dd>{{ creation.duration }} сек</dd></template>
+                        <template v-if="creation.credits"><dt class="text-muted">Кредит</dt><dd>{{ creation.credits }}</dd></template>
+                        <dt class="text-muted">Эхэлсэн</dt><dd>{{ stamp(creation.created_at) }}</dd>
+                        <template v-if="creation.finished_at"><dt class="text-muted">Дууссан</dt><dd>{{ stamp(creation.finished_at) }}</dd></template>
+                        <template v-if="took"><dt class="text-muted">Хугацаа</dt><dd>{{ took }}</dd></template>
+                        <template v-if="creation.outputs.length"><dt class="text-muted">Файл</dt><dd>{{ creation.outputs.length }}</dd></template>
+                    </dl>
+                </div>
+            </details>
 
             <div v-if="active" class="panel mx-auto max-w-2xl p-6">
                 <StageProgress :creation="creation" />

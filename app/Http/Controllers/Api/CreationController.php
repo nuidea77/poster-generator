@@ -19,7 +19,7 @@ class CreationController extends Controller
 
     public function index(Request $request): AnonymousResourceCollection
     {
-        $query = $request->user()->creations()->latest();
+        $query = $request->user()->creations()->latest()->orderByDesc('id'); // same-second jobs keep their order across pages
 
         if (in_array($request->query('type'), [Creation::POSTER, Creation::REEL], true)) {
             $query->where('type', $request->query('type'));
