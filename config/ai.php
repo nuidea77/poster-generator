@@ -35,7 +35,8 @@ return [
             'base_url' => env('ANTHROPIC_BASE_URL', 'https://api.anthropic.com'),
         ],
 
-        // Image models
+        // Image models. Gemini / Gemini Pro / Veo run through the Gemini API (default)
+        // or Google Cloud Vertex AI: set GEMINI_VIA / VEO_VIA=vertex and fill `vertex` below.
         'openai' => [
             'kind' => 'image',
             'key' => env('OPENAI_API_KEY'),
@@ -49,6 +50,7 @@ return [
             'key' => env('GEMINI_API_KEY'),
             'base_url' => env('GEMINI_BASE_URL', 'https://generativelanguage.googleapis.com/v1beta'),
             'image_model' => env('GEMINI_IMAGE_MODEL', 'gemini-2.5-flash-image'),
+            'via' => env('GEMINI_VIA', 'gemini_api'), // gemini_api | vertex
         ],
 
         // Nano Banana Pro: much better lettering (Mongolian Cyrillic, prices) and
@@ -59,6 +61,7 @@ return [
             'base_url' => env('GEMINI_BASE_URL', 'https://generativelanguage.googleapis.com/v1beta'),
             'image_model' => env('GEMINI_PRO_IMAGE_MODEL', 'gemini-3-pro-image-preview'),
             'image_size' => env('GEMINI_PRO_IMAGE_SIZE', '2K'), // 1K | 2K (same price) | 4K
+            'via' => env('GEMINI_PRO_VIA', env('GEMINI_VIA', 'gemini_api')),
         ],
 
         // Video models. Seedance: ByteDance via BytePlus ModelArk.
@@ -82,8 +85,18 @@ return [
             'resolution' => env('VEO_RESOLUTION', '1080p'), // 720p | 1080p (1080p only for 8 s clips)
             'poll_interval' => (int) env('VEO_POLL_INTERVAL', 10),
             'poll_timeout' => (int) env('VEO_POLL_TIMEOUT', 1500),
+            'via' => env('VEO_VIA', 'gemini_api'), // gemini_api | vertex (Vertex needs a service account)
         ],
 
+    ],
+
+    // Google Cloud Vertex AI, for providers with via=vertex.
+    'vertex' => [
+        'project' => env('VERTEX_PROJECT'),                         // default: the service account's project
+        'location' => env('VERTEX_LOCATION', 'us-central1'),        // Veo
+        'image_location' => env('VERTEX_IMAGE_LOCATION', 'global'), // Gemini image models
+        'credentials' => env('VERTEX_CREDENTIALS'),                 // path to a service-account JSON key (or the JSON)
+        'api_key' => env('VERTEX_API_KEY'),                         // express mode, Gemini images only
     ],
 
 ];

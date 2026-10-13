@@ -38,7 +38,7 @@ class AiManager
     public function available(string $kind): array
     {
         return collect(config('ai.providers'))
-            ->filter(fn ($p, $name) => ($p['kind'] ?? null) === $kind && filled($p['key'] ?? null) && ! $this->paused($name))
+            ->filter(fn ($p, $name) => ($p['kind'] ?? null) === $kind && $this->ready($p) && ! $this->paused($name))
             ->keys()
             ->values()
             ->all();
@@ -64,6 +64,16 @@ class AiManager
     public function paused(string $name): bool
     {
         return Cache::has("ai:paused:{$name}");
+    }
+
+    /** A provider can be called: its API key, or Vertex AI credentials when it runs via Vertex. */
+    private function ready(array $provider): bool
+    {
+        if (($provider['via'] ?? null) === 'vertex') {
+            return Vertex::fromConfig()->ready(needsServiceAccount: ($provider['kind'] ?? null) === 'video');
+        }
+
+        return filled($provider['key'] ?? null);
     }
 
     public function claudeReady(): bool

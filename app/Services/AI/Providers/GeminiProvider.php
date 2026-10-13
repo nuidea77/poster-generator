@@ -4,6 +4,7 @@ namespace App\Services\AI\Providers;
 
 use App\Services\AI\Contracts\ImageProvider;
 use App\Services\AI\Exceptions\AiException;
+use App\Services\AI\Vertex;
 use GuzzleHttp\Promise\PromiseInterface;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
@@ -25,9 +26,17 @@ class GeminiProvider implements ImageProvider
         ], $references);
         $parts[] = ['text' => $prompt];
 
+        $model = $this->config['image_model'];
+
+        if (($this->config['via'] ?? null) === 'vertex') {
+            $vertex = Vertex::fromConfig();
+            [$http, $url] = [$vertex->authorize($http), $vertex->generateContentUrl($model)];
+        } else {
+            [$http, $url] = [$http->withHeaders(['x-goog-api-key' => $this->config['key']]), rtrim($this->config['base_url'], '/')."/models/{$model}:generateContent"];
+        }
+
         return $http->timeout($this->timeout)
-            ->withHeaders(['x-goog-api-key' => $this->config['key']])
-            ->post(rtrim($this->config['base_url'], '/')."/models/{$this->config['image_model']}:generateContent", [
+            ->post($url, [
                 'contents' => [['role' => 'user', 'parts' => $parts]],
                 'generationConfig' => [
                     'responseModalities' => ['IMAGE'],

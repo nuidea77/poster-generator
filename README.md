@@ -83,6 +83,7 @@ Production:
 - `php artisan queue:work --timeout=3600 --tries=1` (Supervisor, **`numprocs=4`** эсвэл түүнээс олон). Нэг worker нэг удаад нэг бүтээл хийдэг; reels 5–10 минут болдог тул ганц worker байвал бусад хэрэглэгч дараалалд хүлээнэ. Хэрэглэгч бүр зэрэг ≤2 бүтээл (`CREATIONS_MAX_ACTIVE`).
 - `php artisan schedule:run` cron-оор минут бүр. Гацсан бүтээл, хугацаа дууссан нэхэмжлэхийг цэвэрлэнэ.
 - php-fpm: `public/.user.ini` upload 200MB.
+- **Vertex AI (сонголттой):** Gemini зураг болон Veo-г Gemini API-ын оронд Google Cloud Vertex AI-аар ажиллуулах бол `.env`-д `GEMINI_VIA=vertex`, `VEO_VIA=vertex`, `VERTEX_PROJECT`, `VERTEX_LOCATION` (Veo, жиш. `us-central1`), `VERTEX_CREDENTIALS=storage/keys/vertex.json` (service account JSON, `Vertex AI User` эрхтэй; `/storage/keys` git-д орохгүй). Зөвхөн зураг бол `VERTEX_API_KEY` (express mode) хангалттай.
 
 ## Бүтэц
 
