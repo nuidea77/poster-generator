@@ -62,7 +62,7 @@ Every item in reading order, real strings, nothing invented (`poster-typography`
 - **Headline** — `title` (or `display` for a hero number), two-tone: one `*starred*` word + `accent_color`.
 - **Offer & price** — accent pills (`box: true`, `box_shape: pill`), the offer at least as big as the price.
 - **CTA** — `subtitle` pill with `icon: arrow`, accent colour.
-- **Contact strip** — `position: footer`, `footer_style: pill`, `footer_color` = brand dark tone (≠ CTA colour), one row of 3–4 short `small` facts, phone bold last.
+- **Contacts** — every contact fact (address, phone, social, web, hours) with `position: footer`; design the footer for this poster (`poster-footer`).
 Then read the result and its warnings (detail under a line, low contrast, footer layout) and fix them on the **clean visual**.
 
 ## 6. Logo

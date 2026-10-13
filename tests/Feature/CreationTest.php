@@ -858,7 +858,7 @@ class CreationTest extends TestCase
         $this->assertSame([], $overlay->lowContrastLines(sys_get_temp_dir()));  // band = panel; nothing to judge
     }
 
-    public function test_an_overfull_footer_is_flagged_to_the_agent(): void
+    public function test_the_agent_designs_the_footer_rows_freely(): void
     {
         if (! Process::run([config('ai.ffmpeg'), '-version'])->successful()) {
             $this->markTestSkipped('ffmpeg not installed');
@@ -870,7 +870,7 @@ class CreationTest extends TestCase
             'api.anthropic.com/*' => Http::sequence()
                 ->push($this->turn([['add_text', ['asset_id' => 'img_1', 'footer_color' => '3B1F0E', 'items' => [
                     $fact('10.20–11.20', false), $fact('07:30–22:00', true), $fact('Их тойруу 15', false), $fact('Хүргэлттэй', true), $fact('8800-3344', false),
-                    $fact('cafe.mn', true), $fact('@aglag', false), // 7 facts: more than a strip can hold
+                    $fact('cafe.mn', true), $fact('@aglag', false), // 7 facts in 4 rows: the agent's choice
                 ]]]]))
                 ->push($this->turn([['finish', ['summary' => 'ok']]])),
         ]);
@@ -879,7 +879,8 @@ class CreationTest extends TestCase
 
         app(CreativeAgent::class)->run($creation);
 
-        Http::assertSent(fn ($r) => str_contains(collect($r['messages'][2]['content'][0]['content'] ?? [])->firstWhere('type', 'text')['text'] ?? '', 'footer holds 7 facts'));
+        // No layout rule is pushed back on its rows.
+        Http::assertSent(fn ($r) => isset($r['messages'][2]) && ! str_contains(collect($r['messages'][2]['content'][0]['content'] ?? [])->firstWhere('type', 'text')['text'] ?? '', 'footer holds'));
     }
 
     public function test_starred_words_are_drawn_in_the_accent_colour_in_place(): void

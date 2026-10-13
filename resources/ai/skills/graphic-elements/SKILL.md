@@ -34,7 +34,7 @@ Icons make **fact lines** scannable: the eye finds "where / when / how to order"
 - Left-aligned grids: icons line up on the 7% left edge like bullets. Centred layouts: each icon+line pair is centred.
 
 ## 1b. Footer band (`position: footer`)
-The contact facts (address, phone, hours, date, web) go in a full-width band at the foot of the poster, coloured with `footer_color` (the brand's dark tone). Icons in white, phone bold and bigger, 2 rows of 2–3 short facts. It replaces a scrim at the bottom and never covers the product — see `poster-typography` §3d.
+The contact facts (address, phone, hours, date, web, social) go in the footer. Its look — no strip, a band or a rounded bar, colours, rows, icons — is designed per poster; see `poster-footer`. It never covers the product.
 
 ## 2. Gradient scrim (`scrim` on `add_text`)
 A soft gradient from the frame edge (strongest at the edge, gone by mid-frame) so text reads on a photo **without** a hard box.

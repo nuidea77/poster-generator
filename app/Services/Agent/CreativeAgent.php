@@ -664,13 +664,9 @@ class CreativeAgent
         }
 
         // Counted, not judged: layout rules the agent tends to skip.
-        $footer = array_values(array_filter($in['items'], fn ($it) => ($it['position'] ?? '') === 'footer' && trim((string) ($it['text'] ?? '')) !== ''));
-        // Rows as drawn (the overlay joins facts that fit one strip), not as requested.
-        $footerRows = count(array_unique(array_column(array_filter($this->text->placed, fn ($p) => $p['position'] === 'footer'), 'row')));
         $cramped = array_column(array_filter($this->text->placed, fn ($p) => $p['position'] === 'footer' && $p['shrunk']), 'text');
-        if ($footerRows > 2 || count($footer) > 6) {
-            $content .= ' LAYOUT — the footer holds '.count($footer).' facts in '.$footerRows.' rows; keep it to 2 rows (up to 3 short facts per row with same_line; the phone bold on the right). Drop the weakest fact or move it to a pill.';
-        } elseif ($cramped) {
+        // The footer's design is the agent's; only unreadable (shrunk) facts are reported.
+        if ($cramped) {
             $content .= ' LAYOUT — footer facts had to shrink to fit their row ("'.implode('", "', $cramped).'"): shorten them (address without the district, "07:30–22:00" not "Цагийн хуваарь 07:30–22:00") so the one row reads at full size, or drop the weakest fact.';
         }
 
