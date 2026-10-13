@@ -38,32 +38,19 @@ Write a note: **"Reading this as: <kind> for <audience>, <mood>, leaning toward 
 ## 3. Picture and layout
 **What the picture shows** (pick one): product hero on a brand-colour field · lifestyle moment with the product · person + device · food close-up · venue/atmosphere · symbolic still life · 3D objects · abstract/generative. One **concept twist** makes it memorable (`visual-concept`): steam forming a heart, the product as a monument, a summer world around a T-shirt.
 
-**The default blueprint** (fits most posters; adapt per template):
-```
-┌───────────────────────────────┐
-│ kicker chip (or brand)          │  top        small glass/pill
-│ HEADLINE with *accent* word     │  top        title, 1–2 lines
-│ offer pill  · price pill        │  top/center price pills (stack if long)
-│                                 │
-│        product / subject        │  middle     the visual's hero
-│                                 │
-│ CTA pill  Захиалах →            │  lower_third subtitle pill + arrow
-│ ◉ place │ ◉ hours │ ◉ phone     │  footer     contact strip (one row)
-└───────────────────────────────┘
-```
-Variance ≥ 6 → left-align the text column and put the subject on the right instead of stacking everything centred.
+**Pick a composition map** from `poster-design` §4 (hero type · split · frame/arch · bottom-heavy · centred icon · diagonal · grid · full-bleed mood) that fits *this* picture and message — not the same top-left stack every time. Write the big-idea sentence first (`poster-design` §2).
 
 ## 4. The visual
-English prompt: subject, setting, composition **with the empty zones named** ("the top 35% is calm empty wall for the headline; the product stands in the middle; the bottom 12% is a plain table surface for the contact strip"), light, palette (brand colour + accent), style words from the chosen style. With a product photo: `gemini` + reference, phrased as an edit ("keep the product exactly as in the reference; change only the scene"). Never pass the logo. End with "No text, no letters, no numbers, no logos." Review it (`image-review`); regenerate once at most for space — after that adapt the text.
+English prompt, art-directed per `poster-design` §3 (colour world in hex, painted graphic structure, intentional crop, one light idea): subject, setting, composition **with the type zones named** ("the top 35% is calm empty wall for the headline; the product stands in the middle; the bottom 12% is a plain table surface for the contact strip"), light, palette (brand colour + accent), style words from the chosen style. With a product photo: `gemini` + reference, phrased as an edit ("keep the product exactly as in the reference; change only the scene"). Never pass the logo. End with "No text, no letters, no numbers, no logos." Review it (`image-review`); regenerate once at most for space — after that adapt the text.
 
 ## 5. The words — one complete add_text call
 Every item in reading order, real strings, nothing invented (`poster-typography` for roles and parameters, `poster-layouts` for blocks, `poster-footer` for the strip):
-- **Kicker / brand** — one small chip or line, at most.
+- **Kicker / brand** — one small plain line (a chip only if it carries meaning), or none.
 - **Headline** — `title` (or `display` for a hero number), two-tone: one `*starred*` word + `accent_color`.
-- **Offer & price** — accent pills (`box: true`, `box_shape: pill`), the offer at least as big as the price.
+- **Offer & price** — the strongest after the headline: a big plain number, or **one** accent shape (`box: true`). At most 2 filled shapes on the poster besides the footer (`poster-design` §1).
 - **CTA** — `subtitle` pill with `icon: arrow`, accent colour.
 - **Contacts** — every contact fact (address, phone, social, web, hours) with `position: footer`; design the footer for this poster (`poster-footer`).
-Then read the result and its warnings (detail under a line, low contrast, footer layout) and fix them on the **clean visual**.
+Then check it against the quality bar (`poster-design` §8), read its warnings (detail under a line, low contrast, footer layout) and fix them on the **clean visual**.
 
 ## 6. Logo
 `add_logo` — the client's file, pixel-exact; corner and size per `logo-placement`, never in the headline's zone or on the footer strip. Without a logo the brand name is the kicker line.

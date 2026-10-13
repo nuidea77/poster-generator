@@ -673,6 +673,11 @@ class CreativeAgent
         if ($stripOverSubject >= 0.35) {
             $content .= ' LAYOUT — the footer strip covers a detailed part of the picture ('.round($stripOverSubject * 100).'% of it) — likely the bottom of the product. If the product is cut, make the visual again with the product ending above the bottom 15% (a plain surface there); a cropped table or background under the strip is fine.';
         }
+        // Boxes on every line make a flyer, not a design (poster-design §1).
+        $boxes = collect($in['items'])->filter(fn ($it) => ! empty($it['box']) && ($it['position'] ?? '') !== 'footer')->count();
+        if ($still && $boxes > 2) {
+            $content .= " DESIGN — {$boxes} filled boxes/pills outside the footer: it reads like a template flyer. Keep at most 2 (the offer and the CTA); set the rest as plain type on a calm area.";
+        }
         // A poster without an action: every ad except a pure greeting gets a CTA pill.
         if ($still && $creation->type === Creation::POSTER && ! collect($in['items'])->contains(fn ($it) => ($it['icon'] ?? '') === 'arrow')) {
             $content .= ' CTA — there is no call to action. Unless this is a pure greeting, add a short accent pill with icon arrow (`Захиалах →`, `Бүртгүүлэх →`, `Залгах →`) in the lower third, above the footer.';

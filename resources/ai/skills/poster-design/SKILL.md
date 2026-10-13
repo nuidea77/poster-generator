@@ -1,42 +1,95 @@
 ---
 name: poster-design
-description: Visual craft of a finished Instagram / Facebook ad poster — composition with text zones, product hero shots, depth and shadow, logo size and placement, colour contrast for readable type, the archetype recipes (bold retail, premium editorial, lifestyle, 3D playful, graphic, event, food), and deriving a matching set across ratios. Load for every POSTER job.
+description: Visual craft of a finished Instagram / Facebook ad poster — one big idea, art-directed visuals (not stock photos), scale contrast and restraint, composition maps where type and image interlock, colour systems, product hero shots, logo, the failure patterns that make posters look like cheap flyers, a quality bar to pass before delivery, and deriving a matching set across ratios. Load for every POSTER job.
 ---
 
 # Poster design
 
-The delivered image is the whole ad: picture **and** message. Design it like a layout, not a photo: a focal point, a reading order (hook → product → facts → action → brand) and calm space where the type will sit.
+The delivered image is the whole ad: picture **and** message. A good poster is **designed**, not assembled: one idea, one dominant element, a few supporting ones, and space that is planned. A bad one is a stock photo with labels stacked on it.
 
-## Formats and safe areas
-Formats are aspect ratios (`4:5`, `1:1`, `9:16`, `16:9` … or `auto`). Generate at the ordered aspect; the file is centre-cropped to it (short side 1080 px). Keep subject and text in the middle 80% — the middle 60% vertically for 9:16, whose top and bottom are covered by app UI. Several ratios, `auto` or unusual ratios → `format-composition`.
+## 1. Why our posters looked cheap (avoid all of these)
+| Failure | What it looks like | Fix |
+|---|---|---|
+| **Stock photo + labels** | smiling model on a blurred office/clinic, text stacked in the empty left half | art-direct the visual (§3): a colour world, a graphic idea, a crop with intent |
+| **Box on everything** | kicker pill, headline box, offer pill, date chip, CTA pill, footer band — 6 boxes | **at most 2 filled shapes** besides the footer: usually the offer and the CTA. Everything else is plain type on a calm area |
+| **Flat hierarchy** | headline, offer, checklist and CTA all medium size | one element is **3–6× larger** than the rest; at most 3 other sizes |
+| **Same template every time** | top-left stack → CTA pill → band | choose a composition map (§4) that fits *this* picture and message |
+| **Dead and crowded zones** | empty middle, everything squeezed into the top and bottom | space is intentional: either generous negative space around the hero, or a full, rich layout — never a hole |
+| **Text ignores the picture** | headline floating over a random area | type and image interlock: headline beside the face, along the product's edge, in a colour field painted for it |
+| **Too many words** | 4 benefit lines + 3 badges + footer | hook + offer + CTA + footer; the rest goes to the caption |
 
-## Composition
-- **One focal point** — the product or key visual is the largest, sharpest, most contrasted thing.
-- **Zones** — decide them in the prompt: e.g. "top 30% calm brand-colour space for the headline; product centred in the middle 45%; clean solid band in the bottom 20% for price and CTA".
-- **Depth** — foreground prop slightly out of focus, product sharp, soft background; a real contact shadow under products (no floating unless the style is deliberately playful).
-- **Scale** — products should fill 35–60% of the frame height; tiny products read as stock.
-- **Contrast for type** — text areas are plain, darker or lighter than the type colour; add a solid panel, band or gradient when the scene is busy.
+## 2. The big idea first
+Before any prompt, write one sentence: **"The poster shows ___ so that the viewer feels ___; the eye goes ___ → ___ → ___."**
+Pick one hero: the product, a person's emotion, a bold number (`-40%`, `25 жил`, `1 ХОНОГ`), or a symbol (a rose for a rock band's anniversary). Everything else supports it.
 
-## Archetype recipes (prompt fragments)
-- **Bold retail:** "product cut-out with a crisp drop shadow on a saturated [brand colour] background, a large diagonal colour block, dynamic angle, punchy studio light, high contrast".
-- **Premium editorial:** "minimal luxurious set, soft raking light, one accent colour, matte surfaces, vast negative space, magazine-cover feel".
-- **Lifestyle + headline:** "real moment of use in [setting], natural light, shallow depth of field, calm sky/wall area in the top third".
-- **3D playful:** "glossy 3D render style, floating rounded shapes and props around the product, candy colours, soft studio light, toy-like".
-- **Graphic / flat:** "two flat colour fields split diagonally, product sitting on the split line, geometric shapes, clean modern poster".
-- **Event key visual:** "atmospheric [scene/symbol], dramatic light, solid [brand colour] band across the bottom fifth for event details".
-- **Food close-up:** "appetising macro at 45°, steam, warm side light, dark textured surface, space top-left for a headline".
+## 3. Art-direct the visual (the image model's job)
+The image carries the design — colour world, shapes, light, space for the type. Never ask for "a photo of X with space for text". Ask for a **designed poster background**:
+- **Colour world:** 1 dominant colour (brand or mood) + 1 neutral + 1 accent, named in the prompt ("deep cobalt #1E3A8A world, warm white, one coral accent"). The scene, props, wardrobe and light follow it.
+- **Graphic structure painted in:** colour blocks, a big circle or arch behind the subject, a diagonal split, a frame, a spotlight pool, a gradient field, a textured paper band — painted by the model, text-free. These give the type a home and make it look designed.
+- **Crop with intent:** tight crops (face from the eyes down, product filling 60% of the height, hands in action), low or high angles, the subject cut by the frame edge. Avoid centred, medium, eye-level stock framing.
+- **Light:** one clear light idea — hard sun with shadows, studio rim light on black, soft window light, neon, golden hour. Light makes it premium.
+- **People:** real, specific, styled in the colour world (wardrobe in the brand colour), an expression that matches the message, looking toward the headline or the viewer. No generic smiling-at-camera stock.
+- **Product:** hero scale (35–60% of the height), real contact shadow, a surface and props that tell the story (ingredients, use, setting).
+- **Space for type:** name the zone and what fills it: "the left 40% is a flat cobalt field", "the top third is dark smoky stage air".
+- End with: "no text, no letters, no numbers, no logos".
 
-## Logo
-Placed last with `add_logo` (the client's file, pixel-exact) — size, corner, clear space and contrast per **`logo-placement`**. In the visual prompt: "no logos" and keep a calm corner free for it. Never invent a logo when none was given; the brand name may then be a `small` text line.
+Prompt formula: **[hero + action/expression] · [crop/angle] · [colour world with hex] · [graphic structure] · [light] · [type zone: where and how calm] · [style reference: e.g. Nike campaign, Apple product shot, Kinfolk editorial, Korean beauty ad] · no text.**
 
-## Colour
-- Palette from the logo / brand / packaging; state it as hex or names. Max 2 main colours + 1 accent; text colour must contrast strongly with its background.
-- Mood: premium → dark/neutral + one jewel tone or metal (rotate palettes — see `poster-taste`); fresh/food → warm daylight; youth/sport → saturated, high contrast; family → warm, soft; tech → deep dark or a saturated brand field with one bright accent (no default purple glow). Full style recipes: `poster-styles`.
+## 4. Composition maps (choose one per poster; vary across a series)
+```
+A HERO TYPE       B SPLIT           C FRAME/ARCH      D BOTTOM-HEAVY
+┌──────────┐      ┌─────┬────┐      ┌──────────┐      ┌──────────┐
+│ ██ 40% ██│      │HEAD │    │      │  kicker  │      │          │
+│ ██████████│      │LINE │ 🧍 │      │ ╭──────╮ │      │   hero   │
+│  subject │      │offer│    │      │ │ hero │ │      │  image   │
+│  behind  │      │CTA  │    │      │ ╰──────╯ │      │██HEADLINE│
+│  CTA     │      │     │    │      │ HEADLINE │      │offer  CTA│
+│ footer   │      │footer    │      │ footer   │      │ footer   │
+└──────────┘      └─────┴────┘      └──────────┘      └──────────┘
+E CENTRED ICON    F DIAGONAL        G GRID/TILES      H FULL-BLEED MOOD
+┌──────────┐      ┌──────────┐      ┌──────────┐      ┌──────────┐
+│ HEADLINE │      │HEAD   ╱  │      │ HEADLINE │      │          │
+│          │      │LINE  ╱ 📦│      │ ▢  ▢  ▢  │      │  photo   │
+│    📦    │      │    ╱     │      │ ▢  ▢  ▢  │      │  mood    │
+│  price   │      │  ╱ offer │      │ caption… │      │ HEADLINE │
+│   CTA    │      │╱   CTA   │      │   CTA    │      │ small CTA│
+│ footer   │      │ footer   │      │ footer   │      │ footer   │
+└──────────┘      └──────────┘      └──────────┘      └──────────┘
+```
+- **A Hero type** — a giant number/word is the design (sale, countdown, anniversary); the subject may overlap it.
+- **B Split** — colour field one side with the type, subject the other (services, education, clinics).
+- **C Frame/arch** — the subject inside a painted arch/circle, type around it (beauty, fashion, premium).
+- **D Bottom-heavy** — image fills the top 60%, type block anchored low on a painted dark/colour area (food, events, travel).
+- **E Centred icon** — product centred on a clean colour world, symmetric type (product launch, FMCG).
+- **F Diagonal** — dynamic split or motion (sport, sale, energy).
+- **G Grid/tiles** — 3–6 products or features in painted tiles (menu, catalogue, packages).
+- **H Full-bleed mood** — one atmospheric image, minimal type (premium, concerts, real estate).
 
-## Text
-Messages, prices, dates and CTAs from the brief go on the poster — follow `poster-typography` (hierarchy, exact strings, two-step method, letter-by-letter check). No invented facts.
+## 5. Type on the picture (add_text)
+- **Scale contrast:** the hero element (headline or number) is `display`/`title`, everything else `subtitle`/`small`. Two-tone accent on **one** word.
+- **Alignment:** one alignment axis per poster (all left on the same margin, or all centred). Mixed alignments look amateur.
+- **Grouping:** related lines sit tight together; groups are separated by clear space. Kicker → headline tight; headline → offer a clear gap; CTA alone.
+- **Restraint:** plain type on calm areas (use `scrim` for photos) beats boxes. Use a filled shape only where it adds meaning (the deal, the button).
+- **Benefits:** ≤ 3 short lines, or turn them into one strong line. A checklist is for services, not for every poster.
+- Exact strings and fonts: `poster-typography`; panels/chips: `poster-layouts`; footer: `poster-footer`.
 
-## A matching set
-1. Make and approve the most important ratio first (the first listed, usually `4:5`).
-2. For each other ratio, in **one turn** (they run in parallel): same model, that aspect, the approved **clean visual** (+ product) as references — "same design, scene and typography, re-laid-out for a wide 16:9 frame: product left, text block right".
+## 6. Colour
+Palette from the logo / brand / packaging, as hex. Max 2 main + 1 accent; the accent is used once or twice (offer, CTA). Type colour contrasts strongly with what is behind it. Mood: premium → dark/neutral + one jewel tone; food → warm; youth/sport → saturated, hard light; family → warm, soft; health → clean whites with one confident brand colour, not pale blue everywhere. Style recipes: `poster-styles`; avoiding generic looks: `poster-taste`.
+
+## 7. Logo
+Placed last with `add_logo` (the client's file, pixel-exact) — size, corner, clear space per **`logo-placement`**. In the visual prompt: "no logos", and keep a calm corner. Never invent a logo; without one the brand name may be a `small` text line.
+
+## 8. Quality bar — check the result before delivering
+1. **Squint test:** blur your eyes — one shape dominates, and it is the hero.
+2. **2-second test:** the hook and the offer are understood in 2 seconds.
+3. **Count the boxes:** ≤ 2 filled shapes besides the footer.
+4. **Count the sizes:** ≤ 4 text sizes; the headline clearly the largest.
+5. **Alignment:** everything on one axis or a deliberate grid.
+6. **Does it look designed?** Would it pass as an agency post for a real brand — or as a template flyer? If a template, change the visual (§3) or the map (§4), not just the text.
+7. Nothing covers the face or the product; no dead hole in the layout.
+
+## 9. Formats and a matching set
+Formats are aspect ratios (`4:5`, `1:1`, `9:16`, `16:9` … or `auto`); the file is centre-cropped (short side 1080 px). Keep subject and text in the middle 80% — the middle 60% vertically for 9:16. Several ratios → `format-composition`.
+1. Make and approve the most important ratio first (usually `4:5`).
+2. Other ratios in **one turn** (they run in parallel): same model, the approved clean visual (+ product) as references — "same design, scene and colour world, re-laid-out for 16:9: subject left, type right".
 3. Re-check the text of every ratio; `deliver_poster` each with its own image.
