@@ -733,7 +733,7 @@ class CreationTest extends TestCase
             }
         }
         $ys = array_keys($rows);
-        $gap = collect($ys)->sliding(2)->first(fn ($p) => $p->last() - $p->first() > 10)->last(); // first row of line 2
+        $gap = collect($ys)->sliding(2)->first(fn ($p) => $p->last() - $p->first() > 3)->last(); // first row of line 2
         foreach ([array_filter($rows, fn ($y) => $y < $gap, ARRAY_FILTER_USE_KEY), array_filter($rows, fn ($y) => $y >= $gap, ARRAY_FILTER_USE_KEY)] as $line) {
             $mid = (min(array_column($line, 0)) + max(array_column($line, 1))) / 2;
             $this->assertEqualsWithDelta(540, $mid, 12);

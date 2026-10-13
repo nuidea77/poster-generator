@@ -201,8 +201,12 @@ class TextOverlay
                 }
 
                 $display = ($item['role'] ?? '') === 'display'; // big digits/caps: no descenders, sits tight on the next line
-                $blocks[$position][] = compact('i', 'item', 'text', 'raw', 'marked', 'font', 'size', 'pad', 'soft', 'same', 'align', 'shape', 'column', 'columns', 'rowNo')
-                    + ['ems' => ['pad' => $pad / max(1, $size), 'line' => ($display ? 0.9 : 1.2) * $lines + 0.2 * ($lines - 1), 'gap' => $display ? 0.12 : (! empty($item['air_after']) ? 0.6 : 0.3), 'width' => min($w * 0.9 / max(1, $size), $longest * self::WIDTH[$font] * $caps)]];
+                // Line pitch: a stacked headline (title/display/price, caps or condensed) is set tight
+                // like a printed poster; body lines keep normal leading.
+                $headline = in_array($item['role'] ?? '', ['display', 'title', 'price'], true);
+                $pitch = $headline ? ($caps > 1 || $font === 'condensed' ? 1.02 : 1.12) : 1.4;
+                $blocks[$position][] = compact('i', 'item', 'text', 'raw', 'marked', 'font', 'size', 'pad', 'soft', 'same', 'align', 'shape', 'column', 'columns', 'rowNo', 'pitch')
+                    + ['ems' => ['pad' => $pad / max(1, $size), 'line' => ($display ? 0.9 : 1.2) + $pitch * ($lines - 1), 'gap' => $display ? 0.12 : (! empty($item['air_after']) ? 0.6 : 0.3), 'width' => min($w * 0.9 / max(1, $size), $longest * self::WIDTH[$font] * $caps)]];
             }
 
             // Items in one row share one size (the smallest), then every block gets its box.
@@ -401,7 +405,7 @@ class TextOverlay
                     $lines = explode("\n", $b['text']);
                     $rawLines = explode("\n", $b['raw']);
                     foreach ($lines as $k => $line) {
-                        $lineY = count($lines) === 1 ? $yExpr : "({$yExpr})+".($k * (int) round($size * 1.4) + (int) round($size * 0.92)).'-ascent';
+                        $lineY = count($lines) === 1 ? $yExpr : "({$yExpr})+".($k * (int) round($size * $b['pitch']) + (int) round($size * 0.92)).'-ascent';
                         $runs = $b['marked'] ? explode('*', $rawLines[$k] ?? $line) : [$line];
                         if (count($runs) === 1) {
                             File::put("{$dir}/t{$i}_{$k}.txt", $line);

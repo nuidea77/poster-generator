@@ -62,6 +62,7 @@ return [
             'key' => env('GEMINI_PRO_API_KEY', env('GEMINI_API_KEY')),
             'base_url' => env('GEMINI_BASE_URL', 'https://generativelanguage.googleapis.com/v1beta'),
             'image_model' => env('GEMINI_PRO_IMAGE_MODEL', 'gemini-3-pro-image-preview'),
+            'vertex_image_model' => env('GEMINI_PRO_VERTEX_IMAGE_MODEL', 'gemini-3-pro-image'), // the GA name on Vertex
             'image_size' => env('GEMINI_PRO_IMAGE_SIZE', '2K'), // 1K | 2K (same price) | 4K
             'via' => env('GEMINI_PRO_VIA', env('GEMINI_VIA', 'gemini_api')),
         ],

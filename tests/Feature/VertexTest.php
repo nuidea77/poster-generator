@@ -51,7 +51,7 @@ class VertexTest extends TestCase
         $this->assertSame('image/png', $image['mime']);
         Http::assertSent(fn (Request $r) => $r->url() === 'https://oauth2.googleapis.com/token'
             && $r['grant_type'] === 'urn:ietf:params:oauth:grant-type:jwt-bearer' && substr_count($r['assertion'], '.') === 2);
-        Http::assertSent(fn (Request $r) => $r->url() === 'https://aiplatform.googleapis.com/v1/projects/my-proj/locations/global/publishers/google/models/gemini-3-pro-image-preview:generateContent'
+        Http::assertSent(fn (Request $r) => $r->url() === 'https://aiplatform.googleapis.com/v1/projects/my-proj/locations/global/publishers/google/models/gemini-3-pro-image:generateContent'
             && $r->hasHeader('Authorization', 'Bearer ya29.tok')
             && $r['generationConfig']['imageConfig'] === ['aspectRatio' => '4:5', 'imageSize' => '2K']);
         $this->assertCount(1, collect(Http::recorded())->filter(fn ($p) => str_contains($p[0]->url(), 'oauth2'))); // token cached

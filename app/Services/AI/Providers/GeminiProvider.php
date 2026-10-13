@@ -31,7 +31,7 @@ class GeminiProvider implements ImageProvider
 
         if (($this->config['via'] ?? null) === 'vertex') {
             $vertex = Vertex::fromConfig();
-            [$http, $url] = [$vertex->authorize($http), $vertex->generateContentUrl($model)];
+            [$http, $url] = [$vertex->authorize($http), $vertex->generateContentUrl($this->config['vertex_image_model'] ?? $model)];
         } else {
             [$http, $url] = [$http->withHeaders(['x-goog-api-key' => $this->config['key']]), rtrim($this->config['base_url'], '/')."/models/{$model}:generateContent"];
         }
