@@ -317,6 +317,7 @@ class CreativeAgent
                 'asset_id' => ['type' => 'string', 'description' => $creation->type === Creation::REEL ? 'Clip id' : 'Image id'],
                 'scrim' => ['type' => 'string', 'enum' => TextOverlay::SCRIMS, 'description' => 'Soft gradient from the frame edge behind the text zones, when the photo is too busy or bright for the text; none if the zone is already calm'],
                 'scrim_color' => ['type' => 'string', 'description' => 'Hex of the scrim: 000000 (dark, for white text) or a light/brand tone for dark text'],
+                'footer_color' => ['type' => 'string', 'description' => 'Hex of the footer band behind footer items: the brand\'s dark colour (deep teal, navy, brown) or 141414; text on it white'],
                 'items' => [
                     'type' => 'array',
                     'items' => [
@@ -324,7 +325,7 @@ class CreativeAgent
                         'properties' => [
                             'text' => ['type' => 'string'],
                             'role' => ['type' => 'string', 'enum' => ['display', 'title', 'price', 'subtitle', 'small'], 'description' => 'display = a huge hero number or 1–2 short words (15, -30%, 2026), about twice a title'],
-                            'position' => ['type' => 'string', 'enum' => ['top', 'center', 'lower_third', 'bottom']],
+                            'position' => ['type' => 'string', 'enum' => ['top', 'center', 'lower_third', 'bottom', 'footer'], 'description' => 'footer = the contact band at the very bottom (address, phone, hours, web, delivery), drawn on a full-width colour band'],
                             'align' => ['type' => 'string', 'enum' => ['center', 'left', 'right']],
                             'same_line' => ['type' => 'boolean', 'description' => 'true = on the same row as the previous item. 2 items: left and right edge (phone | delivery, date | time); 3–4 items: equal centred columns (steps, gifts, features). Usually false'],
                             'font' => ['type' => 'string', 'enum' => array_keys(TextOverlay::FONTS)],
@@ -616,8 +617,9 @@ class CreativeAgent
             : $item, array_values($in['items'] ?? []));
 
         $base = $this->exactFrame($asset);
-        $tmp = $this->text->burn($base ?? MediaStore::absolute($asset['path']), $in['items'], (float) ($asset['duration'] ?? 0), $still, $asset['reserved'] ?? [], (string) ($in['scrim'] ?? 'none'), (string) ($in['scrim_color'] ?? '000000'));
+        $tmp = $this->text->burn($base ?? MediaStore::absolute($asset['path']), $in['items'], (float) ($asset['duration'] ?? 0), $still, $asset['reserved'] ?? [], (string) ($in['scrim'] ?? 'none'), (string) ($in['scrim_color'] ?? '000000'), (string) ($in['footer_color'] ?? ''));
         $busy = $still ? $this->text->busyLines($base ?? MediaStore::absolute($asset['path'])) : [];
+        $faint = $still ? $this->text->lowContrastLines($base ?? MediaStore::absolute($asset['path'])) : [];
         $file = MediaStore::put("creations/{$creation->public_id}/work", file_get_contents($tmp), $still ? 'image/png' : 'video/mp4');
         @unlink($tmp);
         $base && @unlink($base);
@@ -635,6 +637,12 @@ class CreativeAgent
             // Measured, not guessed: these lines cover a detailed part of the picture (product, face, hair, texture).
             $content .= ' WARNING — measured on the clean visual, these lines sit on a detailed area (likely the product, a face or busy texture): "'.implode('", "', $busy).'". '
                 .'Look closely; unless that is intended, call add_text again on `'.$asset['id'].'` with them in a calmer zone, fewer or shorter lines in that zone (a panel or scrim does not stop it covering the product). If you can see the lines sit only on busy background (not the product, a face or the main subject) and a scrim or panel keeps them readable, that is fine — otherwise move them or regenerate the visual with an empty band for the facts.';
+        }
+
+        if ($faint) {
+            // Measured: text colour against the picture (and scrim) behind it.
+            $content .= ' WARNING — low contrast, measured: "'.implode('", "', $faint).'" is too close in brightness to the area behind it and will be hard to read on a phone. '
+                .'Call add_text again on `'.$asset['id'].'` with a darker colour on light areas (or white on dark ones), a `scrim` in that zone, or a pill/glass panel.';
         }
 
         return ['summary' => "{$new} ← {$asset['id']} + ".count($lines).' text', 'content' => $still ? [['type' => 'text', 'text' => $content.' Review it:'], $this->imageBlock($file['path'])] : $content];

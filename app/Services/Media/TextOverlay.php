@@ -36,17 +36,22 @@ class TextOverlay
      */
     public array $placed = [];
 
+    /** The scrim of the last burn() [where, hex], to judge contrast as the viewer sees it. */
+    private array $lastScrim = ['none', '000000'];
+
     public const SCRIMS = ['none', 'top', 'bottom', 'top_bottom'];
 
     /**
      * @param  list<array{text: string, role: string, position: string, align?: string, font: string, color: string, box: bool, box_color: string, start: float, end: float, animation: string, icon?: string}>  $items
      * @param  bool  $still  an image (poster): static text, PNG out; else a clip: timed text, MP4 out
      * @param  string  $scrim  soft gradient behind the text zones: none | top | bottom | top_bottom
+     * @param  string  $footerColor  hex of the band behind `footer` items (default near-black)
      * @return string Absolute path of the new file (caller moves it).
      */
-    public function burn(string $video, array $items, float $duration, bool $still = false, array $reserved = [], string $scrim = 'none', string $scrimColor = '000000'): string
+    public function burn(string $video, array $items, float $duration, bool $still = false, array $reserved = [], string $scrim = 'none', string $scrimColor = '000000', string $footerColor = ''): string
     {
         $this->placed = [];
+        $this->lastScrim = [$scrim, $this->hex($scrimColor)];
 
         if (! $items) {
             throw new AiException('Give at least one text item.');
@@ -72,7 +77,8 @@ class TextOverlay
             // text edges; 3+ items share the width in equal columns (steps, gifts, features).
             [$rowOf, $rowSize, $rowLen, $r] = [[], [], [], -1];
             // Room an item needs in a row: its characters (+ icon) at its role's size.
-            $len = fn ($it) => (max(4, mb_strlen((string) ($it['text'] ?? ''))) + (($it['icon'] ?? 'none') !== 'none' ? 2 : 0)) * (self::SIZES[$it['role'] ?? ''] ?? self::SIZES['subtitle']);
+            $len = fn ($it) => (max(4, mb_strlen((string) ($it['text'] ?? ''))) + (($it['icon'] ?? 'none') !== 'none' ? 2 : 0)
+                + (! empty($it['box']) || ($it['box_shape'] ?? '') === 'glass' ? 2.5 : 0)) * (self::SIZES[$it['role'] ?? ''] ?? self::SIZES['subtitle']);
             foreach ($list as $j => $it) {
                 $r += empty($it['same_line']) || $j === 0 ? 1 : 0;
                 $rowSize[$r] = ($rowSize[$r] ?? 0) + 1;
@@ -128,7 +134,7 @@ class TextOverlay
                 $soft = ! $still && ! $panel && in_array($item['role'] ?? '', ['subtitle', 'small'], true); // soft dark panel on footage
                 $pad = (int) round($size * ($panel ? 0.35 : ($soft ? 0.4 : 0)));
                 $lines = substr_count($text, "\n") + 1;
-                $position = in_array($item['position'] ?? '', ['top', 'center', 'lower_third', 'bottom'], true) ? $item['position'] : 'lower_third';
+                $position = in_array($item['position'] ?? '', ['top', 'center', 'lower_third', 'bottom', 'footer'], true) ? $item['position'] : 'lower_third';
 
                 $display = ($item['role'] ?? '') === 'display'; // big digits/caps: no descenders, sits tight on the next line
                 $blocks[$position][] = compact('i', 'item', 'text', 'font', 'size', 'pad', 'soft', 'same', 'align', 'shape', 'column', 'columns', 'rowNo')
@@ -158,12 +164,31 @@ class TextOverlay
             $panels = []; // rounded panels drawn under the text: [file, x, y, enable]
             $floor = 0;
 
-            foreach (['top', 'center', 'lower_third', 'bottom'] as $position) {
+            // Footer: a full-width band at the foot of the frame (above the app UI on Stories and
+            // reels) holding the contact facts in rows — address left, phone right.
+            $bottomLimit = (int) round($h * ($still ? 0.95 : 0.8));
+            $footerTop = null;
+            if (isset($blocks['footer'])) {
+                $rows = array_filter($blocks['footer'], fn ($b) => ! $b['same']);
+                $group = array_sum(array_map(fn ($b) => $b['height'] + $b['gap'], $rows)) - end($rows)['gap'];
+                $padY = (int) round(min($w, $h) * 0.035);
+                $bandBottom = $still && $h <= $w * 1.5 ? $h : (int) round($h * ($still ? 0.87 : 0.8));
+                $bandTop = $bandBottom - $group - 2 * $padY;
+                $footerTop = $bandTop + $padY;
+                $bottomLimit = min($bottomLimit, $bandTop - (int) round(min($w, $h) * 0.025));
+                File::put("{$dir}/band.png", $this->band($w, $bandBottom - $bandTop, $this->hex($footerColor ?: '141414')));
+                $panels[] = ['band.png', 0, $bandTop, null];
+            }
+
+            foreach (['top', 'center', 'lower_third', 'bottom', 'footer'] as $position) {
                 $y = max($this->baseY($position, $w, $h, $still), $floor);
 
                 if ($position === 'bottom' && isset($blocks['bottom'])) {
                     $group = array_sum(array_map(fn ($b) => $b['same'] ? 0 : $b['height'] + $b['gap'], $blocks['bottom']));
-                    $y = max($floor, min($y, (int) round($h * ($still ? 0.95 : 0.8)) - $group));
+                    $y = max($floor, min($y, $bottomLimit - $group));
+                }
+                if ($position === 'footer' && $footerTop !== null) {
+                    $y = $footerTop;
                 }
 
                 $row = null; // the row the last block started on: ['y' => top, 'end' => next free y]
@@ -280,7 +305,7 @@ class TextOverlay
                         $right => $w - $margin - $width,
                         default => (int) round($cx - $width / 2),
                     };
-                    $this->placed[] = ['text' => $b['text'], 'panel' => $pad > 0, 'rect' => [$x0, $y, $x0 + $width, $y + $b['height']]];
+                    $this->placed[] = ['text' => $b['text'], 'panel' => $pad > 0 || $position === 'footer', 'rect' => [$x0, $y, $x0 + $width, $y + $b['height']], 'color' => $this->hex($item['color'] ?? '')];
                     $rowY = $y;
                     $y = max($same ? $row['end'] : 0, $y + $b['height'] + $b['gap']);
                     $row = ['y' => $rowY, 'end' => $y];
@@ -425,9 +450,7 @@ class TextOverlay
         $peak = $light ? 0.62 : 0.72;
 
         for ($y = 0; $y < $h; $y++) {
-            $fromTop = in_array($where, ['top', 'top_bottom'], true) ? max(0, 1 - $y / ($h * 0.5)) : 0;
-            $fromBottom = in_array($where, ['bottom', 'top_bottom'], true) ? max(0, 1 - ($h - 1 - $y) / ($h * 0.55)) : 0;
-            $a = $peak * max($fromTop, $fromBottom) ** 1.6;
+            $a = $this->scrimAlpha($y, $h, $where, $peak);
             imageline($img, 0, $y, $w - 1, $y, imagecolorallocatealpha($img, $r, $g, $b, 127 - (int) round($a * 127)));
         }
 
@@ -475,6 +498,84 @@ class TextOverlay
         imagepng($out);
 
         return (string) ob_get_clean();
+    }
+
+    /** The footer band: a solid full-width strip, slightly translucent so the photo still shows. */
+    private function band(int $w, int $h, string $hex): string
+    {
+        $img = imagecreatetruecolor($w, max(1, $h));
+        imagesavealpha($img, true);
+        imagealphablending($img, false);
+        [$r, $g, $b] = sscanf($hex, '%02x%02x%02x');
+        imagefill($img, 0, 0, imagecolorallocatealpha($img, $r, $g, $b, 18)); // ~86% opaque
+        ob_start();
+        imagepng($img);
+
+        return (string) ob_get_clean();
+    }
+
+    /** Scrim opacity at row $y: strongest at the edge, gone by mid-frame. */
+    private function scrimAlpha(int $y, int $h, string $where, float $peak): float
+    {
+        $fromTop = in_array($where, ['top', 'top_bottom'], true) ? max(0, 1 - $y / ($h * 0.5)) : 0;
+        $fromBottom = in_array($where, ['bottom', 'top_bottom'], true) ? max(0, 1 - ($h - 1 - $y) / ($h * 0.55)) : 0;
+
+        return $peak * max($fromTop, $fromBottom) ** 1.6;
+    }
+
+    /**
+     * Lines of the last burn() whose colour is too close to the picture behind them
+     * (WCAG contrast ratio under 2.5 for headlines, 3 for small lines, scrim included; panels are skipped — they bring
+     * their own background). Light text on a light area is the usual case.
+     *
+     * @return list<string>
+     */
+    public function lowContrastLines(string $cleanImage): array
+    {
+        $img = @imagecreatefromstring((string) file_get_contents($cleanImage));
+        if (! $img) {
+            return [];
+        }
+        [$W, $H] = [imagesx($img), imagesy($img)];
+        $lum = function (array $rgb): float {
+            $c = array_map(fn ($v) => ($v /= 255) <= 0.03928 ? $v / 12.92 : (($v + 0.055) / 1.055) ** 2.4, $rgb);
+
+            return 0.2126 * $c[0] + 0.7152 * $c[1] + 0.0722 * $c[2];
+        };
+        [$where, $scrimHex] = $this->lastScrim;
+        $scrimRgb = sscanf($scrimHex, '%02x%02x%02x');
+        $peak = $lum($scrimRgb) > 0.3 ? 0.62 : 0.72;
+
+        $low = [];
+        foreach ($this->placed as $p) {
+            if ($p['panel']) {
+                continue;
+            }
+            [$x0, $y0, $x1, $y1] = [max(0, $p['rect'][0]), max(0, $p['rect'][1]), min($W - 1, $p['rect'][2]), min($H - 1, $p['rect'][3])];
+            [$sum, $n] = [[0, 0, 0], 0];
+            for ($y = $y0; $y < $y1; $y += 4) {
+                $a = $this->scrimAlpha($y, $H, $where, $peak);
+                for ($x = $x0; $x < $x1; $x += 4) {
+                    $c = imagecolorat($img, $x, $y);
+                    foreach ([16, 8, 0] as $k => $shift) {
+                        $sum[$k] += (($c >> $shift) & 0xFF) * (1 - $a) + $scrimRgb[$k] * $a;
+                    }
+                    $n++;
+                }
+            }
+            if (! $n) {
+                continue;
+            }
+            $bg = $lum(array_map(fn ($v) => $v / $n, $sum));
+            $text = $lum(sscanf($p['color'] ?? 'FFFFFF', '%02x%02x%02x'));
+            // Small lines need more contrast than big headlines (WCAG: 3 for large text).
+            $needed = ($y1 - $y0) < $H * 0.05 ? 3.0 : 2.5;
+            if ((max($bg, $text) + 0.05) / (min($bg, $text) + 0.05) < $needed) {
+                $low[] = str_replace("\n", ' / ', $p['text']);
+            }
+        }
+
+        return $low;
     }
 
     private function hex(string $hex): string

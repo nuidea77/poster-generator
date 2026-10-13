@@ -57,6 +57,7 @@ Name the style concretely in the prompt ("bold condensed sans-serif in white, al
 - **Caps headlines**, body text in sentence case. (Letter-spacing cannot be set — get air from size and margins instead.)
 - **Numbers sell:** make the price / % the largest or second-largest element; the currency sign smaller than the digits; old price smaller, struck through, muted colour.
 - **Legibility on photos:** put text on a calm area; otherwise a solid panel, a band, or a soft dark gradient (scrim) behind it. Contrast at least like white on mid-dark; no thin type on busy texture.
+- **Headline punch:** the headline is the most contrasted thing on the poster. Cream or pastel text on a beige/tan photo reads weak even when technically legible — on warm light backgrounds use deep brown / near-black (or the brand's dark colour), on dark ones pure white; keep tinted text for small accents. add_text measures contrast and warns.
 - **Badges:** circle, rounded pill or slanted tag in the accent colour for `-30%`, `ШИНЭ`, the date — one badge per poster.
 - **Consistency:** the same colour does the same job (accent = offer/price only).
 
@@ -80,6 +81,16 @@ When the message is a number — `15` years, `-30%`, `2026`, `100` guests, `1-р
 `box_shape: pill` (rounded, accent colour) for badges and CTA bars, `glass` (frosted light) for chips and labels; rows of 3–4 equal columns with `same_line`. Ready-made layouts from professional posters: `poster-layouts`.
 
 ## 3d. A compact fact block (date, time, place, phone, delivery, web)
+**Default: the footer band.** Put the contact facts in `position: footer` — they sit on a full-width colour band at the very foot of the poster (`footer_color` on the add_text call: the brand's dark colour — deep teal, navy, espresso brown — or `141414`; text white). The band keeps the facts off the product, gives them perfect contrast, and looks like the professional posters. Lay it out in **2 rows of pairs**:
+```
+footer · small · calendar "10.20–11.20"          footer · small · clock "07:30–22:00"   (same_line)
+footer · small · location "Их тойруу 15"          footer · subtitle bold · phone "8800-3344" (same_line, right)
+```
+- The phone is the one big fact (`subtitle`, bold) on the right; the rest `small`.
+- Max 4 facts in the band (2 rows). More → cut: delivery or web go in the caption, or become a pill elsewhere.
+- Ask the visual for room: "the bottom 15% is a plain dark/brand-colour area or simple table surface" — the band covers it, so the product must end above it.
+- Use plain `bottom` facts (no band) only on minimal posters with a calm empty bottom, or when the design has its own band.
+
 Facts support the hook; they must not eat the poster. A tall stack of centred fact lines (one per line, each with an icon) looks like a form and pushes the picture away.
 
 - Facts are `small`, never `subtitle`. The whole fact block takes **≤ 15–18% of the frame height** — usually **2–3 rows**.

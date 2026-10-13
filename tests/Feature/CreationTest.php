@@ -832,6 +832,31 @@ class CreationTest extends TestCase
         $this->assertEqualsWithDelta(min($rows) - $y0, $y1 - max($rows), 4);
     }
 
+    public function test_footer_items_sit_on_a_band_at_the_foot(): void
+    {
+        if (! Process::run([config('ai.ffmpeg'), '-version'])->successful()) {
+            $this->markTestSkipped('ffmpeg not installed');
+        }
+
+        $bg = imagecreatetruecolor(1080, 1350);
+        imagefill($bg, 0, 0, imagecolorallocate($bg, 240, 240, 240));
+        $file = sys_get_temp_dir().'/bg-'.uniqid().'.png';
+        imagepng($bg, $file);
+        $item = fn (string $t, string $role, bool $same) => ['text' => $t, 'role' => $role, 'position' => 'footer', 'align' => 'center', 'same_line' => $same, 'font' => 'sans', 'color' => 'FFFFFF', 'box' => false, 'box_color' => '', 'box_shape' => 'rect', 'icon' => 'none'];
+        $overlay = app(TextOverlay::class);
+        $out = $overlay->burn($file, [$item('Их тойруу 15', 'small', false), $item('8800-3344', 'subtitle', true)], 0, true, [], 'none', '000000', '0F4C5C');
+        $img = imagecreatefrompng($out);
+        @unlink($file);
+        @unlink($out);
+
+        [$address, $phone] = array_column($overlay->placed, 'rect');
+        $this->assertSame($address[1], $phone[1]);            // one row
+        $this->assertGreaterThan(1150, $address[1]);           // at the foot
+        $c = imagecolorat($img, 540, 1345);                    // the band reaches the bottom edge in the brand colour
+        $this->assertEqualsWithDelta([15, 76, 92], [$c >> 16 & 0xFF, $c >> 8 & 0xFF, $c & 0xFF], 40);
+        $this->assertSame([], $overlay->lowContrastLines(sys_get_temp_dir()));  // band = panel; nothing to judge
+    }
+
     public function test_placeholder_text_calls_are_refused(): void
     {
         $this->expectException(AiException::class);

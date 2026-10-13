@@ -17,7 +17,7 @@ Studied from professional Mongolian posters (a clinic package, a telecom promo, 
 | **Row of 3–4** | `small` bold items, the 2nd–4th with `same_line: true` → equal columns, one size | services (`ЭХО · РЕНТГЕН · ШИНЖИЛГЭЭ · ҮЗЛЭГ`), gifts, steps, features |
 | **Step flow** | 2–3 glass chips in a row, last one an accent pill with an icon | `Unitel app` → `Багц шилжих` → `Бэлэг авах` |
 | **Checklist** | 3–4 `small` lines, `icon: check`, `align: left` | benefits of a service or package |
-| **Footer info bar** | `small` address with `location`, `align: left`; phone **`subtitle` bold** with `phone`, `same_line`, `align: right` (different roles keep their own sizes, so the phone stays big); `scrim: bottom` or a band in the visual | contact on every service poster |
+| **Footer info bar** | `position: footer` + `footer_color` (brand dark): a full-width band at the foot. `small` address with `location` on the left; phone **`subtitle` bold** with `phone`, `same_line`, on the right; a second row for hours/date/web | contact on every service poster |
 
 Rows of 3–4 work best when the **visual already has matching spots** (round photo insets, product tiles, icons in a row) — ask the image model for "a row of four round photo insets evenly spaced across the lower third, empty below each for a caption", then put the captions in `lower_third` / `bottom` as one row. Without matching spots, a row of words alone is still clean.
 
@@ -44,6 +44,7 @@ Rows of 3–4 work best when the **visual already has matching spots** (round ph
 - **Facts are elements, not sentences:** chips, pills, rows, a checklist — 1–5 words each.
 - **Pills and chips hold one short phrase** (≤ 25 characters). A sentence ("Дараа төлбөрт багцаа ахиулаад хожих боломж") is a plain `subtitle`, never a glass/pill.
 - **Panels never cover the product.** A glass chip or pill on the phone/bottle/face hides it as much as plain text does — add_text warns about it; move the element to a calm zone.
+- **Badges that sit together match:** a price pill and an offer pill in one row share the role (both `price` or both `subtitle`) and the accent colour family — the offer is never a small pale chip beside a big bold price.
 - **Steps are steps:** a step flow holds only the actions in order (`Апп` → `Багц шилжих`); a deadline or date is its own element (a CTA pill or a fact), not the last step.
 - **Same element, same style:** all chips glass, all CTAs accent pills, all captions bold small; same in every ratio.
 - **Mixed emphasis** ("Зөвхөн **3 ХОНОГ** үргэлжилнэ") is not possible inside one item — make the key part its own item (pill or bold) or keep the line uniform.
