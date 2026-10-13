@@ -94,7 +94,6 @@ class TextOverlay
                         }
                     }
                     File::copy(resource_path('fonts/'.self::FONTS[$b['font']]), "{$dir}/f{$i}.ttf");
-                    File::put("{$dir}/t{$i}.txt", $b['text']);
 
                     $top = $y + $pad;
                     $start = max(0.0, (float) ($item['start'] ?? 0));
@@ -108,19 +107,26 @@ class TextOverlay
                     $yExpr = ! $still && ($item['animation'] ?? '') === 'slide_up'
                         ? "{$top}+".round($size * 0.6)."*(1-min(1,max(0,(t-{$start})/{$in})))"
                         : (string) $top;
-                    $x = ($item['align'] ?? 'center') === 'left' ? (string) round($w * 0.07 + $pad) : '(w-text_w)/2';
-
-                    $filter = "drawtext=fontfile=f{$i}.ttf:textfile=t{$i}.txt:expansion=none:fontsize={$size}:line_spacing=".round($size * 0.2)
-                        .":fontcolor={$this->color($item['color'] ?? '', 'FFFFFF')}:x={$x}:y='{$yExpr}':alpha='{$alpha}'";
-                    $filter .= match (true) {
+                    $left = ($item['align'] ?? 'center') === 'left';
+                    $x = $left ? (string) round($w * 0.07 + $pad) : '(w-text_w)/2';
+                    $style = match (true) {
                         // Small lines get a soft dark panel so they stay readable over busy footage.
                         $soft => ":box=1:boxcolor=black@0.38:boxborderw={$pad}:shadowcolor=black@0.4:shadowx=0:shadowy=1",
                         $pad > 0 => ":box=1:boxcolor={$this->color($item['box_color'] ?? '', '000000')}@0.82:boxborderw={$pad}",
                         $this->light($item['color'] ?? '') => ':shadowcolor=black@0.55:shadowx=0:shadowy='.max(2, round($size * 0.05)),
                         default => '',
                     };
+                    $common = "expansion=none:fontsize={$size}:fontcolor={$this->color($item['color'] ?? '', 'FFFFFF')}:x={$x}:alpha='{$alpha}'{$style}";
 
-                    $filters[] = $filter;
+                    // drawtext centres a multi-line text as one block, leaving its lines flush left
+                    // inside it; centred text is drawn line by line on a shared baseline grid.
+                    $lines = $left ? [$b['text']] : explode('
+', $b['text']);
+                    foreach ($lines as $k => $line) {
+                        File::put("{$dir}/t{$i}_{$k}.txt", $line);
+                        $lineY = count($lines) === 1 ? $yExpr : "({$yExpr})+".($k * (int) round($size * 1.4) + (int) round($size * 0.92)).'-ascent';
+                        $filters[] = "drawtext=fontfile=f{$i}.ttf:textfile=t{$i}_{$k}.txt:line_spacing=".round($size * 0.2).":y='{$lineY}':{$common}";
+                    }
                     $y += $b['height'] + (int) round($size * 0.3);
                 }
 

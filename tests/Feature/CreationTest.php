@@ -13,6 +13,7 @@ use App\Services\AI\AiManager;
 use App\Services\AI\Exceptions\AiException;
 use App\Services\Billing\BillingService;
 use App\Services\Media\ReelAssembler;
+use App\Services\Media\TextOverlay;
 use Database\Seeders\PlanSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
@@ -699,6 +700,42 @@ class CreationTest extends TestCase
         $this->assertLessThan(20, $red(300, 120));       // right of the logo: background
         $this->assertLessThan(20, $red(100, 190));       // below the logo: background
         $this->assertSame([1080, 1350], [imagesx($img), imagesy($img)]);
+    }
+
+    public function test_every_line_of_centred_text_is_centred(): void
+    {
+        if (! Process::run([config('ai.ffmpeg'), '-version'])->successful()) {
+            $this->markTestSkipped('ffmpeg not installed');
+        }
+
+        $bg = imagecreatetruecolor(1080, 1920);
+        imagefill($bg, 0, 0, imagecolorallocate($bg, 0, 0, 0));
+        $file = sys_get_temp_dir().'/bg-'.uniqid().'.png';
+        imagepng($bg, $file);
+
+        $out = app(TextOverlay::class)->burn($file, [
+            ['text' => 'ӨВЛИЙН ШИНЭ ЦУГЛУУЛГА
+ЦАМЦ', 'role' => 'title', 'position' => 'top', 'align' => 'center', 'font' => 'serif', 'color' => 'FFFFFF', 'box' => false, 'box_color' => '', 'start' => 0, 'end' => 0, 'animation' => 'none'],
+        ], 0, true);
+        $img = imagecreatefrompng($out);
+        @unlink($file);
+        @unlink($out);
+
+        // Horizontal extent of white pixels per text line; both lines must be centred on 540.
+        $rows = [];
+        for ($y = 0; $y < 1920; $y++) {
+            for ($x = 0; $x < 1080; $x++) {
+                if ((imagecolorat($img, $x, $y) >> 16 & 0xFF) > 128) {
+                    $rows[$y] = [min($rows[$y][0] ?? 1080, $x), max($rows[$y][1] ?? 0, $x)];
+                }
+            }
+        }
+        $ys = array_keys($rows);
+        $gap = collect($ys)->sliding(2)->first(fn ($p) => $p->last() - $p->first() > 10)->last(); // first row of line 2
+        foreach ([array_filter($rows, fn ($y) => $y < $gap, ARRAY_FILTER_USE_KEY), array_filter($rows, fn ($y) => $y >= $gap, ARRAY_FILTER_USE_KEY)] as $line) {
+            $mid = (min(array_column($line, 0)) + max(array_column($line, 1))) / 2;
+            $this->assertEqualsWithDelta(540, $mid, 12);
+        }
     }
 
     public function test_a_reply_cut_off_at_max_tokens_does_not_end_the_job(): void
