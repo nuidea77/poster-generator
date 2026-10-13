@@ -58,17 +58,16 @@ class TextOverlay
                     $font = 'bold_sans';
                 }
 
-                $longest = max(array_map('mb_strlen', explode('
-', $text)));
+                $longest = max(array_map('mb_strlen', explode("\n", $text)));
                 $caps = mb_strtoupper($text) === $text ? 1.12 : 1.0;
                 $size = (int) round(min($w, $h) * (self::SIZES[$item['role'] ?? ''] ?? self::SIZES['subtitle']));
                 $size = (int) min($size, floor($w * 0.84 / max(1, $longest * self::WIDTH[$font] * $caps)));
-                $pad = ! empty($item['box']) ? (int) round($size * 0.35) : 0;
-                $lines = substr_count($text, '
-') + 1;
+                $soft = empty($item['box']) && in_array($item['role'] ?? '', ['subtitle', 'small'], true); // soft dark panel
+                $pad = (int) round($size * (! empty($item['box']) ? 0.35 : ($soft ? 0.4 : 0)));
+                $lines = substr_count($text, "\n") + 1;
                 $position = in_array($item['position'] ?? '', ['top', 'center', 'lower_third', 'bottom'], true) ? $item['position'] : 'lower_third';
 
-                $blocks[$position][] = compact('i', 'item', 'text', 'font', 'size', 'pad') + ['height' => (int) round($size * 1.2 * $lines + $size * 0.2 * ($lines - 1)) + 2 * $pad];
+                $blocks[$position][] = compact('i', 'item', 'text', 'font', 'size', 'pad', 'soft') + ['height' => (int) round($size * 1.2 * $lines + $size * 0.2 * ($lines - 1)) + 2 * $pad];
             }
 
             $filters = [];
@@ -78,7 +77,7 @@ class TextOverlay
                 $y = max($this->baseY($position, $w, $h), $floor);
 
                 foreach ($blocks[$position] ?? [] as $b) {
-                    ['i' => $i, 'item' => $item, 'size' => $size, 'pad' => $pad] = $b;
+                    ['i' => $i, 'item' => $item, 'size' => $size, 'pad' => $pad, 'soft' => $soft] = $b;
                     File::copy(resource_path('fonts/'.self::FONTS[$b['font']]), "{$dir}/f{$i}.ttf");
                     File::put("{$dir}/t{$i}.txt", $b['text']);
 
@@ -95,9 +94,12 @@ class TextOverlay
 
                     $filter = "drawtext=fontfile=f{$i}.ttf:textfile=t{$i}.txt:expansion=none:fontsize={$size}:line_spacing=".round($size * 0.2)
                         .":fontcolor={$this->color($item['color'] ?? '', 'FFFFFF')}:x=(w-text_w)/2:y='{$yExpr}':alpha='{$alpha}'";
-                    $filter .= $pad
-                        ? ":box=1:boxcolor={$this->color($item['box_color'] ?? '', '000000')}@0.82:boxborderw={$pad}"
-                        : ':shadowcolor=black@0.55:shadowx=0:shadowy='.max(2, round($size * 0.05));
+                    $filter .= match (true) {
+                        // Small lines get a soft dark panel so they stay readable over busy footage.
+                        $soft => ":box=1:boxcolor=black@0.38:boxborderw={$pad}:shadowcolor=black@0.4:shadowx=0:shadowy=1",
+                        $pad > 0 => ":box=1:boxcolor={$this->color($item['box_color'] ?? '', '000000')}@0.82:boxborderw={$pad}",
+                        default => ':shadowcolor=black@0.55:shadowx=0:shadowy='.max(2, round($size * 0.05)),
+                    };
 
                     $filters[] = $filter;
                     $y += $b['height'] + (int) round($size * 0.3);
