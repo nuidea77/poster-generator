@@ -17,6 +17,8 @@ The footer is where the customer acts: it must be **found in one glance and read
 ## 2. The default footer
 Unless the brief or the style clearly calls for another pattern, use **pattern 2**: `footer_style: pill`, `footer_color` = the brand's main colour (or its dark tone), white text, every fact with `icon_style: circle` (white discs, `icon_color` = the footer colour), one row of 2–3 facts with the phone bold on the right. It is the most finished-looking footer and the studio's house style.
 
+**Footer colour ≠ CTA colour.** The CTA pill takes the accent (orange, lime, yellow); the footer takes the brand's main or dark tone (violet, navy, deep green, near-black). Two blocks of the same colour stacked at the bottom merge into one blob. Keep a clear gap between the CTA and the footer.
+
 ```
 add_text(footer_style: pill, footer_color: "4C1D95", items: [
   footer · small · web · circle · icon_color 4C1D95 · "orgilmedia.mn"
