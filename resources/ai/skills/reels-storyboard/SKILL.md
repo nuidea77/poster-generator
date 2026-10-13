@@ -20,13 +20,16 @@ One sentence: what the viewer must know and do at the end ("Snow-leopard open da
 
 Beat menu: **Hook** (most striking image in the first 1–2 s — never the logo, never empty) · **World** (venue, city, kitchen) · **Desire** (a person who wants it) · **Product hero** (real product, from a still) · **Detail** (macro: texture, steam, pour) · **In use** · **Result / joy** · **Info card** · **End card**.
 
-## 3. Text on screen = cards made from stills
-Video models garble text in motion, so text lives only on **held cards**:
-1. Make the card as a still with `generate_image` at the reel's aspect, with the exact strings per `poster-typography` (e.g. title card: event name over the key visual; end card: logo + `10.15 · 15:00 · Shangri-La` + CTA on a brand-colour background or a darkened hero frame).
-2. Check every letter.
-3. Turn it into a clip with **`animate_still`** (free, instant, no quota; text stays perfectly sharp): `push_in` or `still`, 3–6 s. Do not send text cards to a video model — it blurs and garbles letters.
-- Hook cards may carry a 1–3 word title over the first image (e.g. `НЭЭЛТТЭЙ ӨДӨРЛӨГ`) when the reel is an event or offer.
-- Keep text inside the safe area (9:16: away from the top 14% and bottom 35%).
+## 3. Text on screen = `add_text` (real, animated typography)
+Video models garble letters, so never ask them for text. Put every word on screen with **`add_text`**: it burns real fonts onto a clip — letters exactly as you write them (Ө, Ү, ₮), timed fade / slide-up — and returns a new clip id to deliver instead.
+- **Hook title over live action:** on the first clip, `title` at `top`, slide-up at 0.2–0.4 s, held to the end of the clip (`ШИНЭ КРУАССАН`, `НЭЭЛТТЭЙ ӨДӨРЛӨГ`, `-30%`).
+- **Facts over a hero clip:** price (`price` + box in the brand/accent colour) or date line at `lower_third`, appearing ~1 s into the clip.
+- **End card:** make a clean still for it (logo or brand-colour background with calm space, **no text in the image**), `animate_still` it (`push_in`, 4–6 s), then `add_text`: title, the fact line(s) (`10.15 · 15:00 · Shangri-La`, `4,500₮`), CTA/phone `small` at `bottom` — staggered starts (0.2 s, 0.6 s, 1.0 s …) so they build up.
+- Read time: ≥ 1 s per 3 words + 1 s; ≤ 8 words on screen at once; one title per clip.
+- Fonts by mood: `bold_sans` (default, retail, sale), `condensed` (sport, bold offers), `serif` (premium, beauty, events — no ₮ glyph, prices switch to sans automatically), `rounded` (kids, food, playful), `sans` for secondary lines. Max two fonts per reel; same font roles in every clip.
+- Colour: white with shadow over photos; `box` with the brand colour for prices and on busy footage; dark text only on a light box.
+- Positions avoid the app UI automatically; do not stack more than 3 items in one zone.
+- Write the copy per `mongolian-ad-copy`.
 
 ## 4. Real product & logo shots
 Video models invent products from text. For the client's real product, venue photo or logo: make a still with `gemini` + the reference at the reel's aspect, review it, then use it as `first_frame_image_id` and describe only the motion.
@@ -41,8 +44,9 @@ Video models invent products from text. For the client's real product, venue pho
 If a video model fails or is paused (quota/credits), do not retry it. Use another video model if one is offered; otherwise build the missing beats with `animate_still` from the stills you already made (`push_in`, `pan_left`/`pan_right` on hero frames) so the clips still add up to the ordered length. A reel made partly of animated stills beats no reel.
 
 ## 7. Flow (parallel)
-1. Load `motion-art-director`, `cinematic-shot-design`, `video-prompting`, `poster-typography` and `mongolian-ad-copy` (for cards) and the business skill.
+1. Load `motion-art-director`, `cinematic-shot-design`, `video-prompting`, `mongolian-ad-copy` and the business skill.
 2. Request **all stills in one turn** (hero frames + title/info/end cards) — they generate in parallel. Review; fix only the failures.
-3. Call `generate_videos` **once** with all live-action clips, and `animate_still` for the cards (same turn).
-4. Replace failed clips with one more `generate_videos` call.
-5. `deliver_reel` with ids in order (lengths must add up), then `finish`.
+3. Call `generate_videos` **once** with all live-action clips, and `animate_still` for the end card (same turn).
+4. `add_text` on the hook, the fact clip(s) and the end card (several calls in one turn).
+5. Replace failed clips with one more `generate_videos` call.
+6. `deliver_reel` with the **texted** clip ids in order (lengths must add up), then `finish`.

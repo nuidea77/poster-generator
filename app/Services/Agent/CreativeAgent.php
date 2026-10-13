@@ -10,6 +10,7 @@ use App\Services\Billing\Credits;
 use App\Services\Media\MediaStore;
 use App\Services\Media\PosterFormatter;
 use App\Services\Media\ReelAssembler;
+use App\Services\Media\TextOverlay;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Pool;
 use Illuminate\Http\Client\Response;
@@ -33,6 +34,7 @@ class CreativeAgent
         private Credits $credits,
         private CostMeter $cost,
         private ReelAssembler $reels,
+        private TextOverlay $text,
     ) {}
 
     public function run(Creation $creation): void
@@ -284,6 +286,34 @@ class CreativeAgent
                 ]);
         }
 
+        if ($creation->type === Creation::REEL) {
+            $tools[] = $this->tool('add_text',
+                'Burn real typography onto one of your clips (exact letters incl. Mongolian Cyrillic and ₮, bundled fonts, timed fade or slide-up). Returns a new clip id with the same length and sound — deliver that one instead. Use it for the hook title, prices, dates, places and the CTA, over live-action clips or on cards. Times are seconds from the clip start; use \\n for a second line.',
+                [
+                    'clip_id' => ['type' => 'string'],
+                    'items' => [
+                        'type' => 'array',
+                        'items' => [
+                            'type' => 'object',
+                            'properties' => [
+                                'text' => ['type' => 'string'],
+                                'role' => ['type' => 'string', 'enum' => ['title', 'price', 'subtitle', 'small']],
+                                'position' => ['type' => 'string', 'enum' => ['top', 'center', 'lower_third', 'bottom']],
+                                'font' => ['type' => 'string', 'enum' => array_keys(TextOverlay::FONTS)],
+                                'color' => ['type' => 'string', 'description' => 'Hex, e.g. FFFFFF'],
+                                'box' => ['type' => 'boolean', 'description' => 'Solid panel behind the text'],
+                                'box_color' => ['type' => 'string', 'description' => 'Hex of the panel'],
+                                'start' => ['type' => 'number'],
+                                'end' => ['type' => 'number'],
+                                'animation' => ['type' => 'string', 'enum' => ['fade', 'slide_up', 'none']],
+                            ],
+                            'required' => ['text', 'role', 'position', 'font', 'color', 'box', 'box_color', 'start', 'end', 'animation'],
+                            'additionalProperties' => false,
+                        ],
+                    ],
+                ]);
+        }
+
         if ($creation->type === Creation::POSTER) {
             $tools[] = $this->tool('deliver_poster',
                 'Deliver the final image for one requested format. It is cropped (center) to the exact pixel size. Call once per format.',
@@ -329,6 +359,7 @@ class CreativeAgent
             'generate_image' => $this->generateImage($creation, $input),
             'generate_videos' => $this->generateVideos($creation, $input),
             'animate_still' => $this->animateStill($creation, $input),
+            'add_text' => $this->addText($creation, $input),
             'deliver_poster' => $this->deliverPoster($creation, $input),
             'deliver_reel' => $this->deliverReel($creation, $input),
             'finish' => $this->finish($creation, $input),
@@ -472,6 +503,28 @@ class CreativeAgent
         $this->bumpProgress($creation);
 
         return ['summary' => "{$id} ← {$asset['id']} ({$motion}, {$seconds} s)", 'content' => "Clip `{$id}` ({$seconds} s, {$motion}) made from `{$asset['id']}`."];
+    }
+
+    private function addText(Creation $creation, array $in): array
+    {
+        $clip = $creation->asset((string) ($in['clip_id'] ?? '')) ?? throw new AiException("Unknown asset [{$in['clip_id']}].");
+
+        if ($clip['kind'] !== 'video') {
+            throw new AiException('add_text needs a video clip (use animate_still first for a card).');
+        }
+
+        $tmp = $this->text->burn(MediaStore::absolute($clip['path']), array_values($in['items'] ?? []), (float) ($clip['duration'] ?? 0));
+        $file = MediaStore::put("creations/{$creation->public_id}/work", file_get_contents($tmp), 'video/mp4');
+        @unlink($tmp);
+
+        $lines = array_column($in['items'] ?? [], 'text');
+        $id = $creation->addAsset([
+            'kind' => 'video', 'source' => 'generated', 'provider' => 'text',
+            'path' => $file['path'], 'prompt' => 'text on '.$clip['id'].': '.implode(' | ', $lines), 'duration' => $clip['duration'] ?? 0,
+            'note' => 'typography', 'cost' => 0.0,
+        ]);
+
+        return ['summary' => "{$id} ← {$clip['id']} + ".count($lines).' text', 'content' => "Clip `{$id}` = `{$clip['id']}` with the text burned in (letters exactly as given). Deliver `{$id}` instead of `{$clip['id']}`."];
     }
 
     private function generateVideos(Creation $creation, array $in): array

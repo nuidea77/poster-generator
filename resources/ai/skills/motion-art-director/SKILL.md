@@ -36,6 +36,7 @@ A reel whose motion has nothing to do with the message is just moving wallpaper.
 - **Sound is a bonus layer.** Veo clips keep their sound (ambience, foley, soft music bed — no voices); keep one sound style across the reel (see `video-prompting`).
 - **Understandable without sound.** Reels autoplay muted; pictures plus short text cards must tell the story. The offer, date, place or CTA from the brief appear as text on a held card (end card, or an info card mid-reel) — see `reels-storyboard` §3.
 - **Read time.** A card needs about 1 s per 3 words plus 1 s; never more than ~8 words per card.
+- **Kinetic type.** Text enters with a short slide-up or fade on a beat (a cut, a pour, a step), lines build up staggered (≈0.4 s apart), and the final card holds still for the last 2 s. Text animates — the camera under it stays calm (`add_text`, see `reels-storyboard` §3).
 
 ## 4. Continuity and transitions
 

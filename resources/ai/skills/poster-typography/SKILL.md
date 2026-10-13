@@ -1,6 +1,6 @@
 ---
 name: poster-typography
-description: Putting the message on the poster — headline, offer badge, price, date/time/place, call to action and the brand line rendered inside the image by the image model: hierarchy, layout zones per poster type, type styles by mood, exact-text prompting (Mongolian Cyrillic, ₮, %, dates), the two-step visual-then-typography method, letter-by-letter checking and the fallback ladder when text comes out wrong. Load for every POSTER job whose brief contains any words, numbers, price, discount, date, place or call to action, and for reel title / end cards.
+description: Putting the message on the poster — headline, offer badge, price, date/time/place, call to action and the brand line rendered inside the image by the image model: hierarchy, layout zones per poster type, type styles by mood, exact-text prompting (Mongolian Cyrillic, ₮, %, dates), the two-step visual-then-typography method, letter-by-letter checking and the fallback ladder when text comes out wrong. Load for every POSTER job whose brief contains any words, numbers, price, discount, date, place or call to action.
 ---
 
 # Poster typography
@@ -41,7 +41,19 @@ Keep text inside the safe area (see `format-composition`); leave clear space aro
 - **Fresh / food** — rounded friendly sans, warm colours, slightly playful layout.
 - **Corporate / event** — clean geometric sans, left-aligned grid, solid colour bands.
 - **Kids / playful** — rounded chunky letters, bright multi-colour, sticker-like badges.
-Name the style concretely in the prompt ("bold condensed sans-serif in white, all caps").
+Name the style concretely in the prompt ("bold condensed sans-serif in white, all caps", "geometric sans like Montserrat ExtraBold", "elegant high-contrast serif like Playfair Display").
+
+## 3b. Typographic craft (what makes it look designed)
+- **Scale:** hook ≈ 3× the fact lines, facts ≈ 1.6× the small lines. One element clearly dominates; never two equally big lines.
+- **Max two typefaces** (one display + one text); weight and size do the rest. Same fonts in every ratio of the set.
+- **Alignment:** pick one axis — all centred (symmetrical, events, greetings) or all left-aligned on a grid (retail, corporate). Never mix.
+- **Margins:** keep ≥ 6% of the width free around text; text never touches the edge or the product.
+- **Line length:** ≤ 18 characters per line for headlines on 9:16/4:5, ≤ 28 on 16:9; break lines at word boundaries, balanced.
+- **Caps headlines** get slightly wider letter-spacing; body text stays sentence case.
+- **Numbers sell:** make the price / % the largest or second-largest element; the currency sign smaller than the digits; old price smaller, struck through, muted colour.
+- **Legibility on photos:** put text on a calm area; otherwise a solid panel, a band, or a soft dark gradient (scrim) behind it. Contrast at least like white on mid-dark; no thin type on busy texture.
+- **Badges:** circle, rounded pill or slanted tag in the accent colour for `-30%`, `ШИНЭ`, the date — one badge per poster.
+- **Consistency:** the same colour does the same job (accent = offer/price only).
 
 ## 4. How to prompt text (exactness)
 - Put every string in double quotes and say "render exactly this text, letter for letter": `headline text exactly "ЗУНЫ ХЯМДРАЛ"`.
@@ -49,6 +61,9 @@ Name the style concretely in the prompt ("bold condensed sans-serif in white, al
 - Mongolian Cyrillic needs care: name tricky letters if present ("note the Cyrillic letters Ө and Ү"). Prefer short words. Numbers, ₮ and % render far more reliably than words.
 - Write dates and prices in a compact form: `10.15 · 15:00`, `150,000₮`, `-18%`.
 - List all text in one block at the end of the prompt, then "No other text, no other letters or numbers, no watermark."
+
+## 4b. Reels
+In reels, text is not drawn by the image model: use `add_text` (real fonts, exact letters, animated) — see `reels-storyboard` §3. Image-model lettering is for posters only.
 
 ## 5. Two-step method (recommended)
 1. **Visual first** — make and approve the image without text but **with the empty zones** the layout needs ("leave the top third as calm empty space for a headline; leave a clean band at the bottom").

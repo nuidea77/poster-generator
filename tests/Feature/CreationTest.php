@@ -8,6 +8,7 @@ use App\Models\Payment;
 use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\User;
+use App\Services\Agent\CreativeAgent;
 use App\Services\AI\AiManager;
 use App\Services\Billing\BillingService;
 use App\Services\Media\ReelAssembler;
@@ -571,6 +572,46 @@ class CreationTest extends TestCase
         $this->assertSame([['still', 6, 0.0], ['still', 8, 0.0]], array_map(fn ($a) => [$a['provider'], $a['duration'], (float) $a['cost']], array_slice($creation->assets, 1)));
         $this->assertEqualsWithDelta(14.0, $creation->outputs[0]['duration'], 0.2);
         $this->assertSame([1080, 1920], [$creation->outputs[0]['width'], $creation->outputs[0]['height']]);
+    }
+
+    public function test_add_text_burns_exact_typography_onto_a_clip(): void
+    {
+        $ffmpeg = config('ai.ffmpeg');
+        if (! Process::run([$ffmpeg, '-version'])->successful()) {
+            $this->markTestSkipped('ffmpeg not installed');
+        }
+
+        $clip = tempnam(sys_get_temp_dir(), 'clip').'.mp4';
+        Process::run([$ffmpeg, '-y', '-f', 'lavfi', '-i', 'color=c=0x223344:s=540x960:r=24', '-f', 'lavfi', '-i', 'sine=frequency=440', '-t', '3', '-pix_fmt', 'yuv420p', '-shortest', $clip])->throw();
+        Storage::disk('public')->put('in/clip.mp4', file_get_contents($clip));
+
+        $text = fn (string $t, string $role, string $pos, string $font) => ['text' => $t, 'role' => $role, 'position' => $pos, 'font' => $font, 'color' => 'FFFFFF', 'box' => $role === 'price', 'box_color' => 'E85D04', 'start' => 0.2, 'end' => 3, 'animation' => 'slide_up'];
+        Http::fake([
+            'api.anthropic.com/*' => Http::sequence()
+                ->push($this->turn([['add_text', ['clip_id' => 'vid_1', 'items' => [
+                    $text('ӨВЛИЙН ХЯМДРАЛ', 'title', 'top', 'condensed'),
+                    $text('4,500₮', 'price', 'lower_third', 'serif'), // serif has no ₮: falls back to bold sans
+                    $text("Захиалах\n9911-2233", 'small', 'bottom', 'sans'),
+                ]]]]))
+                ->push($this->turn([['finish', ['summary' => 'ok']]])),
+        ]);
+
+        $creation = Creation::create(['user_id' => $this->user->id, 'type' => 'reel', 'duration' => 15, 'formats' => ['9:16'], 'prompt' => 'x', 'status' => 'running']);
+        $creation->update(['assets' => [['id' => 'vid_1', 'kind' => 'video', 'source' => 'generated', 'provider' => 'veo', 'path' => 'in/clip.mp4', 'duration' => 3, 'cost' => 1.2]]]);
+
+        app(CreativeAgent::class)->run($creation);
+        $creation->refresh();
+
+        $this->assertSame('add_text', $creation->steps[0]['name'], json_encode($creation->steps));
+        $this->assertArrayNotHasKey('error', $creation->steps[0], json_encode($creation->steps));
+        $made = $creation->asset('vid_2');
+        $this->assertSame(['text', 3, 0.0], [$made['provider'], $made['duration'], (float) $made['cost']]);
+        $this->assertStringContainsString('ӨВЛИЙН ХЯМДРАЛ', $made['prompt']);
+
+        $probe = json_decode(Process::run([config('ai.ffprobe'), '-v', 'error', '-show_entries', 'stream=codec_type,width,height:format=duration', '-of', 'json', Storage::disk('public')->path($made['path'])])->output(), true);
+        $this->assertSame(['video', 'audio'], array_column($probe['streams'], 'codec_type')); // sound kept
+        $this->assertEqualsWithDelta(3.0, (float) $probe['format']['duration'], 0.1);
+        @unlink($clip);
     }
 
     public function test_reel_delivery_needs_clips_and_respects_the_cap(): void
