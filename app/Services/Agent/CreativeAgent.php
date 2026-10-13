@@ -339,7 +339,7 @@ class CreativeAgent
                     'position' => ['type' => 'string', 'enum' => LogoOverlay::POSITIONS],
                     'width' => ['type' => 'number', 'description' => 'Logo width as a share of the frame width (0.08–0.4); sizes by logo type and format in the logo-placement skill'],
                     'remove_background' => ['type' => 'boolean', 'description' => 'true (normal): a plain background around the logo (e.g. white on a JPG) is removed; the logo itself, including its white inner parts, stays exact. false: keep the file as is.'],
-                    'plate' => ['type' => 'string', 'enum' => ['none', 'light', 'dark'], 'description' => 'none (normal) = the logo straight on the poster; light = white card behind it; dark = dark panel — only when the logo would not stand out from the area behind it'],
+                    'plate' => ['type' => 'string', 'enum' => ['none', 'light', 'dark'], 'description' => 'none (normal) = the logo straight on the poster; light = white plate behind it; dark = translucent dark plate — shaped like the logo (circle for a round badge, rounded card otherwise); only when the logo would not stand out from the area behind it'],
                 ]);
         }
 

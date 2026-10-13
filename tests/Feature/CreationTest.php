@@ -12,6 +12,7 @@ use App\Services\Agent\CreativeAgent;
 use App\Services\AI\AiManager;
 use App\Services\AI\Exceptions\AiException;
 use App\Services\Billing\BillingService;
+use App\Services\Media\LogoOverlay;
 use App\Services\Media\ReelAssembler;
 use App\Services\Media\TextOverlay;
 use Database\Seeders\PlanSeeder;
@@ -793,6 +794,38 @@ class CreationTest extends TestCase
         $this->assertSame('cut off (max_tokens)', $creation->steps[0]['error']);
         Http::assertSent(fn ($r) => str_contains($r->url(), 'anthropic') && ($r['messages'][2]['content'][0]['is_error'] ?? false) === true
             && $r['messages'][2]['content'][0]['tool_use_id'] === 'toolu_0_add_text');
+    }
+
+    public function test_a_round_badge_gets_a_round_plate(): void
+    {
+        if (! Process::run([config('ai.ffmpeg'), '-version'])->successful()) {
+            $this->markTestSkipped('ffmpeg not installed');
+        }
+
+        // A red disc with transparent corners (a badge) on a blue 1000×1000 visual, light plate.
+        $logo = imagecreatetruecolor(200, 200);
+        imagesavealpha($logo, true);
+        imagealphablending($logo, false);
+        imagefill($logo, 0, 0, imagecolorallocatealpha($logo, 0, 0, 0, 127));
+        imagefilledellipse($logo, 100, 100, 200, 200, imagecolorallocate($logo, 255, 0, 0));
+        $bg = imagecreatetruecolor(1000, 1000);
+        imagefill($bg, 0, 0, imagecolorallocate($bg, 0, 0, 255));
+        [$logoFile, $bgFile] = [sys_get_temp_dir().'/badge-'.uniqid().'.png', sys_get_temp_dir().'/bg-'.uniqid().'.png'];
+        imagepng($logo, $logoFile);
+        imagepng($bg, $bgFile);
+
+        $placed = app(LogoOverlay::class)->place($bgFile, $logoFile, 'center', 0.2, 'light', true);
+        $img = imagecreatefrompng($placed['path']);
+        @unlink($logoFile);
+        @unlink($bgFile);
+        @unlink($placed['path']);
+
+        // Logo 200 px + 24 px plate each side = a 248 px circle centred at 500,500.
+        $rgb = fn (int $x, int $y) => [imagecolorat($img, $x, $y) >> 16 & 0xFF, imagecolorat($img, $x, $y) >> 8 & 0xFF, imagecolorat($img, $x, $y) & 0xFF];
+        $this->assertSame([255, 0, 0], $rgb(500, 500));            // the logo
+        $this->assertGreaterThan(240, min($rgb(500, 388)));          // white ring above the disc
+        $this->assertSame([0, 0, 255], $rgb(385, 385));            // the plate's corner is open: a circle, not a square card
+        $this->assertEqualsWithDelta([0.376, 0.376, 0.624, 0.624], $placed['box'], 0.002);
     }
 
     public function test_library_filters_by_outcome(): void

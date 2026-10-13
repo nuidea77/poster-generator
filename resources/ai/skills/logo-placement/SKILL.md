@@ -47,7 +47,8 @@ Pick the corner from the layout you chose in `poster-typography`:
 ## 4. Clear space and contrast
 - Clear space around it ≥ the height of its letters — nothing touches it.
 - `remove_background: true` (normal) clears a white/plain file background; the logo's own white parts stay.
-- Contrast: a dark logo on a light, calm area or a light logo on a dark area. If the area behind it is mid-tone or busy, choose another corner first; only then use `plate` (`light` white card for dark logos, `dark` panel for light logos).
+- Contrast: a dark logo on a light, calm area or a light logo on a dark area. If the area behind it is mid-tone or busy, choose another corner first; only then use `plate` (`light` for dark logos, `dark` for light logos).
+- The plate follows the logo's shape: a round badge gets a circle (it reads as the badge's own outer ring), a wordmark a rounded card. A dark badge on a dark night/sky poster → `light` plate is the right call; never leave a dark logo invisible on a dark area.
 - Never recolour, outline, rotate, crop, stretch, add shadows or effects — the tool forbids it and so do brand rules.
 
 ## 5. Every ratio the same
