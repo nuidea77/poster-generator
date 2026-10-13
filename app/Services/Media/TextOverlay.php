@@ -135,6 +135,14 @@ class TextOverlay
                 $pad = (int) round($size * ($panel ? 0.35 : ($soft ? 0.4 : 0)));
                 $lines = substr_count($text, "\n") + 1;
                 $position = in_array($item['position'] ?? '', ['top', 'center', 'lower_third', 'bottom', 'footer'], true) ? $item['position'] : 'lower_third';
+                // A footer row of 3+ is justified: first on the left edge, last on the right, the rest centred.
+                if ($position === 'footer' && $columns > 2) {
+                    $align = match ($column) {
+                        0 => 'left',
+                        $columns - 1 => 'right',
+                        default => 'column',
+                    };
+                }
 
                 $display = ($item['role'] ?? '') === 'display'; // big digits/caps: no descenders, sits tight on the next line
                 $blocks[$position][] = compact('i', 'item', 'text', 'font', 'size', 'pad', 'soft', 'same', 'align', 'shape', 'column', 'columns', 'rowNo')
@@ -145,12 +153,14 @@ class TextOverlay
             foreach ($blocks as $position => $set) {
                 $rowMin = [];
                 foreach ($set as $b) {
-                    $key = $b['rowNo'].':'.($b['item']['role'] ?? '');
+                    $key = $b['rowNo'].':'.($b['item']['role'] ?? '').($b['columns'] === 2 && $b['shape'] !== 'rect' ? ':badge' : '');
                     $rowMin[$key] = min($rowMin[$key] ?? PHP_INT_MAX, $b['size']);
                 }
                 foreach ($set as $k => $b) {
-                    // Rows of 3+: same role → one size. Pairs keep their own sizes.
-                    $size = $b['columns'] > 2 ? $rowMin[$b['rowNo'].':'.($b['item']['role'] ?? '')] : $b['size'];
+                    // Rows of 3+: same role → one size. Pairs keep their own sizes, except two badges
+                    // (pill/glass) of one role, which must match (a price pill beside an offer pill).
+                    $badge = $b['shape'] !== 'rect';
+                    $size = $b['columns'] > 2 || ($badge && $b['columns'] === 2) ? $rowMin[$b['rowNo'].':'.($b['item']['role'] ?? '').($b['columns'] === 2 ? ':badge' : '')] ?? $b['size'] : $b['size'];
                     $pad = (int) round($size * $b['ems']['pad']);
                     $blocks[$position][$k] = ['size' => $size, 'pad' => $pad,
                         'width' => (int) round($size * $b['ems']['width']) + 2 * $pad,
@@ -167,10 +177,18 @@ class TextOverlay
             // Footer: a full-width band at the foot of the frame (above the app UI on Stories and
             // reels) holding the contact facts in rows — address left, phone right.
             $bottomLimit = (int) round($h * ($still ? 0.95 : 0.8));
+            // Height of a zone: each row counts once, as tall as its tallest item.
+            $zoneHeight = function (array $set): int {
+                $rows = [];
+                foreach ($set as $b) {
+                    $rows[$b['rowNo']] = max($rows[$b['rowNo']] ?? 0, $b['height'] + $b['gap']);
+                }
+
+                return array_sum($rows);
+            };
             $footerTop = null;
             if (isset($blocks['footer'])) {
-                $rows = array_filter($blocks['footer'], fn ($b) => ! $b['same']);
-                $group = array_sum(array_map(fn ($b) => $b['height'] + $b['gap'], $rows)) - end($rows)['gap'];
+                $group = $zoneHeight($blocks['footer']) - end($blocks['footer'])['gap'];
                 $padY = (int) round(min($w, $h) * 0.035);
                 $bandBottom = $still && $h <= $w * 1.5 ? $h : (int) round($h * ($still ? 0.87 : 0.8));
                 $bandTop = $bandBottom - $group - 2 * $padY;
@@ -184,14 +202,18 @@ class TextOverlay
                 $y = max($this->baseY($position, $w, $h, $still), $floor);
 
                 if ($position === 'bottom' && isset($blocks['bottom'])) {
-                    $group = array_sum(array_map(fn ($b) => $b['same'] ? 0 : $b['height'] + $b['gap'], $blocks['bottom']));
+                    $group = $zoneHeight($blocks['bottom']);
                     $y = max($floor, min($y, $bottomLimit - $group));
                 }
                 if ($position === 'footer' && $footerTop !== null) {
                     $y = $footerTop;
                 }
 
-                $row = null; // the row the last block started on: ['y' => top, 'end' => next free y]
+                $row = null; // the row the last block started on: ['y' => top, 'gap' => …, 'end' => next free y]
+                $rowH = []; // each row is as tall as its tallest item; smaller items centre in it
+                foreach ($blocks[$position] ?? [] as $bb) {
+                    $rowH[$bb['rowNo']] = max($rowH[$bb['rowNo']] ?? 0, $bb['height']);
+                }
                 foreach ($blocks[$position] ?? [] as $b) {
                     ['i' => $i, 'item' => $item, 'size' => $size, 'pad' => $pad, 'soft' => $soft] = $b;
                     $same = $b['same'] && $row;
@@ -207,6 +229,8 @@ class TextOverlay
                             $y = (int) round($bottom0);
                         }
                     }
+                    $rowStart = $same ? $row['y'] : $y;
+                    $y = $rowStart + intdiv($rowH[$b['rowNo']] - $b['height'], 2);
                     File::copy(resource_path('fonts/'.self::FONTS[$b['font']]), "{$dir}/f{$i}.ttf");
 
                     $top = $y + $pad;
@@ -305,10 +329,10 @@ class TextOverlay
                         $right => $w - $margin - $width,
                         default => (int) round($cx - $width / 2),
                     };
-                    $this->placed[] = ['text' => $b['text'], 'panel' => $pad > 0 || $position === 'footer', 'rect' => [$x0, $y, $x0 + $width, $y + $b['height']], 'color' => $this->hex($item['color'] ?? '')];
-                    $rowY = $y;
-                    $y = max($same ? $row['end'] : 0, $y + $b['height'] + $b['gap']);
-                    $row = ['y' => $rowY, 'end' => $y];
+                    $this->placed[] = ['text' => $b['text'], 'panel' => $pad > 0 || $position === 'footer', 'rect' => [$x0, $y, $x0 + $width, $y + $b['height']], 'color' => $this->hex($item['color'] ?? ''), 'position' => $position, 'shrunk' => $size < (int) round(min($w, $h) * (self::SIZES[$item['role'] ?? ''] ?? self::SIZES['subtitle']) * 0.75)];
+                    $rowGap = max($same ? $row['gap'] : 0, $b['gap']);
+                    $row = ['y' => $rowStart, 'gap' => $rowGap, 'end' => $rowStart + $rowH[$b['rowNo']] + $rowGap];
+                    $y = $row['end'];
                 }
 
                 $floor = $y + (int) round(min($w, $h) * 0.02);

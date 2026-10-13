@@ -850,7 +850,7 @@ class CreationTest extends TestCase
         @unlink($out);
 
         [$address, $phone] = array_column($overlay->placed, 'rect');
-        $this->assertSame($address[1], $phone[1]);            // one row
+        $this->assertEqualsWithDelta(($address[1] + $address[3]) / 2, ($phone[1] + $phone[3]) / 2, 1); // one row, centred on each other
         $this->assertGreaterThan(1150, $address[1]);           // at the foot
         $c = imagecolorat($img, 540, 1345);                    // the band reaches the bottom edge in the brand colour
         $this->assertEqualsWithDelta([15, 76, 92], [$c >> 16 & 0xFF, $c >> 8 & 0xFF, $c & 0xFF], 40);

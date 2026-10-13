@@ -642,8 +642,11 @@ class CreativeAgent
         // Counted, not judged: layout rules the agent tends to skip.
         $footer = array_values(array_filter($in['items'], fn ($it) => ($it['position'] ?? '') === 'footer' && trim((string) ($it['text'] ?? '')) !== ''));
         $footerRows = count(array_filter($footer, fn ($it) => empty($it['same_line'])));
-        if (count($footer) > 4 || $footerRows > 2) {
-            $content .= ' LAYOUT — the footer holds '.count($footer).' facts in '.$footerRows.' rows; keep it to ≤ 4 facts in 2 rows of pairs (the phone, bold, on the right of the address). Drop the weakest fact (delivery, web) or move it to a pill.';
+        $cramped = array_column(array_filter($this->text->placed, fn ($p) => $p['position'] === 'footer' && $p['shrunk']), 'text');
+        if ($footerRows > 2 || count($footer) > 6) {
+            $content .= ' LAYOUT — the footer holds '.count($footer).' facts in '.$footerRows.' rows; keep it to 2 rows (up to 3 short facts per row with same_line; the phone bold on the right). Drop the weakest fact or move it to a pill.';
+        } elseif ($cramped) {
+            $content .= ' LAYOUT — footer facts had to shrink to fit their row ("'.implode('", "', $cramped).'"): shorten them (address without the district, "07:30–22:00" not "Цагийн хуваарь 07:30–22:00") or move one to the other row.';
         }
 
         if ($faint) {

@@ -22,6 +22,10 @@ From the brief, pick at most these, in this order of size:
 
 **The offer is never a footnote.** When the brief has an offer ("2 дахь нь 50% хямд", 1+1, -30%, gift with purchase, free delivery for a period) it is the hook or a pill badge right under the hook — never a small line beside the dates. If the product name is the headline, the offer is the badge — an **accent-colour pill at least as big as the price** (role `price`, or side by side with the price pill with `same_line`). A small pale glass chip under a big price pill buries the offer.
 
+**Above the headline: at most one small line** (the brand *or* a kicker like `ШИНЭ`), never two stacked labels — they shrink the headline into a third line of similar size. The headline is the biggest text by far (2 lines of `title` beat 1 cramped line).
+
+**Price + offer pills:** side by side (`same_line`) only when both are short (≤ 12 characters each); a long offer (`2 ДАХЬ АЯГА 50% ХЯМД`) goes in its own pill **under** the price, same role and accent colour.
+
 Rules: **max ~12 words on the whole poster**; headline ≤ 4 words; one hook only. Headlines, CTAs, dates and prices in Mongolian: follow `mongolian-ad-copy`. Never invent prices, dates, phone numbers, % or claims — use only what the brief says. You may write a short Mongolian headline yourself when the brief clearly implies it (sale → `ХЯМДРАЛ`, opening → `НЭЭЛТ`, new item → `ШИНЭ`, greeting → the occasion's name) — spelled correctly.
 
 Compute derived numbers exactly (150,000₮ with 18% off = 123,000₮) and show both only when the brief gives the price and the discount.
@@ -81,13 +85,17 @@ When the message is a number — `15` years, `-30%`, `2026`, `100` guests, `1-р
 `box_shape: pill` (rounded, accent colour) for badges and CTA bars, `glass` (frosted light) for chips and labels; rows of 3–4 equal columns with `same_line`. Ready-made layouts from professional posters: `poster-layouts`.
 
 ## 3d. A compact fact block (date, time, place, phone, delivery, web)
-**Default: the footer band.** Put the contact facts in `position: footer` — they sit on a full-width colour band at the very foot of the poster (`footer_color` on the add_text call: the brand's dark colour — deep teal, navy, espresso brown — or `141414`; text white). The band keeps the facts off the product, gives them perfect contrast, and looks like the professional posters. Lay it out in **2 rows of pairs**:
+**Default: the footer band.** Put the contact facts in `position: footer` — they sit on a full-width colour band at the very foot of the poster (`footer_color` on the add_text call: the brand's dark colour — deep teal, navy, espresso brown — or `141414`; text white). The band keeps the facts off the product, gives them perfect contrast, and looks like the professional posters. Lay it out in **2 rows**, each with 2 or 3 short facts (`same_line`): a row of 3 is justified — first on the left edge, the middle centred, the last on the right:
 ```
 footer · small · calendar "10.20–11.20"          footer · small · clock "07:30–22:00"   (same_line)
 footer · small · location "Их тойруу 15"          footer · subtitle bold · phone "8800-3344" (same_line, right)
 ```
 - The phone is the one big fact (`subtitle`, bold) on the right; the rest `small`.
-- Max 4 facts in the band (2 rows). More → cut: delivery or web go in the caption, or become a pill elsewhere.
+- Up to 6 short facts in the band (2 rows × 3). A row of 3 only when each fact is short (≤ ~14 characters: `10.20–11.20`, `07:30–22:00`, `Хүргэлттэй`); a long address takes a pair row with the phone. add_text warns when a row is too long and its text had to shrink.
+  ```
+  footer · small · calendar "10.20–11.20" | small · clock "07:30–22:00" | small · delivery "Хүргэлттэй"
+  footer · small · location "Их тойруу 15"                              | subtitle bold · phone "8800-3344"
+  ```
 - Ask the visual for room: "the bottom 15% is a plain dark/brand-colour area or simple table surface" — the band covers it, so the product must end above it.
 - Use plain `bottom` facts (no band) only on minimal posters with a calm empty bottom, or when the design has its own band.
 
