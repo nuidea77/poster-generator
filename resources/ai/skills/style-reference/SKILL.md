@@ -19,8 +19,8 @@ Write down (for yourself) what makes it work, in concrete visual words:
 If there are several references, keep what they share and ignore one-offs.
 
 ## 2. Prompt
-- Use `gemini` with `reference_image_ids` = [style refs…, product…, logo]. Say which image plays which role:
-  "Use image 1 only as a style reference (palette, lighting, composition, mood). Do not copy its objects, people, text or logo. The subject is the product in image 2, kept exactly as it is. Place the logo from image 3 small in the top-left."
+- Use `gemini` with `reference_image_ids` = [style refs…, product…] (the logo goes on later with `add_logo`). Say which image plays which role:
+  "Use image 1 only as a style reference (palette, lighting, composition, mood). Do not copy its objects, people, text or logo. The subject is the product in image 2, kept exactly as it is."
 - Also spell out the borrowed qualities in words (from step 1) — models follow words more reliably than "like this".
 - With `openai` (no strict product reference needed), describe the borrowed look in words only.
 

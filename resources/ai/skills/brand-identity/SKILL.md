@@ -13,7 +13,7 @@ description: Extracting a brand's colours, tone and visual language from a logo,
 ## Apply it
 - Keep the same palette, lighting and style across every image and clip in the job.
 - Put brand colours into image prompts as mood ("deep navy and gold palette") rather than as painted objects.
-- If a logo is attached, never redraw it: pass it as a reference and ask for it to be placed unaltered — **in a corner or on the info band, with clear space around it; ≈10–15% of the frame width for a symbol, 18–20% for a wordmark** (smaller and the letters break). It signs the ad; it is not the headline. Verify the result; a distorted logo is worse than none.
+- If a logo is attached: The logo is placed with **`add_logo`** — the client's own file, pixel-exact (shape, proportions, letters, colours never change; only scaled evenly). Never pass the logo to an image or video model to draw or place it. Size: about 12–18% of the width for a symbol, 20–30% for a wordmark; a corner or the info band with clear space; `plate: light` for a logo file on a white background over a non-white area, `dark` for a light logo on a busy area. It signs the ad; it is not the headline.
 - Take the type style from the brand too: a serif wordmark → elegant serif headlines; a bold sans logo → bold sans headlines (see `poster-typography`).
 - Mongolian brands often mix Cyrillic and Latin wordmarks; keep the exact spelling from the brief.
 

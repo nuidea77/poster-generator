@@ -7,6 +7,7 @@ use App\Services\AI\AiManager;
 use App\Services\AI\Exceptions\AiException;
 use App\Services\Billing\CostMeter;
 use App\Services\Billing\Credits;
+use App\Services\Media\LogoOverlay;
 use App\Services\Media\MediaStore;
 use App\Services\Media\PosterFormatter;
 use App\Services\Media\ReelAssembler;
@@ -35,6 +36,7 @@ class CreativeAgent
         private CostMeter $cost,
         private ReelAssembler $reels,
         private TextOverlay $text,
+        private LogoOverlay $logos,
     ) {}
 
     public function run(Creation $creation): void
@@ -174,7 +176,7 @@ class CreativeAgent
 
         foreach ($creation->inputs as $input) {
             $label = match ($input['role']) {
-                'logo' => 'Brand logo',
+                'logo' => 'Brand logo (never give it to an image/video model; place it with add_logo, pixel-exact)',
                 'reference' => 'Style reference from the client (match its look, mood, composition and pacing; do not copy its content, text or logos)',
                 default => 'Product photo',
             };
@@ -315,6 +317,17 @@ class CreativeAgent
                 ],
             ]);
 
+        if (collect($creation->inputs)->contains(fn ($i) => ($i['role'] ?? null) === 'logo')) {
+            $tools[] = $this->tool('add_logo',
+                "Place the client's logo file on one of your images or clips, pixel-exact: shape, proportions, letters and colours never change (it is only scaled evenly). Always use this for the logo — never ask an image or video model to draw it. Returns a new asset id; deliver that one.",
+                [
+                    'asset_id' => ['type' => 'string'],
+                    'position' => ['type' => 'string', 'enum' => LogoOverlay::POSITIONS],
+                    'width' => ['type' => 'number', 'description' => 'Logo width as a share of the frame width: about 0.12–0.18 for a symbol, 0.2–0.3 for a wordmark (0.08–0.4)'],
+                    'plate' => ['type' => 'string', 'enum' => ['none', 'light', 'dark'], 'description' => 'light = solid white card (use it when the logo file has a white background and the area is not white); dark = panel for a light logo on a busy area; none = transparent logo or matching background'],
+                ]);
+        }
+
         if ($creation->type === Creation::POSTER) {
             $tools[] = $this->tool('deliver_poster',
                 'Deliver the final image for one requested format. It is cropped (center) to the exact pixel size. Call once per format.',
@@ -361,6 +374,7 @@ class CreativeAgent
             'generate_videos' => $this->generateVideos($creation, $input),
             'animate_still' => $this->animateStill($creation, $input),
             'add_text' => $this->addText($creation, $input),
+            'add_logo' => $this->addLogo($creation, $input),
             'deliver_poster' => $this->deliverPoster($creation, $input),
             'deliver_reel' => $this->deliverReel($creation, $input),
             'finish' => $this->finish($creation, $input),
@@ -432,6 +446,24 @@ class CreativeAgent
         return $out;
     }
 
+    /**
+     * The logo must keep its exact shape and size, so models never get it: it is
+     * placed only with add_logo.
+     *
+     * @param  list<string>  $ids
+     * @return list<string>
+     */
+    private function withoutLogo(Creation $creation, array $ids): array
+    {
+        $logos = collect($creation->inputs)->where('role', 'logo')->pluck('id')->all();
+
+        if (array_intersect($ids, $logos)) {
+            throw new AiException('Do not pass the logo to an image model — it redraws it. Generate without it and place the real logo with add_logo.');
+        }
+
+        return array_values($ids);
+    }
+
     private function settled(array|Throwable $result): array
     {
         return $result instanceof Throwable ? throw $result : $result;
@@ -452,7 +484,7 @@ class CreativeAgent
             'provider' => $provider,
             'cost' => $cost,
             'aspect' => in_array($in['aspect'] ?? null, self::ASPECTS, true) ? $in['aspect'] : '1:1',
-            'references' => array_map(fn ($id) => $this->readAsset($creation, $id, 'image'), $in['reference_image_ids'] ?? []),
+            'references' => array_map(fn ($id) => $this->readAsset($creation, $id, 'image'), $this->withoutLogo($creation, $in['reference_image_ids'] ?? [])),
             'prompt' => trim((string) ($in['prompt'] ?? '')).' High quality, professional, no watermark.',
         ];
     }
@@ -531,6 +563,32 @@ class CreativeAgent
         $content = "`{$new}` = `{$asset['id']}` with the text set in real fonts (letters exactly as given). Deliver `{$new}` instead of `{$asset['id']}`.";
 
         return ['summary' => "{$new} ← {$asset['id']} + ".count($lines).' text', 'content' => $still ? [['type' => 'text', 'text' => $content.' Review it:'], $this->imageBlock($file['path'])] : $content];
+    }
+
+    private function addLogo(Creation $creation, array $in): array
+    {
+        $logo = collect($creation->inputs)->firstWhere('role', 'logo') ?? throw new AiException('No logo was attached to this job.');
+        $id = (string) ($in['asset_id'] ?? '');
+        $asset = $creation->asset($id) ?? throw new AiException("Unknown asset [{$id}].");
+        $still = $asset['kind'] === 'image';
+
+        $tmp = $this->logos->place(
+            MediaStore::absolute($asset['path']), MediaStore::absolute($logo['path']),
+            (string) ($in['position'] ?? 'top_left'), (float) ($in['width'] ?? 0.16), (string) ($in['plate'] ?? 'none'), $still,
+        );
+        $file = MediaStore::put("creations/{$creation->public_id}/work", file_get_contents($tmp), $still ? 'image/png' : 'video/mp4');
+        @unlink($tmp);
+
+        $new = $creation->addAsset([
+            'kind' => $asset['kind'], 'source' => 'generated', 'provider' => 'logo',
+            'path' => $file['path'], 'prompt' => "logo {$in['position']} on {$asset['id']}",
+            'aspect' => $asset['aspect'] ?? null, 'duration' => $asset['duration'] ?? null,
+            'note' => 'logo', 'cost' => 0.0,
+        ]);
+
+        $content = "`{$new}` = `{$asset['id']}` with the original logo placed ({$in['position']}, ".round(((float) ($in['width'] ?? 0.16)) * 100).'% wide). Deliver `'.$new.'`.';
+
+        return ['summary' => "{$new} ← {$asset['id']} + logo", 'content' => $still ? [['type' => 'text', 'text' => $content.' Review it:'], $this->imageBlock($file['path'])] : $content];
     }
 
     private function generateVideos(Creation $creation, array $in): array

@@ -18,7 +18,7 @@ From the brief, pick at most these, in this order of size:
 | 2. Support | Product name or one short line | medium | `UV ариутгагч`, `Шинэ серум` |
 | 3. Facts | Price, old/new price, date · time · place | medium-small, bold numbers | `150,000₮ → 123,000₮`, `10.15 · 15:00 · Shangri-La` |
 | 4. Action | CTA or contact | small | `Захиалах: 9911-2233`, `Одоо ирээрэй` |
-| 5. Brand | The logo (from the reference), small | small | — |
+| 5. Brand | The logo — `add_logo`, pixel-exact | small | — |
 
 Rules: **max ~12 words on the whole poster**; headline ≤ 4 words; one hook only. Headlines, CTAs, dates and prices in Mongolian: follow `mongolian-ad-copy`. Never invent prices, dates, phone numbers, % or claims — use only what the brief says. You may write a short Mongolian headline yourself when the brief clearly implies it (sale → `ХЯМДРАЛ`, opening → `НЭЭЛТ`, new item → `ШИНЭ`, greeting → the occasion's name) — spelled correctly.
 
@@ -66,7 +66,7 @@ Name the style concretely in the prompt ("bold condensed sans-serif in white, al
 Same tool on clips: `add_text` with timed fade / slide-up — see `reels-storyboard` §3.
 
 ## 5. Method: text-free visual → `add_text`
-1. **Visual** — generate the image **with no text at all** but **with calm zones** where the words will sit, matching the layout ("leave the top third as calm, evenly lit empty sky for a headline; keep a clean, plain area at the bottom"). End the prompt with "No text, no letters, no numbers, no logos except the provided one." Graphic elements are fine: a colour band, a circle badge shape, a panel — empty.
+1. **Visual** — generate the image **with no text at all** but **with calm zones** where the words will sit, matching the layout ("leave the top third as calm, evenly lit empty sky for a headline; keep a clean, plain area at the bottom"). End the prompt with "No text, no letters, no numbers, no logos." Graphic elements are fine: a colour band, a circle badge shape, a panel — empty.
 2. **Words** — call `add_text` on the approved visual with every string, in hierarchy order:
    - `title` for the hook (`ХЯМДРАЛ`, `-30%`, `НЭЭЛТ`), `price` for prices/discounts (often with `box` in the accent colour), `subtitle` for the product line / date line, `small` for CTA, phone, address, brand line.
    - `position` = the calm zone (`top`, `center`, `lower_third`, `bottom`); items in the same zone stack in order. Never over the product or faces.
@@ -77,10 +77,10 @@ Same tool on clips: `add_text` with timed fade / slide-up — see `reels-storybo
 3. **Look at the returned poster** (it is shown to you): hierarchy reads in one second, nothing covers the product, nothing touches an edge. Not right → call `add_text` again **on the same clean visual** with changed positions/sizes/colours (never on the already-texted image).
 4. Deliver the texted image id. For several ratios: make each ratio's clean visual, then `add_text` on each.
 
-Logos are never typed — pass the logo file as a reference in the visual step (≥ 18–20% of the width for a wordmark). The brand name may be set as a `small` line when there is no logo.
+Logos are never typed or drawn — place the client's file with `add_logo` after the text (see `poster-design` → Logo). The brand name may be set as a `small` line when there is no logo.
 
 ## 6. Check
-`add_text` sets exactly what you write, so check **your strings** against the brief before calling it (names, digits, ₮, %, Ө/Ү). Then check the returned poster: one element clearly biggest, nothing over the product, margins clear, text readable at phone size. Also check the **logo's own letters** in the visual — the logo comes from the image model and can be redrawn wrong.
+`add_text` sets exactly what you write, so check **your strings** against the brief before calling it (names, digits, ₮, %, Ө/Ү). Then check the returned poster: one element clearly biggest, nothing over the product, margins clear, text readable at phone size. The visual itself must contain **no** logo or letters from the model (the real logo goes on with `add_logo`).
 
 ## 7. When it does not fit
 1. Too many words → cut to the hierarchy (hook, one fact line, CTA); move details to the caption.

@@ -9,7 +9,7 @@ Look at every image the tool returns before you deliver or animate it. Ship noth
 
 ## Checklist (in this order)
 1. **Product fidelity** — same shape, colours, label layout, proportions as the client's photo. A changed label or invented variant is a fail.
-2. **Logo** — present only if given; not redrawn, warped, mirrored, duplicated or recoloured; **its own letters spelled exactly like the original** (compare letter by letter — a broken brand name is a fail); in a corner or on the info band, big enough to read on a phone (wordmarks ≥ 18% of the width).
+2. **Logo** — the visual from a model must contain **no logo at all** (the real one goes on with `add_logo`); after `add_logo`, check the corner/size/plate look right and nothing important is covered.
 3. **Text** — every string from the brief (offer, price, date, place, CTA) is present and spelled **exactly**, character by character (Ө, Ү, ₮, %, digits); no extra invented words; no stray letters, watermarks or gibberish signage elsewhere (backgrounds, packaging, screens). Hierarchy reads in one second: one thing is clearly biggest.
 4. **People** — correct number of fingers, natural hands holding objects, symmetric eyes, no melted faces, believable skin, nobody cut off at a joint.
 5. **Physics & artefacts** — objects floating or merging, impossible reflections, duplicated items, smeared areas, seams.
@@ -20,7 +20,7 @@ Look at every image the tool returns before you deliver or animate it. Ship noth
 | Problem | Fix |
 |---|---|
 | Product changed | `gemini` + reference, "keep the product exactly unchanged", simpler scene, fewer props |
-| Logo broken or misspelled | go back to the clean visual, add logo + text in one fresh step, logo larger on a plain area; or deliver without the logo |
+| A model drew a logo or brand mark | regenerate the visual with "no logos"; place the real logo with `add_logo` |
 | Wrong currency sign (`T` for `₮`) | retry naming "the tugrik sign ₮"; else number only or `төг` — see `poster-typography` |
 | Garbled text in the scene | add "no other text, no signage, blank labels"; remove shops/screens/papers |
 | Letters inside the generated image | regenerate the visual with "no text, no letters, no numbers"; all words go on with `add_text` |

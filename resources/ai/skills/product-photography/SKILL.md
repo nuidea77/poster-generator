@@ -8,7 +8,7 @@ description: Prompt recipes for product, food and venue shots, and how to use th
 ## When a reference photo is attached
 - Use `gemini` with `reference_image_ids`. Phrase the prompt as an **edit**: "Keep this exact product unchanged (shape, label, colours). Place it on …, lighting …, background …". Gemini preserves identity; GPT image reinvents.
 - Never describe the product's appearance in words that could contradict the photo. Describe only the *new* context.
-- For logos: "Keep the logo exactly as in the reference, do not redraw or add text; place it small in the top-left corner on a clean background".
+- Never pass the client's logo to the model to place it — it goes on afterwards with `add_logo`, pixel-exact. (A logo printed on the real product's packaging stays as part of the product photo.)
 - Look at the result. If the product changed (label text, shape, colour) → regenerate with a stronger instruction ("do not alter the product in any way") or a plainer scene.
 
 ## When there is no reference
@@ -29,4 +29,4 @@ Examples:
 - Fresh / healthy: white marble, green leaves, bright daylight.
 
 ## Negative space
-Nothing is overlaid on the image later, but calm space still makes a poster read at a glance and gives the logo a place. State it explicitly ("product in the upper 60%, plain surface in the lower 40%").
+Words and the logo are set on the image afterwards (`add_text`, `add_logo`), so leave calm space for them. State it explicitly ("product in the upper 60%, plain surface in the lower 40%").

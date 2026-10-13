@@ -24,7 +24,7 @@ Beat menu: **Hook** (most striking image in the first 1–2 s — never the logo
 Video models garble letters, so never ask them for text. Put every word on screen with **`add_text`**: it burns real fonts onto a clip — letters exactly as you write them (Ө, Ү, ₮), timed fade / slide-up — and returns a new clip id to deliver instead.
 - **Hook title over live action:** on the first clip, `title` at `top`, slide-up at 0.2–0.4 s, held to the end of the clip (`ШИНЭ КРУАССАН`, `НЭЭЛТТЭЙ ӨДӨРЛӨГ`, `-30%`).
 - **Facts over a hero clip:** price (`price` + box in the brand/accent colour) or date line at `lower_third`, appearing ~1 s into the clip.
-- **End card:** make a clean still for it (logo or brand-colour background with calm space, **no text in the image**), `animate_still` it (`push_in`, 4–6 s), then `add_text`: title, the fact line(s) (`10.15 · 15:00 · Shangri-La`, `4,500₮`), CTA/phone `small` at `bottom` — staggered starts (0.2 s, 0.6 s, 1.0 s …) so they build up.
+- **End card:** make a clean still for it (brand-colour background or a calm hero frame, **no text, no logo in the image**), `animate_still` it (`push_in`, 4–6 s), `add_logo` (`top_center` or `bottom_center`, 25–35% wide), then `add_text`: title, the fact line(s) (`10.15 · 15:00 · Shangri-La`, `4,500₮`), CTA/phone `small` at `bottom` — staggered starts (0.2 s, 0.6 s, 1.0 s …) so they build up.
 - Read time: ≥ 1 s per 3 words + 1 s; ≤ 8 words on screen at once; one title per clip.
 - Fonts by mood: `bold_sans` (default, retail, sale), `condensed` (sport, bold offers), `serif` (premium, beauty, events — no ₮ glyph, prices switch to sans automatically), `rounded` (kids, food, playful), `sans` for secondary lines. Max two fonts per reel; same font roles in every clip.
 - Colour: white with shadow over photos; `box` with the brand colour for prices and on busy footage; dark text only on a light box.
@@ -32,7 +32,7 @@ Video models garble letters, so never ask them for text. Put every word on scree
 - Write the copy per `mongolian-ad-copy`.
 
 ## 4. Real product & logo shots
-Video models invent products from text. For the client's real product, venue photo or logo: make a still with `gemini` + the reference at the reel's aspect, review it, then use it as `first_frame_image_id` and describe only the motion.
+Video models invent products from text. For the client's real product or venue photo: make a still with `gemini` + the reference at the reel's aspect, review it, then use it as `first_frame_image_id` and describe only the motion.
 
 ## 5. Continuity
 - One style line repeated in every clip prompt: palette, light, grade ("warm golden-hour light, teal-orange grade, shallow depth of field").

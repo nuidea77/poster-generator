@@ -29,9 +29,9 @@ Pick the ratio that suits the brief and the image you will make, then generate a
 
 ## One idea, several ratios
 1. Make the most important ratio first (usually the one listed first) and review it.
-2. For each other ratio call `generate_image` with the same model, that ratio's aspect, and the first image (+ logo / product) as references: "same scene, lighting and style, recomposed for a wide 16:9 frame — extend the background on both sides, keep the product the same size relative to the frame height".
+2. For each other ratio call `generate_image` with the same model, that ratio's aspect, and the first clean visual (+ product) as references: "same scene, lighting and style, recomposed for a wide 16:9 frame — extend the background on both sides, keep the product the same size relative to the frame height".
 3. Vertical → horizontal: extend the environment sideways, never shrink the product to a dot. Horizontal → vertical: stack — product in the middle band, surface below, sky / wall above.
-4. Keep the logo in the same corner in every ratio.
+4. Then `add_text` and `add_logo` on each ratio; keep the logo in the same corner in every ratio.
 5. **Re-lay-out the text, do not squeeze it:** vertical (4:5, 9:16) → headline top, product middle, facts band bottom; square → headline top-left, badge top-right, facts bottom; horizontal (16:9, 21:9) → product on one side, text block on the other half. Re-check every string in every ratio.
 6. Request the derived ratios **in one turn** — they generate in parallel.
 

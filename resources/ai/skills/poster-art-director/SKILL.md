@@ -20,7 +20,7 @@ Three things make this better than typing a prompt into an image model:
 | Purpose | Sale, new product, event/opening, greeting, hiring, menu, service (see Templates) |
 | Facts | Offer %, price, old/new price, dates, time, place, phone, URL — **these go on the poster** |
 | Audience & mood | Who buys (young, family, premium, B2B) and the feeling |
-| Assets | Product photo (stays identical), logo (small, unaltered), style reference |
+| Assets | Product photo (stays identical), logo (placed pixel-exact with `add_logo`), style reference |
 | Format | Aspect ratios or `auto` — see `format-composition` |
 
 Never invent facts, prices, phone numbers, discounts or claims.
@@ -42,8 +42,9 @@ Never invent facts, prices, phone numbers, discounts or claims.
 Avoid the default "product on a podium in front of a plain wall" unless the archetype calls for it.
 
 ## 3. Make it
-**Visual (step 1):** English prompt — subject, setting, composition **with calm empty zones for the words**, light, style, palette. With a product photo: `gemini` + reference, phrased as an edit ("keep the product exactly as in the reference: same shape, colours, label; change only the scene"). Logo passed as reference, placed in a corner or on the info band — never huge in the centre. End with "No text, no letters, no numbers, no logos except the provided one."
+**Visual (step 1):** English prompt — subject, setting, composition **with calm empty zones for the words**, light, style, palette. With a product photo: `gemini` + reference, phrased as an edit ("keep the product exactly as in the reference: same shape, colours, label; change only the scene"). Do not pass the logo; leave a calm corner for it. End with "No text, no letters, no numbers, no logos."
 **Words (step 2):** `add_text` on the approved visual — every string in real fonts, letters exact (see `poster-typography` §5). Never let an image model write the poster's words: it misspells Mongolian.
+**Logo (step 3):** `add_logo` — the client's file, pixel-exact (see `poster-design` → Logo). Deliver the final image.
 Ask for independent drafts **in the same turn** (they run in parallel) when you want to compare two archetypes.
 
 ## 4. Budget

@@ -27,10 +27,12 @@ Formats are aspect ratios (`4:5`, `1:1`, `9:16`, `16:9` … or `auto`). Generate
 - **Food close-up:** "appetising macro at 45°, steam, warm side light, dark textured surface, space top-left for a headline".
 
 ## Logo
-- Pass it as reference; "place the provided logo exactly as given, in the [top-left] corner / on the bottom band, with clear space around it" — about 10–15% of the frame width for a symbol, **18–20% for a logo with a wordmark** (smaller and its letters break). Never huge, never centred over the subject, never redrawn.
-- Add the logo in the **final** generation step together with the text; every later edit re-renders and degrades it.
-- On a busy area give it a calm patch or put it on the info band. A warped logo → regenerate, or deliver without it.
-- Never invent a logo when none was given; then the brand name may appear as text if the brief names it.
+- The logo is placed with **`add_logo`** — the client's own file, pixel-exact (shape, proportions, letters, colours never change; only scaled evenly). Never pass the logo to an image or video model to draw or place it.
+- In the visual prompt: "no logos" and leave a calm corner or band where it will sit.
+- Size: 12–18% of the width for a symbol, 20–30% for a wordmark (its letters must read on a phone). Position: a corner (`top_left` / `top_right`) or `bottom_center` on the info band — never over the product.
+- `plate`: `light` (solid white card) when the logo file has a white background and the area behind is not white; `dark` for a light logo on a busy area; `none` for a transparent logo on a calm area.
+- Order: visual → `add_text` → `add_logo` (or logo first, then text) — each on the latest image; never send the result back to an image model.
+- Never invent a logo when none was given; the brand name may then be a `small` text line.
 
 ## Colour
 - Palette from the logo / brand / packaging; state it as hex or names. Max 2 main colours + 1 accent; text colour must contrast strongly with its background.
@@ -41,5 +43,5 @@ Messages, prices, dates and CTAs from the brief go on the poster — follow `pos
 
 ## A matching set
 1. Make and approve the most important ratio first (the first listed, usually `4:5`).
-2. For each other ratio, in **one turn** (they run in parallel): same model, that aspect, the approved poster (+ logo/product) as references — "same design, scene and typography, re-laid-out for a wide 16:9 frame: product left, text block right".
+2. For each other ratio, in **one turn** (they run in parallel): same model, that aspect, the approved **clean visual** (+ product) as references — "same design, scene and typography, re-laid-out for a wide 16:9 frame: product left, text block right".
 3. Re-check the text of every ratio; `deliver_poster` each with its own image.

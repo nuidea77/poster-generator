@@ -223,7 +223,8 @@ class CreationTest extends TestCase
             'api.anthropic.com/*' => Http::sequence()
                 ->push($this->turn([
                     ['load_skill', ['name' => 'poster-design']],
-                    ['generate_image', ['provider' => 'gemini', 'prompt' => 'latte hero shot', 'aspect' => '4:5', 'reference_image_ids' => ['logo'], 'purpose' => 'feed']],
+                    ['generate_image', ['provider' => 'gemini', 'prompt' => 'latte hero shot with logo', 'aspect' => '1:1', 'reference_image_ids' => ['logo'], 'purpose' => 'refused']], // logos never go to a model
+                    ['generate_image', ['provider' => 'gemini', 'prompt' => 'latte hero shot', 'aspect' => '4:5', 'reference_image_ids' => [], 'purpose' => 'feed']],
                 ]))
                 ->push($this->turn([
                     ['generate_image', ['provider' => 'openai', 'prompt' => 'same, vertical', 'aspect' => '9:16', 'reference_image_ids' => ['img_1'], 'purpose' => '9:16']],
@@ -255,6 +256,7 @@ class CreationTest extends TestCase
         [$w, $h] = getimagesizefromstring(Storage::disk('public')->get($creation->outputs[1]['path']));
         $this->assertSame([1080, 1920], [$w, $h]);
         $this->assertStringContainsString('was not requested', collect($creation->steps)->firstWhere('input.format', '1:1')['error']);
+        $this->assertStringContainsString('Do not pass the logo', collect($creation->steps)->firstWhere('input.purpose', 'refused')['error']);
         $this->assertSame(400, $creation->input_tokens);
         // 4 Claude turns (100 in / 20 out each) + one Gemini and one GPT image.
         $this->assertEqualsWithDelta(4 * 0.002 + 0.039 + 0.25, $creation->cost_usd, 0.0001);
@@ -282,7 +284,7 @@ class CreationTest extends TestCase
                 && ! array_key_exists('tool_choice', $r->data())
                 && $r['fallbacks'] === 'default'
                 && $r->hasHeader('anthropic-beta', 'server-side-fallback-2026-07-01')
-                && $tools === ['load_skill', 'generate_image', 'add_text', 'deliver_poster', 'finish']
+                && $tools === ['load_skill', 'generate_image', 'add_text', 'add_logo', 'deliver_poster', 'finish']
                 && collect($r['tools'])->firstWhere('name', 'deliver_poster')['input_schema']['properties']['format']['enum'] === ['4:5', '9:16']
                 && str_contains($r['system'][0]['text'], '`poster-design`')
                 && last(last($r['messages'])['content'])['cache_control'] === ['type' => 'ephemeral']
@@ -650,6 +652,48 @@ class CreationTest extends TestCase
         $this->assertSame('img_2', $creation->outputs[0]['source_asset']);
         [$w, $h] = getimagesizefromstring(Storage::disk('public')->get($creation->outputs[0]['path']));
         $this->assertSame([1080, 1350], [$w, $h]);
+    }
+
+    public function test_add_logo_places_the_original_file_without_reshaping_it(): void
+    {
+        if (! Process::run([config('ai.ffmpeg'), '-version'])->successful()) {
+            $this->markTestSkipped('ffmpeg not installed');
+        }
+
+        // A 200×100 pure red logo on a blue 1000×1250 visual.
+        $make = function (int $w, int $h, array $rgb) {
+            $img = imagecreatetruecolor($w, $h);
+            imagefill($img, 0, 0, imagecolorallocate($img, ...$rgb));
+            ob_start();
+            imagepng($img);
+
+            return ob_get_clean();
+        };
+        Storage::disk('public')->put('in/logo.png', $make(200, 100, [255, 0, 0]));
+        Storage::disk('public')->put('in/visual.png', $make(1000, 1250, [0, 0, 255]));
+
+        Http::fake([
+            'api.anthropic.com/*' => Http::sequence()
+                ->push($this->turn([['add_logo', ['asset_id' => 'img_1', 'position' => 'top_left', 'width' => 0.2, 'plate' => 'none']]]))
+                ->push($this->turn([['finish', ['summary' => 'ok']]])),
+        ]);
+
+        $creation = Creation::create(['user_id' => $this->user->id, 'type' => 'poster', 'formats' => ['4:5'], 'prompt' => 'x', 'status' => 'running',
+            'inputs' => [['id' => 'logo', 'kind' => 'image', 'role' => 'logo', 'source' => 'upload', 'path' => 'in/logo.png']],
+            'assets' => [['id' => 'img_1', 'kind' => 'image', 'source' => 'generated', 'provider' => 'gemini', 'path' => 'in/visual.png', 'aspect' => '4:5', 'cost' => 0.039]]]);
+
+        app(CreativeAgent::class)->run($creation);
+        $made = $creation->refresh()->asset('img_2');
+        $this->assertSame('logo', $made['provider'], json_encode($creation->steps));
+
+        // Logo 20% of 1000 px = 200 × 100 (aspect kept), 5% margin = 50 px.
+        $img = imagecreatefromstring(Storage::disk('public')->get($made['path']));
+        $red = fn (int $x, int $y) => imagecolorat($img, $x, $y) >> 16 & 0xFF;
+        $this->assertGreaterThan(240, $red(60, 60));     // inside the logo
+        $this->assertGreaterThan(240, $red(240, 140));   // still inside at 200×100
+        $this->assertLessThan(20, $red(260, 100));       // right of the logo: background
+        $this->assertLessThan(20, $red(100, 160));       // below the logo: background
+        $this->assertSame([1000, 1250], [imagesx($img), imagesy($img)]);
     }
 
     public function test_reel_delivery_needs_clips_and_respects_the_cap(): void
