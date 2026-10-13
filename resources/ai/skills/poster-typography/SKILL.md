@@ -43,6 +43,12 @@ Keep text inside the safe area (`format-composition`), never over faces, the pro
 ## 3. Type, colour and craft
 **Fonts** (`font`): `bold_sans` (Montserrat ExtraBold — default headlines, retail, prices), `sans` (Montserrat Medium — secondary lines), `condensed` (Oswald — sport, bold offers, big numbers), `rounded` (Nunito — kids, food, friendly), `serif` (Playfair Display — only for genuinely editorial / luxury / heritage / greeting work; no ₮ glyph and old-style digits, so prices and digits switch automatically). Max two fonts per poster; the same fonts in every ratio.
 
+**What each class says:** serif (`serif`) — tradition, trust, elegance, heritage; sans (`bold_sans`, `sans`) — modern, clean, digital, reads best on a phone; condensed/display (`condensed`) — loud, sporty, urgent, for headlines and numbers only; rounded (`rounded`) — friendly, soft, kids, food. Display faces are for 1–5 words, never for sentences.
+
+**Weight hierarchy:** H1 = the headline (`title`/`display`, `bold_sans` or `condensed`); H2 = the offer or subhead (`subtitle`, bold); body = facts and benefits (`small`, `sans` Medium). Weight and size change together — a bold small line next to a light big one confuses the order.
+
+**Spacing:** stacked headlines are set tight (the tool uses ~1.0–1.1 line pitch for caps/condensed headlines); body lines get ~1.3–1.4. Never distort letters; letter-spacing is fixed — air comes from size, line breaks and margins.
+
 By mood: **bold retail** — heavy sans or condensed, caps, high contrast, one strong badge. **Premium / beauty** — sans or serif headline, small sizes, lots of air, one muted accent. **Fresh / food** — rounded or bold sans, warm colours. **Corporate / clinic / event** — clean sans, left-aligned grid, colour bands. **Kids / playful** — rounded, bright, sticker-like pills.
 
 Craft:

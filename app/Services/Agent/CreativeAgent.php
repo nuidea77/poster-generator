@@ -737,6 +737,15 @@ class CreativeAgent
         if ($still && $boxes > 2) {
             $content .= " DESIGN — {$boxes} filled boxes/pills outside the footer: it reads like a template flyer. Keep at most 2 (the offer and the CTA); set the rest as plain type on a calm area.";
         }
+        // Font chaos and mixed alignment are the classic amateur tells (poster-design §1).
+        $fonts = collect($in['items'])->map(fn ($it) => $it['font'] ?? 'bold_sans')->unique()->values();
+        if ($still && $fonts->count() > 2) {
+            $content .= ' DESIGN — '.$fonts->count().' fonts ('.$fonts->implode(', ').'): keep 2 at most, one for the headline and `sans` for the rest.';
+        }
+        $aligns = collect($in['items'])->filter(fn ($it) => ($it['position'] ?? '') !== 'footer' && empty($it['same_line']))->pluck('align')->filter()->unique();
+        if ($still && $aligns->count() > 1) {
+            $content .= ' DESIGN — mixed alignment ('.$aligns->implode(', ').') in the content: put the headline, offer, benefits and CTA on one axis.';
+        }
         // A poster without an action: every ad except a pure greeting gets a CTA pill.
         if ($still && $creation->type === Creation::POSTER && ! collect($in['items'])->contains(fn ($it) => ($it['icon'] ?? '') === 'arrow')) {
             $content .= ' CTA — there is no call to action. Unless this is a pure greeting, add one (`Захиалах`, `Бүртгүүлэх`, `Залгах`) in a form that suits this layout — a button, an underlined line, a word next to the phone.';

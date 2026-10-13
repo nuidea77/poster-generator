@@ -17,6 +17,11 @@ The delivered image is the whole ad: picture **and** message. A good poster is *
 | **Dead and crowded zones** | empty middle, everything squeezed into the top and bottom | space is intentional: either generous negative space around the hero, or a full, rich layout — never a hole |
 | **Text ignores the picture** | headline floating over a random area | type and image interlock: headline beside the face, along the product's edge, in a colour field painted for it |
 | **Too many words** | 4 benefit lines + 3 badges + footer | hook + offer + CTA + footer; the rest goes to the caption |
+| **Font chaos** | 3+ fonts, a display face for facts | ≤ 2 fonts: one headline face + `sans` for the rest |
+| **Mixed alignment** | centred headline, left checklist, contacts stuck in a corner | one axis for the whole content block (the footer may justify its row) |
+| **Crammed edges** | type and icons touching the frame, badges glued to the product | ≥ 7% margin on every side; air between the product and its labels |
+| **Low contrast** | thin white type over a busy photo, grey on dark | a scrim, a darker/lighter area, or a solid shape behind it; dark on light, light on dark |
+| **Colour noise** | neon pink + yellow + red on a clinic poster | 60-30-10, 2–3 colours, matched to the sector's mood |
 
 ## 2. The big idea first
 Before any prompt, write one sentence: **"The poster shows ___ so that the viewer feels ___; the eye goes ___ → ___ → ___."**
@@ -34,6 +39,16 @@ Pick one hero: the product, a person's emotion, a bold number (`-40%`, `25 жи�
 | Split-complementary | lively but balanced | teal + coral + peach |
 | Neutral + one accent | editorial, luxury, minimal | black/white/stone + one red word |
 Topic colours as a starting point, never a rule: health → clean white + one confident green/blue; rock/night → black + red/amber; kids → bright primaries; luxury → black, cream, gold; eco → greens, kraft. Brand colours win. Contrast: type against what is behind it must be strong (white/yellow on dark, near-black on light); never mid-tone on mid-tone. Digital posters are RGB (sRGB JPEG); print CMYK is not our concern.
+
+**60-30-10:** about 60% dominant colour (the background world), 30% secondary (the subject, panels, the footer), 10% accent (the offer, the CTA, the starred word). Triadic schemes (three evenly spaced hues) are lively but hard — keep one dominant and the other two small. At most 2–3 colours plus neutrals.
+
+**Reading patterns:** a poster with little text reads in a **Z** (top-left → top-right → diagonal → bottom-left → bottom-right): headline top, hero across, offer and action at the bottom right. Text-heavy layouts read in an **F** down the left edge — keep their lines left-aligned.
+
+**Gestalt — how the eye groups things:**
+- **Proximity:** what belongs together sits close (kicker on the headline, price on the product name); separate groups get a clear gap.
+- **Similarity:** the same job gets the same look (all benefit lines the same size and icon; one button style).
+- **Closure:** a partly drawn shape (a cut circle, a cropped arch, a subject cut by the frame) is completed by the eye — tension and elegance without more elements.
+- **Figure-ground:** the hero and the type must separate clearly from the background — by tone, colour, blur or a scrim.
 
 **Composition and grid.**
 - **Rule of thirds:** put the face, the eye or the product on a third-line crossing, not dead centre (unless the map is symmetric by intent).
