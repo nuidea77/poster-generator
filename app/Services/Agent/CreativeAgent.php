@@ -639,6 +639,13 @@ class CreativeAgent
                 .'Look closely; unless that is intended, call add_text again on `'.$asset['id'].'` with them in a calmer zone, fewer or shorter lines in that zone (a panel or scrim does not stop it covering the product). If you can see the lines sit only on busy background (not the product, a face or the main subject) and a scrim or panel keeps them readable, that is fine — otherwise move them or regenerate the visual with an empty band for the facts.';
         }
 
+        // Counted, not judged: layout rules the agent tends to skip.
+        $footer = array_values(array_filter($in['items'], fn ($it) => ($it['position'] ?? '') === 'footer' && trim((string) ($it['text'] ?? '')) !== ''));
+        $footerRows = count(array_filter($footer, fn ($it) => empty($it['same_line'])));
+        if (count($footer) > 4 || $footerRows > 2) {
+            $content .= ' LAYOUT — the footer holds '.count($footer).' facts in '.$footerRows.' rows; keep it to ≤ 4 facts in 2 rows of pairs (the phone, bold, on the right of the address). Drop the weakest fact (delivery, web) or move it to a pill.';
+        }
+
         if ($faint) {
             // Measured: text colour against the picture (and scrim) behind it.
             $content .= ' WARNING — low contrast, measured: "'.implode('", "', $faint).'" is too close in brightness to the area behind it and will be hard to read on a phone. '

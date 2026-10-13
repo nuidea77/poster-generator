@@ -857,6 +857,29 @@ class CreationTest extends TestCase
         $this->assertSame([], $overlay->lowContrastLines(sys_get_temp_dir()));  // band = panel; nothing to judge
     }
 
+    public function test_an_overfull_footer_is_flagged_to_the_agent(): void
+    {
+        if (! Process::run([config('ai.ffmpeg'), '-version'])->successful()) {
+            $this->markTestSkipped('ffmpeg not installed');
+        }
+
+        Storage::disk('public')->put('in/visual.png', self::png(1080, 1350));
+        $fact = fn (string $t, bool $same) => ['text' => $t, 'role' => 'small', 'position' => 'footer', 'align' => 'center', 'same_line' => $same, 'font' => 'sans', 'color' => 'FFFFFF', 'box' => false, 'box_color' => '', 'box_shape' => 'rect', 'start' => 0, 'end' => 0, 'animation' => 'none', 'icon' => 'none'];
+        Http::fake([
+            'api.anthropic.com/*' => Http::sequence()
+                ->push($this->turn([['add_text', ['asset_id' => 'img_1', 'footer_color' => '3B1F0E', 'items' => [
+                    $fact('10.20–11.20', false), $fact('07:30–22:00', true), $fact('Их тойруу 15', false), $fact('Хүргэлттэй', true), $fact('8800-3344', false),
+                ]]]]))
+                ->push($this->turn([['finish', ['summary' => 'ok']]])),
+        ]);
+        $creation = Creation::create(['user_id' => $this->user->id, 'type' => 'poster', 'formats' => ['4:5'], 'prompt' => 'x', 'status' => 'running',
+            'assets' => [['id' => 'img_1', 'kind' => 'image', 'source' => 'generated', 'provider' => 'gemini', 'path' => 'in/visual.png', 'aspect' => '4:5', 'cost' => 0.039]]]);
+
+        app(CreativeAgent::class)->run($creation);
+
+        Http::assertSent(fn ($r) => str_contains(collect($r['messages'][2]['content'][0]['content'] ?? [])->firstWhere('type', 'text')['text'] ?? '', 'footer holds 5 facts in 3 rows'));
+    }
+
     public function test_placeholder_text_calls_are_refused(): void
     {
         $this->expectException(AiException::class);
