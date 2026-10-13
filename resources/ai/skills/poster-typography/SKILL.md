@@ -53,7 +53,7 @@ Craft:
 - **Legibility on photos:** calm area first; else a `scrim`, a band or a panel.
 
 ### Two-tone headline
-Wrap **one** key word in stars and pass `accent_color`: `Мөрөөдлөө *бодит* болго`, `Таны бизнес *харагдахгүй* байна уу?`, `*15* ЖИЛИЙН ОЙ`. Same font, only the colour changes; never star a whole line; at most two starred runs on a long headline.
+Wrap **one** key word in stars and pass `accent_color`: `Мөрөөдлөө *бодит* болго`, `Таны бизнес *харагдахгүй* байна уу?`, `*15* ЖИЛИЙН ОЙ`. Same font, only the colour changes; never star a whole line; at most two starred runs on a long headline. The accent word must contrast as strongly as the rest: on light backgrounds a deep accent (burnt orange `C2410C`, deep red, teal, cobalt), on dark ones a bright one (amber, lime, yellow) — yellow on cream disappears (add_text warns).
 
 ## 4. A number as the hero (anniversary, %, year, count)
 The number alone in a `display` item (about twice a title), the word under it as its own item: `15` → `ЖИЛИЙН ОЙ` → name → wish. Digits in `condensed` or `bold_sans`; the number takes the accent colour (gold for anniversaries), no box; centred in the calmest large area, ~25–35% of the frame height; the visual must leave that space. One display item per poster.

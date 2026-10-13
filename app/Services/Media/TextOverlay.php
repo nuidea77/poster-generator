@@ -399,7 +399,7 @@ class TextOverlay
                         $right => $w - $margin - $width,
                         default => (int) round($cx - $width / 2),
                     };
-                    $this->placed[] = ['text' => $b['text'], 'panel' => $pad > 0 || $position === 'footer', 'rect' => [$x0, $y, $x0 + $width, $y + $b['height']], 'color' => $this->hex($item['color'] ?? ''), 'position' => $position, 'row' => $b['rowNo'], 'shrunk' => $size < (int) round(min($w, $h) * (self::SIZES[$item['role'] ?? ''] ?? self::SIZES['subtitle']) * 0.75)];
+                    $this->placed[] = ['text' => $b['text'], 'panel' => $pad > 0 || $position === 'footer', 'rect' => [$x0, $y, $x0 + $width, $y + $b['height']], 'color' => $this->hex($item['color'] ?? ''), 'accent' => $b['marked'] ? $this->hex($item['accent_color'] ?? 'FFB703') : null, 'position' => $position, 'row' => $b['rowNo'], 'shrunk' => $size < (int) round(min($w, $h) * (self::SIZES[$item['role'] ?? ''] ?? self::SIZES['subtitle']) * 0.75)];
                     $rowGap = max($same ? $row['gap'] : 0, $b['gap']);
                     $row = ['y' => $rowStart, 'gap' => $rowGap, 'end' => $rowStart + $rowH[$b['rowNo']] + $rowGap];
                     $y = $row['end'];
@@ -681,11 +681,14 @@ class TextOverlay
                 continue;
             }
             $bg = $lum(array_map(fn ($v) => $v / $n, $sum));
-            $text = $lum(sscanf($p['color'] ?? 'FFFFFF', '%02x%02x%02x'));
-            // Small lines need more contrast than big headlines (WCAG: 3 for large text).
+            // Small lines need more contrast than big headlines (WCAG: 3 for large text); the
+            // starred accent word is judged on its own colour too (yellow on cream disappears).
             $needed = ($y1 - $y0) < $H * 0.05 ? 3.0 : 2.5;
-            if ((max($bg, $text) + 0.05) / (min($bg, $text) + 0.05) < $needed) {
-                $low[] = str_replace("\n", ' / ', $p['text']);
+            foreach (array_values(array_filter([$p['color'] ?? 'FFFFFF', $p['accent'] ?? null])) as $k => $hex) {
+                $text = $lum(sscanf($hex, '%02x%02x%02x'));
+                if ((max($bg, $text) + 0.05) / (min($bg, $text) + 0.05) < $needed) {
+                    $low[] = str_replace("\n", ' / ', $p['text']).($k ? ' (its accent word)' : '');
+                }
             }
         }
 
