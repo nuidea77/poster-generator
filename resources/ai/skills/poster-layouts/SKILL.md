@@ -35,7 +35,7 @@ Rows of 3–4 work best when the **visual already has matching spots** (round ph
 
 ## 2. Layout recipes
 **Clinic / service package (Medica style)** — 4:5
-1. Visual: a clean medical hero (3D anatomy render, device, doctor) in the top half on a soft light-blue/white gradient; a row of 4 round photo insets in the lower third; a solid teal band at the very bottom.
+1. Visual: a clean medical hero (3D anatomy render, device, doctor) in the top half on a soft light-blue/white gradient; a row of 4 round photo insets in the lower third; a calm foot for the contacts.
 2. Text: pill badge `30% OFF` (accent) → huge `title` (condensed, brand teal) `ӨВДӨГНИЙ БАГЦ` → `subtitle` `ҮЗЛЭГ, ОНОШИЛГОО` → 3–4 checklist lines → captions row under the insets → footer bar (address left, phone right, bold).
 3. Logo: top-right on a light plate (the logo-placement skill).
 
@@ -55,7 +55,7 @@ Rows of 3–4 work best when the **visual already has matching spots** (round ph
 
 **Question / problem-solution post** — 4:5
 1. Visual: the problem shown simply (an empty shop, a confused person, a cluttered desk) or a clean colour field.
-2. Text: question headline with the accent on the pain word (`Таны бизнес *харагдахгүй* байна уу?`) → a content card with the answer in one sentence → feature pills (3 checks) → CTA pill → contact strip.
+2. Text: question headline with the accent on the pain word (`Таны бизнес *харагдахгүй* байна уу?`) → a content card with the answer in one sentence → feature pills (3 checks) → CTA pill → contacts.
 
 ## 3. Rules from these posters
 - **One accent colour**, used only for pills, badges, the key number and the one starred word of the headline. Text is black/dark grey on light, white on dark.

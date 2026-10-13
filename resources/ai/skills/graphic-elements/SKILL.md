@@ -64,7 +64,7 @@ Patterns add identity and texture to flat or minimal designs. They are part of t
 - Always: "no text, no letters, no logos" — every word comes from add_text.
 
 ## 4. Shapes, bands, badges
-- **Band:** a solid brand-colour band at the bottom for the facts (ask the visual for "a clean solid {colour} band across the bottom 18%"); then the facts in white with icons. Best on event, clinic, hiring, retail.
+- **Band (optional):** a solid colour band at the bottom for the facts — one choice among several; often the facts read better `open` on a calm, dark foot of the picture, or on a painted shape that belongs to the design.
 - **Badge:** one circle/pill for `-30%` / `ШИНЭ` — via `box` on the price item, or a circle shape requested in the visual. One badge per poster.
 - **Lines and dividers:** in the visual ("a thin gold line divides the headline from the facts") — sparingly.
 - Accent shapes (blobs, arcs, confetti) only in playful/kids/food archetypes.
@@ -73,7 +73,7 @@ Patterns add identity and texture to flat or minimal designs. They are part of t
 | Poster | Recipe |
 |---|---|
 | Retail sale | photo + `bottom` scrim + display `-20%` + 3 icon facts (`location`, `phone`, `delivery`) |
-| Clinic / service | clean light visual + brand band bottom + icon facts (`clock`, `phone`, `location`) |
+| Clinic / service | clean light visual + icon facts (`clock`, `phone`, `location`) |
 | Event / opening | dark visual + `top_bottom` scrim + `calendar`, `clock`, `location` lines |
 | Holiday / national | flat brand colour + faint ulzii/khee border pattern, no icons |
 | Premium beauty | soft photo, no pattern, no icons, at most a light scrim |

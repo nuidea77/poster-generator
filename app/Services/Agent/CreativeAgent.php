@@ -190,6 +190,16 @@ class CreativeAgent
         return str_replace('{{SKILLS}}', $this->skills->prompt(), file_get_contents(resource_path('ai/creative-director.md')));
     }
 
+    /** Footer ideas, rotated by job so parallel posters do not all fall back to the same strip. */
+    public const FOOTERS = [
+        'open: no strip — the facts in small plain type straight on a calm, dark foot of the picture, plain icons, no dividers',
+        'open + scrim bottom: facts in one quiet row over a soft dark fade, plain icons',
+        'pill: a rounded bar inset from the edges in white or a light tint with dark text',
+        'band: a full-width strip in the deepest tone of the palette, plain icons, dividers',
+        'open, centred: the facts centred in one or two short lines under the CTA, like a signature',
+        'pill in the accent-free dark tone with circle icons',
+    ];
+
     /** Composition maps of poster-design §4, rotated across a client's posters. */
     public const MAPS = ['hero_type', 'split', 'frame_arch', 'bottom_heavy', 'centred_icon', 'diagonal', 'grid', 'full_bleed'];
 
@@ -285,6 +295,9 @@ class CreativeAgent
 
         if ($creation->type === Creation::POSTER) {
             array_push($lines, ...$this->recentDesigns($creation));
+            $lines[] = '';
+            $lines[] = '## Footer idea for this poster';
+            $lines[] = 'Suggested (not required — pick another if the picture asks for it, but do not default to a band): '.self::FOOTERS[$creation->id % count(self::FOOTERS)].'.';
         }
 
         $lines[] = '';

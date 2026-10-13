@@ -49,7 +49,7 @@ Keep text inside the safe area (`format-composition`), never over faces, the pro
 
 **Spacing:** stacked headlines are set tight (the tool uses ~1.0–1.1 line pitch for caps/condensed headlines); body lines get ~1.3–1.4. Never distort letters; letter-spacing is fixed — air comes from size, line breaks and margins.
 
-By mood: **bold retail** — heavy sans or condensed, caps, high contrast, one strong badge. **Premium / beauty** — sans or serif headline, small sizes, lots of air, one muted accent. **Fresh / food** — rounded or bold sans, warm colours. **Corporate / clinic / event** — clean sans, left-aligned grid, colour bands. **Kids / playful** — rounded, bright, sticker-like pills.
+By mood: **bold retail** — heavy sans or condensed, caps, high contrast, one strong badge. **Premium / beauty** — sans or serif headline, small sizes, lots of air, one muted accent. **Fresh / food** — rounded or bold sans, warm colours. **Corporate / clinic / event** — clean sans, left-aligned grid. **Kids / playful** — rounded, bright, sticker-like pills.
 
 Craft:
 - **Scale:** hook ≈ 3× the facts; one element clearly dominates; never two equally big lines.
