@@ -44,7 +44,7 @@ Avoid the default "product on a podium in front of a plain wall" unless the arch
 ## 3. Make it
 **Visual (step 1):** English prompt — subject, setting, composition **with calm empty zones for the words**, light, style, palette. With a product photo: `gemini` + reference, phrased as an edit ("keep the product exactly as in the reference: same shape, colours, label; change only the scene"). Do not pass the logo; leave a calm corner for it. End with "No text, no letters, no numbers, no logos."
 **Words (step 2):** `add_text` on the approved visual — every string in real fonts, letters exact (see `poster-typography` §5). Never let an image model write the poster's words: it misspells Mongolian.
-**Logo (step 3):** `add_logo` — the client's file, pixel-exact (see `poster-design` → Logo). Deliver the final image.
+**Logo (step 3):** `add_logo` — the client's file, pixel-exact; corner and size per `logo-placement` (never in the headline's zone). Deliver the final image.
 Ask for independent drafts **in the same turn** (they run in parallel) when you want to compare two archetypes.
 
 ## 4. Budget

@@ -686,13 +686,14 @@ class CreationTest extends TestCase
         $made = $creation->refresh()->asset('img_2');
         $this->assertSame('logo', $made['provider'], json_encode($creation->steps));
 
-        // Logo 20% of 1000 px = 200 × 100 (aspect kept), 5% margin = 50 px.
+        // Logo 20% of 1000 px = 200 × 100 (aspect kept); side margin 7% of the width (text grid) = 70 px, top 5% of 1250 = 63 px.
         $img = imagecreatefromstring(Storage::disk('public')->get($made['path']));
         $red = fn (int $x, int $y) => imagecolorat($img, $x, $y) >> 16 & 0xFF;
-        $this->assertGreaterThan(240, $red(60, 60));     // inside the logo
-        $this->assertGreaterThan(240, $red(240, 140));   // still inside at 200×100
-        $this->assertLessThan(20, $red(260, 100));       // right of the logo: background
-        $this->assertLessThan(20, $red(100, 160));       // below the logo: background
+        $this->assertGreaterThan(240, $red(80, 70));     // inside the logo
+        $this->assertGreaterThan(240, $red(260, 155));   // still inside at 200×100
+        $this->assertLessThan(20, $red(60, 100));        // left margin: background
+        $this->assertLessThan(20, $red(280, 110));       // right of the logo: background
+        $this->assertLessThan(20, $red(100, 175));       // below the logo: background
         $this->assertSame([1000, 1250], [imagesx($img), imagesy($img)]);
     }
 

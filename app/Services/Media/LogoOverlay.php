@@ -15,7 +15,7 @@ use Illuminate\Support\Str;
  */
 class LogoOverlay
 {
-    public const POSITIONS = ['top_left', 'top_center', 'top_right', 'bottom_left', 'bottom_center', 'bottom_right'];
+    public const POSITIONS = ['top_left', 'top_center', 'top_right', 'center', 'bottom_left', 'bottom_center', 'bottom_right'];
 
     /**
      * @param  float  $width  logo width as a share of the frame width (0.08–0.4)
@@ -28,16 +28,23 @@ class LogoOverlay
         $position = in_array($position, self::POSITIONS, true) ? $position : 'top_left';
         $width = max(0.08, min(0.4, $width));
         $logoW = (int) (round($w * $width / 2) * 2);
-        $margin = (int) round(min($w, $h) * 0.05);
+        // Side margin = the text grid's left margin (7% of the width), so a
+        // left-aligned headline and a top-left logo share one edge.
+        $side = (int) round($w * 0.07);
+        $edge = (int) round($h * 0.05);
 
         // Reels and Stories: keep clear of the app UI at the top and bottom.
         $vertical = $h > $w * 1.5;
-        $top = $vertical ? (int) round($h * 0.13) : $margin;
-        $bottom = $vertical ? (int) round($h * 0.33) : $margin;
+        $top = $vertical ? (int) round($h * 0.13) : $edge;
+        $bottom = $vertical ? (int) round($h * 0.33) : $edge;
 
         [$x, $y] = [
-            str_ends_with($position, '_left') ? (string) $margin : (str_ends_with($position, '_right') ? "W-w-{$margin}" : '(W-w)/2'),
-            str_starts_with($position, 'top') ? (string) $top : "H-h-{$bottom}",
+            str_ends_with($position, '_left') ? (string) $side : (str_ends_with($position, '_right') ? "W-w-{$side}" : '(W-w)/2'),
+            match (true) {
+                $position === 'center' => '(H-h)/2',
+                str_starts_with($position, 'top') => (string) $top,
+                default => "H-h-{$bottom}",
+            },
         ];
 
         $dir = storage_path('app/private/logo/'.Str::uuid());

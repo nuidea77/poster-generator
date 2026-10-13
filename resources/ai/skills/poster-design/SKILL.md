@@ -27,12 +27,7 @@ Formats are aspect ratios (`4:5`, `1:1`, `9:16`, `16:9` … or `auto`). Generate
 - **Food close-up:** "appetising macro at 45°, steam, warm side light, dark textured surface, space top-left for a headline".
 
 ## Logo
-- The logo is placed with **`add_logo`** — the client's own file, pixel-exact (shape, proportions, letters, colours never change; only scaled evenly). Never pass the logo to an image or video model to draw or place it.
-- In the visual prompt: "no logos" and leave a calm corner or band where it will sit.
-- Size: 12–18% of the width for a symbol, 20–30% for a wordmark (its letters must read on a phone). Position: a corner (`top_left` / `top_right`) or `bottom_center` on the info band — never over the product.
-- Background: `remove_background: true` (normal) clears a plain background around the logo file (white JPG etc.) while the logo itself — including its white parts — stays exact. Use `plate: light`/`dark` only when the logo would not stand out from the area behind it.
-- Order: visual → `add_text` → `add_logo` (or logo first, then text) — each on the latest image; never send the result back to an image model.
-- Never invent a logo when none was given; the brand name may then be a `small` text line.
+Placed last with `add_logo` (the client's file, pixel-exact) — size, corner, clear space and contrast per **`logo-placement`**. In the visual prompt: "no logos" and keep a calm corner free for it. Never invent a logo when none was given; the brand name may then be a `small` text line.
 
 ## Colour
 - Palette from the logo / brand / packaging; state it as hex or names. Max 2 main colours + 1 accent; text colour must contrast strongly with its background.
