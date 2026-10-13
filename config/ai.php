@@ -23,6 +23,8 @@ return [
         'model' => env('AI_AGENT_MODEL', 'claude-fable-5-1'),
         'effort' => env('AI_AGENT_EFFORT', 'medium'), // low | medium | high; medium is faster and cheaper, high for the most careful art direction
         'max_steps' => (int) env('AI_AGENT_MAX_STEPS', 30),
+        // Thinking counts toward this; a cut-off reply truncates its last tool call (only used tokens are billed).
+        'max_tokens' => (int) env('AI_AGENT_MAX_TOKENS', 32000),
         'timeout' => (int) env('AI_AGENT_TIMEOUT', 900),
         // Server-side refusal fallback (Claude API only). Set false on Bedrock/Vertex.
         'fallbacks' => (bool) env('AI_AGENT_FALLBACKS', true),

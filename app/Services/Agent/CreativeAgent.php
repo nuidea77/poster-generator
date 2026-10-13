@@ -76,7 +76,11 @@ class CreativeAgent
 
             $results = [];
             $finished = false;
-            $images = $this->generateImagesAtOnce($creation, $response['content']);
+            // A reply cut off at max_tokens ends in a half-written tool call (empty or garbled
+            // input): refuse that one call and let the agent go on instead of stopping the job.
+            $cutOff = ($response['stop_reason'] ?? null) === 'max_tokens';
+            $truncated = $cutOff ? collect($response['content'])->last(fn ($b) => $b['type'] === 'tool_use')['id'] ?? null : null;
+            $images = $this->generateImagesAtOnce($creation, array_values(array_filter($response['content'], fn ($b) => ($b['id'] ?? null) !== $truncated)));
 
             foreach ($response['content'] as $block) {
                 if ($block['type'] === 'text' && trim($block['text']) !== '') {
@@ -88,6 +92,13 @@ class CreativeAgent
                 }
 
                 $input = is_array($block['input'] ?? null) ? $block['input'] : [];
+
+                if ($block['id'] === $truncated) {
+                    $results[] = ['type' => 'tool_result', 'tool_use_id' => $block['id'], 'is_error' => true, 'content' => 'Your reply hit the length limit and this call was cut off, so it was not run. Think more briefly and send the call again.'];
+                    $creation->addStep(['type' => 'tool', 'name' => $block['name'], 'input' => $input, 'error' => 'cut off (max_tokens)']);
+
+                    continue;
+                }
 
                 try {
                     $result = array_key_exists($block['id'], $images) ? $this->settled($images[$block['id']]) : $this->call($creation, $block['name'], $input);
@@ -104,11 +115,11 @@ class CreativeAgent
                 $finished = $finished || $block['name'] === 'finish';
             }
 
-            if ($finished || ($response['stop_reason'] ?? null) !== 'tool_use') {
+            if ($finished || (! $cutOff && ($response['stop_reason'] ?? null) !== 'tool_use')) {
                 return;
             }
 
-            $messages[] = ['role' => 'user', 'content' => $results];
+            $messages[] = ['role' => 'user', 'content' => $results ?: 'Your reply hit the length limit before any tool call. Think more briefly and continue with the next tool call.'];
         }
 
         throw new AiException('Agent stopped: too many steps.');
@@ -124,7 +135,7 @@ class CreativeAgent
         $headers = ['x-api-key' => $cfg['key'], 'anthropic-version' => '2023-06-01'];
         $body = [
             'model' => $agent['model'],
-            'max_tokens' => 16000,
+            'max_tokens' => $agent['max_tokens'] ?? 32000,
             'system' => [[
                 'type' => 'text',
                 'text' => $this->systemPrompt(),
@@ -579,9 +590,16 @@ class CreativeAgent
             throw new AiException('In a reel, add_text needs a clip (use animate_still first for a card).');
         }
 
-        $tmp = $this->text->burn(MediaStore::absolute($asset['path']), array_values($in['items'] ?? []), (float) ($asset['duration'] ?? 0), $still, $asset['reserved'] ?? []);
+        // The model sometimes sends Cyrillic as "\u0410" escapes (or a stray CR before "u0410"); set the real letters.
+        $in['items'] = array_map(fn ($item) => is_array($item) && is_string($item['text'] ?? null)
+            ? [...$item, 'text' => preg_replace_callback('/(?:\\\\+|\r)u([0-9a-fA-F]{4})/', fn ($m) => mb_chr(hexdec($m[1]), 'UTF-8'), $item['text'])]
+            : $item, array_values($in['items'] ?? []));
+
+        $base = $this->exactFrame($asset);
+        $tmp = $this->text->burn($base ?? MediaStore::absolute($asset['path']), $in['items'], (float) ($asset['duration'] ?? 0), $still, $asset['reserved'] ?? []);
         $file = MediaStore::put("creations/{$creation->public_id}/work", file_get_contents($tmp), $still ? 'image/png' : 'video/mp4');
         @unlink($tmp);
+        $base && @unlink($base);
 
         $lines = array_column($in['items'] ?? [], 'text');
         $new = $creation->addAsset([
@@ -596,6 +614,31 @@ class CreativeAgent
         return ['summary' => "{$new} ← {$asset['id']} + ".count($lines).' text', 'content' => $still ? [['type' => 'text', 'text' => $content.' Review it:'], $this->imageBlock($file['path'])] : $content];
     }
 
+    /**
+     * Models return near-ratio sizes (Gemini's "4:5" is 896×1152). Text and logos are set on
+     * the exact poster frame at full size, so delivery's crop cannot cut a line or the logo.
+     *
+     * @return string|null temp file to use as the base (caller deletes it), or null when the image already fits
+     */
+    private function exactFrame(array $asset): ?string
+    {
+        $format = config('creations.poster_formats.'.($asset['aspect'] ?? ''));
+        if ($asset['kind'] !== 'image' || empty($format['width'])) {
+            return null;
+        }
+
+        $data = MediaStore::read($asset['path'])['data'];
+        [$w, $h] = getimagesizefromstring($data) ?: [0, 0];
+        if ($w === $format['width'] && $h === $format['height']) {
+            return null;
+        }
+
+        $tmp = sys_get_temp_dir().'/frame-'.uniqid('', true).'.jpg';
+        file_put_contents($tmp, $this->formatter->fit($data, $format['width'], $format['height'])['data']);
+
+        return $tmp;
+    }
+
     private function addLogo(Creation $creation, array $in): array
     {
         $logo = collect($creation->inputs)->firstWhere('role', 'logo') ?? throw new AiException('No logo was attached to this job.');
@@ -604,12 +647,14 @@ class CreativeAgent
         $still = $asset['kind'] === 'image';
 
         $logoPath = ($in['remove_background'] ?? true) ? $this->logoCutout($creation, $logo) : MediaStore::absolute($logo['path']);
+        $base = $this->exactFrame($asset);
         $placed = $this->logos->place(
-            MediaStore::absolute($asset['path']), $logoPath,
+            $base ?? MediaStore::absolute($asset['path']), $logoPath,
             (string) ($in['position'] ?? 'top_left'), (float) ($in['width'] ?? 0.16), (string) ($in['plate'] ?? 'none'), $still,
         );
         $file = MediaStore::put("creations/{$creation->public_id}/work", file_get_contents($placed['path']), $still ? 'image/png' : 'video/mp4');
         @unlink($placed['path']);
+        $base && @unlink($base);
 
         $new = $creation->addAsset([
             'kind' => $asset['kind'], 'source' => 'generated', 'provider' => 'logo',

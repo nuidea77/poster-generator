@@ -636,14 +636,14 @@ class CreationTest extends TestCase
                 ->push($this->turn([['add_text', ['asset_id' => 'img_1', 'items' => [
                     $item('ӨВЛИЙН ХЯМДРАЛ', 'title', 'top', 'left'),
                     $item('-30%', 'price', 'lower_third', 'center'),
-                    $item('Утас: 9911-2233', 'small', 'bottom', 'center'),
+                    $item('\u0423\u0442\u0430\u0441: 9911-2233', 'small', 'bottom', 'center'), // model sent escapes
                 ]]]]))
                 ->push($this->turn([['deliver_poster', ['format' => '4:5', 'image_id' => 'img_2']]]))
                 ->push($this->turn([['finish', ['summary' => 'ok']]])),
         ]);
 
         $creation = Creation::create(['user_id' => $this->user->id, 'type' => 'poster', 'formats' => ['4:5'], 'prompt' => 'x', 'status' => 'queued']);
-        Storage::disk('public')->put('in/visual.png', self::png(864, 1080));
+        Storage::disk('public')->put('in/visual.png', self::png(896, 1152)); // Gemini's "4:5" is not exactly 4:5
         $creation->update(['assets' => [['id' => 'img_1', 'kind' => 'image', 'source' => 'generated', 'provider' => 'gemini', 'path' => 'in/visual.png', 'aspect' => '4:5', 'cost' => 0.039]]]);
 
         RunCreation::dispatchSync($creation);
@@ -652,6 +652,8 @@ class CreationTest extends TestCase
         $this->assertSame('done', $creation->status, json_encode($creation->steps));
         $this->assertSame(['text', '4:5', 'image'], [$creation->asset('img_2')['provider'], $creation->asset('img_2')['aspect'], $creation->asset('img_2')['kind']]);
         $this->assertSame('img_2', $creation->outputs[0]['source_asset']);
+        $this->assertStringEndsWith('| Утас: 9911-2233', $creation->asset('img_2')['prompt']);
+        $this->assertSame([1080, 1350], array_slice(getimagesizefromstring(Storage::disk('public')->get($creation->asset('img_2')['path'])), 0, 2), 'text is set on the exact frame');
         [$w, $h] = getimagesizefromstring(Storage::disk('public')->get($creation->outputs[0]['path']));
         $this->assertSame([1080, 1350], [$w, $h]);
     }
@@ -662,7 +664,7 @@ class CreationTest extends TestCase
             $this->markTestSkipped('ffmpeg not installed');
         }
 
-        // A 200×100 pure red logo on a blue 1000×1250 visual.
+        // A 200×100 pure red logo on a blue 1080×1350 visual (the exact 4:5 frame).
         $make = function (int $w, int $h, array $rgb) {
             $img = imagecreatetruecolor($w, $h);
             imagefill($img, 0, 0, imagecolorallocate($img, ...$rgb));
@@ -672,7 +674,7 @@ class CreationTest extends TestCase
             return ob_get_clean();
         };
         Storage::disk('public')->put('in/logo.png', $make(200, 100, [255, 0, 0]));
-        Storage::disk('public')->put('in/visual.png', $make(1000, 1250, [0, 0, 255]));
+        Storage::disk('public')->put('in/visual.png', $make(1080, 1350, [0, 0, 255]));
 
         Http::fake([
             'api.anthropic.com/*' => Http::sequence()
@@ -688,15 +690,37 @@ class CreationTest extends TestCase
         $made = $creation->refresh()->asset('img_2');
         $this->assertSame('logo', $made['provider'], json_encode($creation->steps));
 
-        // Logo 20% of 1000 px = 200 × 100 (aspect kept); side margin 7% of the width (text grid) = 70 px, top 5% of 1250 = 63 px.
+        // Logo 20% of 1080 px = 216 × 108 (aspect kept); side margin 7% of the width (text grid) = 76 px, top 5% of 1350 = 68 px.
         $img = imagecreatefromstring(Storage::disk('public')->get($made['path']));
         $red = fn (int $x, int $y) => imagecolorat($img, $x, $y) >> 16 & 0xFF;
-        $this->assertGreaterThan(240, $red(80, 70));     // inside the logo
-        $this->assertGreaterThan(240, $red(260, 155));   // still inside at 200×100
+        $this->assertGreaterThan(240, $red(90, 80));     // inside the logo
+        $this->assertGreaterThan(240, $red(280, 170));   // still inside at 216×108
         $this->assertLessThan(20, $red(60, 100));        // left margin: background
-        $this->assertLessThan(20, $red(280, 110));       // right of the logo: background
-        $this->assertLessThan(20, $red(100, 175));       // below the logo: background
-        $this->assertSame([1000, 1250], [imagesx($img), imagesy($img)]);
+        $this->assertLessThan(20, $red(300, 120));       // right of the logo: background
+        $this->assertLessThan(20, $red(100, 190));       // below the logo: background
+        $this->assertSame([1080, 1350], [imagesx($img), imagesy($img)]);
+    }
+
+    public function test_a_reply_cut_off_at_max_tokens_does_not_end_the_job(): void
+    {
+        Http::fake([
+            'api.anthropic.com/*' => Http::sequence()
+                ->push($this->turn([['add_text', ['asset_id' => 'img_1']]], 'max_tokens')) // half-written call
+                ->push($this->turn([['deliver_poster', ['format' => '1:1', 'image_id' => 'img_1']]]))
+                ->push($this->turn([['finish', ['summary' => 'ok']]])),
+        ]);
+
+        $creation = Creation::create(['user_id' => $this->user->id, 'type' => 'poster', 'formats' => ['1:1'], 'prompt' => 'x', 'status' => 'queued']);
+        Storage::disk('public')->put('in/visual.png', self::png(1024, 1024));
+        $creation->update(['assets' => [['id' => 'img_1', 'kind' => 'image', 'source' => 'generated', 'provider' => 'gemini', 'path' => 'in/visual.png', 'aspect' => '1:1', 'cost' => 0.039]]]);
+
+        RunCreation::dispatchSync($creation);
+        $creation->refresh();
+
+        $this->assertSame('done', $creation->status, json_encode($creation->steps));
+        $this->assertSame('cut off (max_tokens)', $creation->steps[0]['error']);
+        Http::assertSent(fn ($r) => str_contains($r->url(), 'anthropic') && ($r['messages'][2]['content'][0]['is_error'] ?? false) === true
+            && $r['messages'][2]['content'][0]['tool_use_id'] === 'toolu_0_add_text');
     }
 
     public function test_library_filters_by_outcome(): void

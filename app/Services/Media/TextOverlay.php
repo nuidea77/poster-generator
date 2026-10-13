@@ -128,7 +128,7 @@ class TextOverlay
             }
 
             if (! $filters) {
-                throw new AiException('All text items were empty.');
+                throw new AiException('All text items were empty (only blank lines). Put the real words in "text" as plain UTF-8 letters — no blank-line padding, no \u escapes; to clear a logo, add_logo first and the text moves below it by itself.');
             }
 
             $ext = $still ? 'png' : 'mp4';
