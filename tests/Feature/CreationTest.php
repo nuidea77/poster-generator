@@ -8,6 +8,7 @@ use App\Models\Payment;
 use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\User;
+use App\Services\AI\AiManager;
 use App\Services\Billing\BillingService;
 use Database\Seeders\PlanSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -394,8 +395,8 @@ class CreationTest extends TestCase
         Http::assertSent(fn (Request $r) => str_ends_with($r->url(), ':predictLongRunning')
             && $r->hasHeader('x-goog-api-key', 'k-gemini')
             && $r['instances'][0]['prompt'] === 'barista pours milk'
-            && $r['instances'][0]['image']['inlineData']['mimeType'] === 'image/png'
-            && $r['parameters'] === ['aspectRatio' => '9:16', 'durationSeconds' => '6', 'resolution' => '720p']);
+            && $r['instances'][0]['image']['mimeType'] === 'image/png'
+            && $r['parameters'] === ['aspectRatio' => '9:16', 'durationSeconds' => 6, 'resolution' => '720p']);
 
         // Fable sees both video models with their clip lengths.
         Http::assertSent(function (Request $r) {
@@ -415,6 +416,23 @@ class CreationTest extends TestCase
         }
 
         @unlink($clip);
+    }
+
+    public function test_veo_request_uses_the_shape_the_api_accepts(): void
+    {
+        // The live API rejects `inlineData` images and string durations (both shown in Google's docs).
+        Http::fake(['generativelanguage.googleapis.com/*' => Http::response(['name' => 'models/veo/operations/op1'])]);
+        $veo = app(AiManager::class)->video('veo');
+
+        $this->assertSame('models/veo/operations/op1', $veo->submit('steam rises', '16:9', 6, ['data' => 'PNGDATA', 'mime' => 'image/png']));
+        $veo->submit('city at night', '9:16', 8);
+
+        $sent = collect(Http::recorded())->map(fn ($p) => $p[0]->data());
+        $this->assertSame(['prompt' => 'steam rises', 'image' => ['bytesBase64Encoded' => base64_encode('PNGDATA'), 'mimeType' => 'image/png']], $sent[0]['instances'][0]);
+        $this->assertSame(['aspectRatio' => '16:9', 'durationSeconds' => 6, 'resolution' => '720p'], $sent[0]['parameters']);
+        $this->assertSame(8, $sent[1]['parameters']['durationSeconds']);
+        $this->assertSame('1080p', $sent[1]['parameters']['resolution']);
+        $this->assertArrayNotHasKey('image', $sent[1]['instances'][0]);
     }
 
     public function test_reel_delivery_needs_clips_and_respects_the_cap(): void

@@ -24,8 +24,9 @@ class VeoProvider implements VideoProvider
     {
         $instance = ['prompt' => trim($prompt)];
 
+        // Vertex-style image field: the Veo predict endpoint rejects `inlineData` (despite the docs).
         if ($firstFrame) {
-            $instance['image'] = ['inlineData' => ['mimeType' => $firstFrame['mime'], 'data' => base64_encode($firstFrame['data'])]];
+            $instance['image'] = ['bytesBase64Encoded' => base64_encode($firstFrame['data']), 'mimeType' => $firstFrame['mime']];
         }
 
         // 1080p is only rendered for 8 s clips; shorter clips fall back to 720p.
@@ -35,7 +36,7 @@ class VeoProvider implements VideoProvider
             'instances' => [$instance],
             'parameters' => [
                 'aspectRatio' => $aspect === '16:9' ? '16:9' : '9:16',
-                'durationSeconds' => (string) $duration,
+                'durationSeconds' => $duration, // must be a JSON number
                 'resolution' => $resolution,
             ],
         ]);
