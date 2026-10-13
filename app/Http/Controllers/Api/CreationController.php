@@ -25,6 +25,13 @@ class CreationController extends Controller
             $query->where('type', $request->query('type'));
         }
 
+        match ($request->query('status')) {
+            'done' => $query->where('status', Creation::DONE),
+            'failed' => $query->where('status', Creation::FAILED),
+            'active' => $query->whereIn('status', Creation::ACTIVE),
+            default => null,
+        };
+
         return CreationResource::collection($query->paginate(24));
     }
 

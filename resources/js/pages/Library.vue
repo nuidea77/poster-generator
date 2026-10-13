@@ -7,16 +7,20 @@ const items = ref([]);
 const loading = ref(true);
 const error = ref('');
 const filter = ref('all');
+const status = ref('all'); // all | done | failed | active
+const statuses = [['all', 'Бүгд'], ['done', 'Амжилттай'], ['failed', 'Амжилтгүй'], ['active', 'Хийгдэж буй']];
+const isActive = (c) => ['queued', 'running', 'assembling'].includes(c.status);
 const page = ref(1);
 const lastPage = ref(1);
 let timer;
 
-const hasActive = computed(() => items.value.some((c) => ['queued', 'running', 'assembling'].includes(c.status)));
+const hasActive = computed(() => items.value.some(isActive));
 
 async function load(reset = true) {
     try {
         const type = filter.value === 'all' ? '' : `&type=${filter.value}`;
-        const res = await api.get(`/creations?page=${reset ? 1 : page.value}${type}`);
+        const state = status.value === 'all' ? '' : `&status=${status.value}`;
+        const res = await api.get(`/creations?page=${reset ? 1 : page.value}${type}${state}`);
         items.value = reset ? res.data : [...items.value, ...res.data];
         page.value = res.meta.current_page;
         lastPage.value = res.meta.last_page;
@@ -32,7 +36,7 @@ function more() {
     load(false);
 }
 
-watch(filter, () => {
+watch([filter, status], () => {
     loading.value = true;
     load();
 });
@@ -60,6 +64,9 @@ const aspect = (c) => {
             <div class="ml-auto flex gap-1.5">
                 <button v-for="f in [['all', 'Бүгд'], ['poster', 'Постер'], ['reel', 'Reels']]" :key="f[0]" class="chip chip-sm" :class="{ 'chip-active': filter === f[0] }" @click="filter = f[0]">{{ f[1] }}</button>
             </div>
+            <div class="flex w-full flex-wrap gap-1.5 sm:order-last">
+                <button v-for="s in statuses" :key="s[0]" class="chip chip-sm" :class="{ 'chip-active': status === s[0] }" @click="status = s[0]">{{ s[1] }}</button>
+            </div>
             <RouterLink to="/create" class="btn btn-lime"><Icon name="plus" size="14" /> Шинээр</RouterLink>
         </div>
 
@@ -67,13 +74,13 @@ const aspect = (c) => {
         <div v-if="loading" class="grid min-h-[40vh] place-items-center"><span class="spinner text-lime" /></div>
         <div v-else-if="!items.length" class="panel grid min-h-[40vh] place-items-center text-center">
             <div>
-                <p class="text-muted">Одоогоор бүтээл алга.</p>
+                <p class="text-muted">{{ status === 'all' && filter === 'all' ? 'Одоогоор бүтээл алга.' : 'Энэ шүүлтүүрт тохирох бүтээл алга.' }}</p>
                 <RouterLink to="/create" class="btn btn-lime mt-4">Анхны бүтээлээ хийх</RouterLink>
             </div>
         </div>
 
         <div class="columns-2 gap-4 sm:columns-3 xl:columns-4 2xl:columns-5">
-            <RouterLink v-for="c in items" :key="c.id" :to="`/c/${c.id}`" class="group media-card mb-4 block break-inside-avoid">
+            <RouterLink v-for="c in items" :key="c.id" :to="`/c/${c.id}`" class="group media-card mb-4 block break-inside-avoid" :class="{ 'ring-1 ring-red-500/40': c.status === 'failed' }">
                 <img v-if="cover(c)" :src="cover(c)" class="w-full object-cover" :style="aspect(c)" loading="lazy" alt="" />
                 <div v-else class="grid w-full place-items-center bg-[radial-gradient(circle_at_center,#1f1f1f,#121212)]" :style="aspect(c)">
                     <span v-if="c.status === 'failed'" class="text-xs text-red-300">Амжилтгүй</span>
@@ -81,7 +88,12 @@ const aspect = (c) => {
                     <span v-else class="flex flex-col items-center gap-2 text-xs text-muted"><span class="spinner text-lime" /> {{ c.progress }}%</span>
                 </div>
                 <span class="badge absolute top-2 left-2 backdrop-blur" :class="c.type === 'reel' ? 'badge-top' : 'badge-new'">{{ c.type === 'reel' ? 'Reels' : 'Постер' }}</span>
-                <span v-if="c.type === 'poster' && c.outputs.length > 1" class="badge badge-muted absolute top-2 right-2 backdrop-blur">{{ c.outputs.length }}</span>
+                <span class="absolute top-2 right-2 flex gap-1">
+                    <span v-if="c.type === 'poster' && c.outputs.length > 1" class="badge badge-muted backdrop-blur">{{ c.outputs.length }}</span>
+                    <span v-if="c.status === 'done'" class="badge bg-emerald-500/85 text-white backdrop-blur"><Icon name="check" size="10" /> Амжилттай</span>
+                    <span v-else-if="c.status === 'failed'" class="badge bg-red-500/85 text-white backdrop-blur"><Icon name="x" size="10" /> Амжилтгүй</span>
+                    <span v-else class="badge bg-amber-400/90 text-ink backdrop-blur">Хийгдэж байна</span>
+                </span>
                 <span v-if="c.type === 'reel' && cover(c)" class="pointer-events-none absolute inset-0 grid place-items-center"><span class="grid size-12 place-items-center rounded-full bg-black/50 backdrop-blur"><Icon name="play" size="18" /></span></span>
                 <div class="media-overlay">
                     <div class="line-clamp-2 text-sm font-semibold">{{ c.prompt }}</div>

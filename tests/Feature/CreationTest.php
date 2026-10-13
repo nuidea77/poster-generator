@@ -696,6 +696,21 @@ class CreationTest extends TestCase
         $this->assertSame([1000, 1250], [imagesx($img), imagesy($img)]);
     }
 
+    public function test_library_filters_by_outcome(): void
+    {
+        foreach (['done', 'done', 'failed', 'running'] as $status) {
+            Creation::create(['user_id' => $this->user->id, 'type' => 'poster', 'formats' => ['1:1'], 'prompt' => $status, 'status' => $status]);
+        }
+        $count = fn (string $q) => count($this->actingAs($this->user)->getJson("/api/v1/creations{$q}")->assertOk()->json('data'));
+
+        $this->assertSame(4, $count(''));
+        $this->assertSame(2, $count('?status=done'));
+        $this->assertSame(1, $count('?status=failed'));
+        $this->assertSame(1, $count('?status=active'));
+        $this->assertSame(1, $count('?status=failed&type=poster'));
+        $this->assertSame(0, $count('?status=failed&type=reel'));
+    }
+
     public function test_reel_delivery_needs_clips_and_respects_the_cap(): void
     {
         Http::fake([
