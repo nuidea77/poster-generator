@@ -42,8 +42,8 @@ Never invent facts, prices, phone numbers, discounts or claims.
 Avoid the default "product on a podium in front of a plain wall" unless the archetype calls for it.
 
 ## 3. Make it
-**Visual (step 1):** English prompt — subject, setting, composition **with the empty zones for text**, light, style, palette. With a product photo: `gemini` + reference, phrased as an edit ("keep the product exactly as in the reference: same shape, colours, label; change only the scene"). Logo passed as reference, placed **small** in a corner or on the info band — never huge in the centre. If you will add text in step 2, end with "No text, no letters, no logos except the provided one."
-**Typography (step 2):** the approved visual + logo as references → add the exact strings per `poster-typography`. Simple graphic posters can be one shot.
+**Visual (step 1):** English prompt — subject, setting, composition **with calm empty zones for the words**, light, style, palette. With a product photo: `gemini` + reference, phrased as an edit ("keep the product exactly as in the reference: same shape, colours, label; change only the scene"). Logo passed as reference, placed in a corner or on the info band — never huge in the centre. End with "No text, no letters, no numbers, no logos except the provided one."
+**Words (step 2):** `add_text` on the approved visual — every string in real fonts, letters exact (see `poster-typography` §5). Never let an image model write the poster's words: it misspells Mongolian.
 Ask for independent drafts **in the same turn** (they run in parallel) when you want to compare two archetypes.
 
 ## 4. Budget

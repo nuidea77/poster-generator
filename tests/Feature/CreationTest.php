@@ -282,7 +282,7 @@ class CreationTest extends TestCase
                 && ! array_key_exists('tool_choice', $r->data())
                 && $r['fallbacks'] === 'default'
                 && $r->hasHeader('anthropic-beta', 'server-side-fallback-2026-07-01')
-                && $tools === ['load_skill', 'generate_image', 'deliver_poster', 'finish']
+                && $tools === ['load_skill', 'generate_image', 'add_text', 'deliver_poster', 'finish']
                 && collect($r['tools'])->firstWhere('name', 'deliver_poster')['input_schema']['properties']['format']['enum'] === ['4:5', '9:16']
                 && str_contains($r['system'][0]['text'], '`poster-design`')
                 && last(last($r['messages'])['content'])['cache_control'] === ['type' => 'ephemeral']
@@ -591,10 +591,10 @@ class CreationTest extends TestCase
         Process::run([$ffmpeg, '-y', '-f', 'lavfi', '-i', 'color=c=0x223344:s=540x960:r=24', '-f', 'lavfi', '-i', 'sine=frequency=440', '-t', '3', '-pix_fmt', 'yuv420p', '-shortest', $clip])->throw();
         Storage::disk('public')->put('in/clip.mp4', file_get_contents($clip));
 
-        $text = fn (string $t, string $role, string $pos, string $font) => ['text' => $t, 'role' => $role, 'position' => $pos, 'font' => $font, 'color' => 'FFFFFF', 'box' => $role === 'price', 'box_color' => 'E85D04', 'start' => 0.2, 'end' => 3, 'animation' => 'slide_up'];
+        $text = fn (string $t, string $role, string $pos, string $font) => ['text' => $t, 'role' => $role, 'position' => $pos, 'align' => 'center', 'font' => $font, 'color' => 'FFFFFF', 'box' => $role === 'price', 'box_color' => 'E85D04', 'start' => 0.2, 'end' => 3, 'animation' => 'slide_up'];
         Http::fake([
             'api.anthropic.com/*' => Http::sequence()
-                ->push($this->turn([['add_text', ['clip_id' => 'vid_1', 'items' => [
+                ->push($this->turn([['add_text', ['asset_id' => 'vid_1', 'items' => [
                     $text('ӨВЛИЙН ХЯМДРАЛ', 'title', 'top', 'condensed'),
                     $text('4,500₮', 'price', 'lower_third', 'serif'), // serif has no ₮: falls back to bold sans
                     $text("Захиалах\n9911-2233", 'small', 'bottom', 'sans'),
@@ -618,6 +618,38 @@ class CreationTest extends TestCase
         $this->assertSame(['video', 'audio'], array_column($probe['streams'], 'codec_type')); // sound kept
         $this->assertEqualsWithDelta(3.0, (float) $probe['format']['duration'], 0.1);
         @unlink($clip);
+    }
+
+    public function test_poster_text_is_set_in_real_fonts_and_delivered(): void
+    {
+        if (! Process::run([config('ai.ffmpeg'), '-version'])->successful()) {
+            $this->markTestSkipped('ffmpeg not installed');
+        }
+
+        $item = fn (string $t, string $role, string $pos, string $align) => ['text' => $t, 'role' => $role, 'position' => $pos, 'align' => $align, 'font' => 'bold_sans', 'color' => 'FFFFFF', 'box' => $role === 'price', 'box_color' => 'C1121F', 'start' => 0, 'end' => 0, 'animation' => 'none'];
+        Http::fake([
+            'api.anthropic.com/*' => Http::sequence()
+                ->push($this->turn([['add_text', ['asset_id' => 'img_1', 'items' => [
+                    $item('ӨВЛИЙН ХЯМДРАЛ', 'title', 'top', 'left'),
+                    $item('-30%', 'price', 'lower_third', 'center'),
+                    $item('Утас: 9911-2233', 'small', 'bottom', 'center'),
+                ]]]]))
+                ->push($this->turn([['deliver_poster', ['format' => '4:5', 'image_id' => 'img_2']]]))
+                ->push($this->turn([['finish', ['summary' => 'ok']]])),
+        ]);
+
+        $creation = Creation::create(['user_id' => $this->user->id, 'type' => 'poster', 'formats' => ['4:5'], 'prompt' => 'x', 'status' => 'queued']);
+        Storage::disk('public')->put('in/visual.png', self::png(864, 1080));
+        $creation->update(['assets' => [['id' => 'img_1', 'kind' => 'image', 'source' => 'generated', 'provider' => 'gemini', 'path' => 'in/visual.png', 'aspect' => '4:5', 'cost' => 0.039]]]);
+
+        RunCreation::dispatchSync($creation);
+        $creation->refresh();
+
+        $this->assertSame('done', $creation->status, json_encode($creation->steps));
+        $this->assertSame(['text', '4:5', 'image'], [$creation->asset('img_2')['provider'], $creation->asset('img_2')['aspect'], $creation->asset('img_2')['kind']]);
+        $this->assertSame('img_2', $creation->outputs[0]['source_asset']);
+        [$w, $h] = getimagesizefromstring(Storage::disk('public')->get($creation->outputs[0]['path']));
+        $this->assertSame([1080, 1350], [$w, $h]);
     }
 
     public function test_reel_delivery_needs_clips_and_respects_the_cap(): void

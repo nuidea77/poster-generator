@@ -1,11 +1,13 @@
 ---
 name: poster-typography
-description: Putting the message on the poster — headline, offer badge, price, date/time/place, call to action and the brand line rendered inside the image by the image model: hierarchy, layout zones per poster type, type styles by mood, exact-text prompting (Mongolian Cyrillic, ₮, %, dates), the two-step visual-then-typography method, letter-by-letter checking and the fallback ladder when text comes out wrong. Load for every POSTER job whose brief contains any words, numbers, price, discount, date, place or call to action.
+description: Putting the message on the poster — headline, offer badge, price, date/time/place, call to action and the brand line set in real fonts with `add_text` (exact Mongolian letters, never misspelled) on a text-free visual: hierarchy, layout zones per poster type, fonts and colours by mood, alignment, and checking the result. Load for every POSTER job whose brief contains any words, numbers, price, discount, date, place or call to action.
 ---
 
 # Poster typography
 
-A poster without its message is just a product photo. When the brief gives words or numbers — price, discount, dates, place, a product name, a slogan, a phone number — they belong on the poster, rendered **inside the image by the image model**. Nothing is added on top later, so the image must already be the finished ad.
+A poster without its message is just a product photo. When the brief gives words or numbers — price, discount, dates, place, a product name, a slogan, a phone number — they belong on the poster.
+
+**Image models misspell Mongolian** (Ө/Ү/Э/Е, ₮). So the poster's words are **set with `add_text`** in real fonts (Montserrat, Oswald, Playfair Display, Nunito — exact letters every time) on a visual that was generated **without any text**. Never ask an image model to write the poster's words.
 
 ## 1. Build the message hierarchy first
 From the brief, pick at most these, in this order of size:
@@ -55,31 +57,33 @@ Name the style concretely in the prompt ("bold condensed sans-serif in white, al
 - **Badges:** circle, rounded pill or slanted tag in the accent colour for `-30%`, `ШИНЭ`, the date — one badge per poster.
 - **Consistency:** the same colour does the same job (accent = offer/price only).
 
-## 4. How to prompt text (exactness)
-- Put every string in double quotes and say "render exactly this text, letter for letter": `headline text exactly "ЗУНЫ ХЯМДРАЛ"`.
-- Say where, how big, what colour, on what background: `"‑18%" in a large red circle badge in the top-right corner, white bold numbers`.
-- Mongolian Cyrillic needs care: name tricky letters if present ("note the Cyrillic letters Ө and Ү"). Prefer short words. Numbers, ₮ and % render far more reliably than words.
-- Write dates and prices in a compact form: `10.15 · 15:00`, `150,000₮`, `-18%`.
-- List all text in one block at the end of the prompt, then "No other text, no other letters or numbers, no watermark."
+## 4. Writing the strings
+- Copy names, prices, dates, phones exactly from the brief; write them per `mongolian-ad-copy` (`150,000₮`, `-18%`, `10.15 · 15:00`, `9911-2233`).
+- Use `\n` to break a long headline into two balanced lines instead of letting it shrink.
+- One string per item; the order of items in a zone is the reading order.
 
 ## 4b. Reels
-In reels, text is not drawn by the image model: use `add_text` (real fonts, exact letters, animated) — see `reels-storyboard` §3. Image-model lettering is for posters only.
+Same tool on clips: `add_text` with timed fade / slide-up — see `reels-storyboard` §3.
 
-## 5. Two-step method (recommended)
-1. **Visual first** — make and approve the image without text but **with the empty zones** the layout needs ("leave the top third as calm empty space for a headline; leave a clean band at the bottom").
-2. **Typography second** — pass the approved image (and the logo) as references and ask the model to "keep the photo exactly as it is and add the following typography" with the exact strings, positions, sizes and style. Use `gemini_pro` for this step (best lettering, Mongolian Cyrillic and ₮); `gemini` / `openai` only when it is unavailable.
-One-shot (visual + text in one prompt) is fine for simple graphic posters.
+## 5. Method: text-free visual → `add_text`
+1. **Visual** — generate the image **with no text at all** but **with calm zones** where the words will sit, matching the layout ("leave the top third as calm, evenly lit empty sky for a headline; keep a clean, plain area at the bottom"). End the prompt with "No text, no letters, no numbers, no logos except the provided one." Graphic elements are fine: a colour band, a circle badge shape, a panel — empty.
+2. **Words** — call `add_text` on the approved visual with every string, in hierarchy order:
+   - `title` for the hook (`ХЯМДРАЛ`, `-30%`, `НЭЭЛТ`), `price` for prices/discounts (often with `box` in the accent colour), `subtitle` for the product line / date line, `small` for CTA, phone, address, brand line.
+   - `position` = the calm zone (`top`, `center`, `lower_third`, `bottom`); items in the same zone stack in order. Never over the product or faces.
+   - `align`: `left` for retail / corporate grids, `center` for events, greetings, premium.
+   - `font` by mood (§3): `bold_sans` default, `condensed` sport/bold offers, `serif` premium/beauty/events (no ₮ glyph — prices switch to sans automatically), `rounded` kids/food, `sans` for secondary lines. Max two fonts.
+   - `color`: dark text on light calm areas, white text on dark/photo areas (white gets a shadow automatically); `box` + `box_color` for prices/badges.
+   - On images `start`/`end`/`animation` are ignored (pass 0, 0, `none`).
+3. **Look at the returned poster** (it is shown to you): hierarchy reads in one second, nothing covers the product, nothing touches an edge. Not right → call `add_text` again **on the same clean visual** with changed positions/sizes/colours (never on the already-texted image).
+4. Deliver the texted image id. For several ratios: make each ratio's clean visual, then `add_text` on each.
 
-**Every edit redraws the whole image** — the logo and any text already in it are re-rendered and degrade a little each time. So: put the logo and all text in the **same final step**, do not edit a finished poster again to fix one detail (go back to the clean visual and redo the typography step), and keep a wordmark logo big enough to stay legible (≥ 18–20% of the frame width; a small logo turns its letters into mush).
+Logos are never typed — pass the logo file as a reference in the visual step (≥ 18–20% of the width for a wordmark). The brand name may be set as a `small` line when there is no logo.
 
-## 6. Check every letter
-Zoom in mentally on each string and compare **character by character** with the brief: missing/extra letters, Ө/Ү/Ё wrong, digits swapped, ₮ and % present, no invented extra words, no pseudo-letters elsewhere. **Check the logo's own letters too** — a misspelled brand name is the worst error on the poster. Also check the hierarchy reads in one second on a phone.
+## 6. Check
+`add_text` sets exactly what you write, so check **your strings** against the brief before calling it (names, digits, ₮, %, Ө/Ү). Then check the returned poster: one element clearly biggest, nothing over the product, margins clear, text readable at phone size. Also check the **logo's own letters** in the visual — the logo comes from the image model and can be redrawn wrong.
 
-Currency: the tugrik sign is `₮`. A plain `T`, `₸`, `₿` or `Т` in its place is wrong — retry once with "the Mongolian tugrik sign ₮ (a T with two diagonal strokes)", then fall back to the number alone (`123,000`) or `123,000 төг`; never ship a wrong symbol.
-
-## 7. Fallback ladder (when text keeps failing)
-1. Regenerate the typography step with fewer, shorter strings and larger size.
-2. Keep only numbers and symbols (`-18%`, `150,000₮`, `10.15 · 15:00`) — they almost always render.
-3. Keep the headline in a simple badge or band with one or two words.
-4. Last resort: deliver the clean visual without text and say so in `finish`.
-Never ship misspelled text.
+## 7. When it does not fit
+1. Too many words → cut to the hierarchy (hook, one fact line, CTA); move details to the caption.
+2. Text over the product or a face → use another zone, or regenerate the visual with a bigger calm area.
+3. Low contrast → switch dark/white text, or put the line on a `box` in the brand colour.
+4. A long headline shrinks too much → two lines with `\n`, or a shorter synonym from `mongolian-ad-copy`.

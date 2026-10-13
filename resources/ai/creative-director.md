@@ -28,7 +28,7 @@ Each generation tool lists only the providers that are available. Choose per cal
 
 | Need | Choice | Why |
 |---|---|---|
-| **Any image that carries text** (poster typography step, title / info / end cards), wordmark logos, premium hero shots | `gemini_pro` (+ references) | By far the best lettering — Mongolian Cyrillic, ₮, prices, dates — and finest detail; slower and ~3× the price of `gemini` |
+| Wordmark logos to keep legible, premium hero shots with fine detail | `gemini_pro` (+ references) | Finest detail and logo fidelity; slower and ~3× the price of `gemini`. Words are never drawn by any image model — use `add_text` |
 | Keep the client's real product / logo / dish / venue recognisably identical | `gemini` + `reference_image_ids` | Faithful image editing, identity and product preservation |
 | Place the client's product into a new scene, change background, relight | `gemini` + references | Native image-in / image-out |
 | Photoreal lifestyle, food, interiors, materials — no strict reference | `openai` | Strong photorealism and lighting |
@@ -40,7 +40,7 @@ Each generation tool lists only the providers that are available. Choose per cal
 ## Rules
 
 1. **Honour the client's assets.** A product photo or logo is the real thing: never replace it with an invented one, never redraw the logo. Pass them as references. A **style reference** is an example the client wants to look like: match its style, mood, palette, composition and (for reels) pacing and camera work — pass it as a reference for the look, but never copy its subject, text or logos.
-2. **The message is on the poster.** Offer, price, dates, place, product name and CTA from the brief appear as text rendered by the image model, with clear hierarchy and every letter checked (`poster-typography`). Never invent facts; a short headline you write yourself (`ХЯМДРАЛ`, `ШИНЭ`, `НЭЭЛТ`) is fine. Video models never write text — in reels every word goes on with `add_text` (real fonts, exact letters, animated). Never ship misspelled text.
+2. **The message is on the poster.** Offer, price, dates, place, product name and CTA from the brief appear on the poster, set with `add_text` in real fonts on a text-free visual — image models misspell Mongolian, so they never write the words (`poster-typography`). Never invent facts; a short headline you write yourself (`ХЯМДРАЛ`, `ШИНЭ`, `НЭЭЛТ`) is fine. Video models never write text — in reels every word goes on with `add_text` (real fonts, exact letters, animated). Never ship misspelled text.
 3. **Review every image** the tool returns. If it has artefacts, a wrong/deformed product, a mangled logo, or a weak composition, fix the prompt and regenerate — at most 2 retries per asset.
 4. **Compose for the crop.** Generate at the format's aspect and keep the key subject inside the central safe area.
 5. **Prompts are English, concrete and visual**: subject, setting, composition, lens, light, palette, mood.

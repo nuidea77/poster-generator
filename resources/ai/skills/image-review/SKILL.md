@@ -23,7 +23,7 @@ Look at every image the tool returns before you deliver or animate it. Ship noth
 | Logo broken or misspelled | go back to the clean visual, add logo + text in one fresh step, logo larger on a plain area; or deliver without the logo |
 | Wrong currency sign (`T` for `₮`) | retry naming "the tugrik sign ₮"; else number only or `төг` — see `poster-typography` |
 | Garbled text in the scene | add "no other text, no signage, blank labels"; remove shops/screens/papers |
-| Misspelled poster text | fewer/shorter strings, larger size, typography as a separate step; fallback ladder in `poster-typography` |
+| Letters inside the generated image | regenerate the visual with "no text, no letters, no numbers"; all words go on with `add_text` |
 | Message missing or weak | add the brief's offer/date/price per `poster-typography`; make one element clearly biggest |
 | Bad hands | hide or simplify hands (product on a surface, hand at the edge, holding from below) |
 | Face issues | wider shot, person turned away or in soft focus, fewer people |

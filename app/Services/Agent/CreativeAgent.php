@@ -286,33 +286,34 @@ class CreativeAgent
                 ]);
         }
 
-        if ($creation->type === Creation::REEL) {
-            $tools[] = $this->tool('add_text',
-                'Burn real typography onto one of your clips (exact letters incl. Mongolian Cyrillic and ₮, bundled fonts, timed fade or slide-up). Returns a new clip id with the same length and sound — deliver that one instead. Use it for the hook title, prices, dates, places and the CTA, over live-action clips or on cards. Times are seconds from the clip start; use \\n for a second line.',
-                [
-                    'clip_id' => ['type' => 'string'],
+        $tools[] = $this->tool('add_text',
+            $creation->type === Creation::REEL
+                ? 'Burn real typography onto one of your clips (exact letters incl. Mongolian Cyrillic and ₮, bundled fonts, timed fade or slide-up). Returns a new clip id with the same length and sound — deliver that one instead. Use it for the hook title, prices, dates, places and the CTA, over live-action clips or on cards. Times are seconds from the clip start; use \\n for a second line.'
+                : 'Set the poster\'s words in real fonts on one of your images (exact letters incl. Mongolian Cyrillic and ₮ — no misspellings). Generate the visual WITHOUT text but with calm zones for it, then call this and deliver the returned image. start/end/animation are ignored on images; use \\n for a second line.',
+            [
+                'asset_id' => ['type' => 'string', 'description' => $creation->type === Creation::REEL ? 'Clip id' : 'Image id'],
+                'items' => [
+                    'type' => 'array',
                     'items' => [
-                        'type' => 'array',
-                        'items' => [
-                            'type' => 'object',
-                            'properties' => [
-                                'text' => ['type' => 'string'],
-                                'role' => ['type' => 'string', 'enum' => ['title', 'price', 'subtitle', 'small']],
-                                'position' => ['type' => 'string', 'enum' => ['top', 'center', 'lower_third', 'bottom']],
-                                'font' => ['type' => 'string', 'enum' => array_keys(TextOverlay::FONTS)],
-                                'color' => ['type' => 'string', 'description' => 'Hex, e.g. FFFFFF'],
-                                'box' => ['type' => 'boolean', 'description' => 'Solid panel behind the text'],
-                                'box_color' => ['type' => 'string', 'description' => 'Hex of the panel'],
-                                'start' => ['type' => 'number'],
-                                'end' => ['type' => 'number'],
-                                'animation' => ['type' => 'string', 'enum' => ['fade', 'slide_up', 'none']],
-                            ],
-                            'required' => ['text', 'role', 'position', 'font', 'color', 'box', 'box_color', 'start', 'end', 'animation'],
-                            'additionalProperties' => false,
+                        'type' => 'object',
+                        'properties' => [
+                            'text' => ['type' => 'string'],
+                            'role' => ['type' => 'string', 'enum' => ['title', 'price', 'subtitle', 'small']],
+                            'position' => ['type' => 'string', 'enum' => ['top', 'center', 'lower_third', 'bottom']],
+                            'align' => ['type' => 'string', 'enum' => ['center', 'left']],
+                            'font' => ['type' => 'string', 'enum' => array_keys(TextOverlay::FONTS)],
+                            'color' => ['type' => 'string', 'description' => 'Hex, e.g. FFFFFF'],
+                            'box' => ['type' => 'boolean', 'description' => 'Solid panel behind the text'],
+                            'box_color' => ['type' => 'string', 'description' => 'Hex of the panel'],
+                            'start' => ['type' => 'number'],
+                            'end' => ['type' => 'number'],
+                            'animation' => ['type' => 'string', 'enum' => ['fade', 'slide_up', 'none']],
                         ],
+                        'required' => ['text', 'role', 'position', 'align', 'font', 'color', 'box', 'box_color', 'start', 'end', 'animation'],
+                        'additionalProperties' => false,
                     ],
-                ]);
-        }
+                ],
+            ]);
 
         if ($creation->type === Creation::POSTER) {
             $tools[] = $this->tool('deliver_poster',
@@ -507,24 +508,29 @@ class CreativeAgent
 
     private function addText(Creation $creation, array $in): array
     {
-        $clip = $creation->asset((string) ($in['clip_id'] ?? '')) ?? throw new AiException("Unknown asset [{$in['clip_id']}].");
+        $id = (string) ($in['asset_id'] ?? $in['clip_id'] ?? '');
+        $asset = $creation->asset($id) ?? throw new AiException("Unknown asset [{$id}].");
+        $still = $asset['kind'] === 'image';
 
-        if ($clip['kind'] !== 'video') {
-            throw new AiException('add_text needs a video clip (use animate_still first for a card).');
+        if ($creation->type === Creation::REEL && $still) {
+            throw new AiException('In a reel, add_text needs a clip (use animate_still first for a card).');
         }
 
-        $tmp = $this->text->burn(MediaStore::absolute($clip['path']), array_values($in['items'] ?? []), (float) ($clip['duration'] ?? 0));
-        $file = MediaStore::put("creations/{$creation->public_id}/work", file_get_contents($tmp), 'video/mp4');
+        $tmp = $this->text->burn(MediaStore::absolute($asset['path']), array_values($in['items'] ?? []), (float) ($asset['duration'] ?? 0), $still);
+        $file = MediaStore::put("creations/{$creation->public_id}/work", file_get_contents($tmp), $still ? 'image/png' : 'video/mp4');
         @unlink($tmp);
 
         $lines = array_column($in['items'] ?? [], 'text');
-        $id = $creation->addAsset([
-            'kind' => 'video', 'source' => 'generated', 'provider' => 'text',
-            'path' => $file['path'], 'prompt' => 'text on '.$clip['id'].': '.implode(' | ', $lines), 'duration' => $clip['duration'] ?? 0,
+        $new = $creation->addAsset([
+            'kind' => $asset['kind'], 'source' => 'generated', 'provider' => 'text',
+            'path' => $file['path'], 'prompt' => 'text on '.$asset['id'].': '.implode(' | ', $lines),
+            'aspect' => $asset['aspect'] ?? null, 'duration' => $asset['duration'] ?? null,
             'note' => 'typography', 'cost' => 0.0,
         ]);
 
-        return ['summary' => "{$id} ← {$clip['id']} + ".count($lines).' text', 'content' => "Clip `{$id}` = `{$clip['id']}` with the text burned in (letters exactly as given). Deliver `{$id}` instead of `{$clip['id']}`."];
+        $content = "`{$new}` = `{$asset['id']}` with the text set in real fonts (letters exactly as given). Deliver `{$new}` instead of `{$asset['id']}`.";
+
+        return ['summary' => "{$new} ← {$asset['id']} + ".count($lines).' text', 'content' => $still ? [['type' => 'text', 'text' => $content.' Review it:'], $this->imageBlock($file['path'])] : $content];
     }
 
     private function generateVideos(Creation $creation, array $in): array
