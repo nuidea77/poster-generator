@@ -449,7 +449,7 @@ class CreativeAgent
             try {
                 return $call();
             } catch (AiException $e) {
-                if ($attempt >= 3 || ! preg_match('/try again later|rate limit|Resource exhausted\\./i', $e->getMessage())) {
+                if ($attempt >= 3 || ! preg_match('/try again later|rate limit|Resource exhausted\\.|Resource has been exhausted/i', $e->getMessage())) {
                     throw $e;
                 }
                 sleep(config('ai.rate_limit_wait', 10) * ($attempt + 1)); // 10 + 20 + 30 s: per-minute quotas refill

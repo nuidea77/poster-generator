@@ -135,6 +135,10 @@ class BillingTest extends TestCase
         $this->assertSame(72000, $sum['cash_mnt']);
         $this->assertSame(['count' => 1, 'mnt' => 999000], $sum['test_payments']);
         $this->assertSame(72000 - 16200, $sum['profit_mnt']);
+        // As if everything (admin tests too) had been paid at list price; the failed job only costs.
+        $list = 3 * app(CostMeter::class)->credits('poster') * config('pricing.credit_mnt');
+        $this->assertSame(['revenue_mnt' => $list, 'cost_mnt' => 16200, 'profit_mnt' => $list - 16200], collect($sum['as_customer'])->only(['revenue_mnt', 'cost_mnt', 'profit_mnt'])->all());
+        $this->assertSame(7200, $sum['as_customer']['failed_cost_mnt']);
         $this->assertSame([1800, 1, 0], [collect($sum['parts'])->firstWhere('label', 'Зураг')['mnt'], collect($sum['parts'])->firstWhere('label', 'Зураг')['count'], collect($sum['parts'])->firstWhere('label', 'Видео')['mnt']]);
 
         // Job by job, admin tests included: tokens, real cost and the list price it is measured against.

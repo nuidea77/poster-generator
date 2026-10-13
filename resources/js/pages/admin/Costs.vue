@@ -65,6 +65,19 @@ const signed = (n) => (n < 0 ? `−${money(-n)}` : money(n));
                     <div class="text-[11px] text-muted">бүтэлгүйтсэн: {{ data.summary.posters.failed }} постер, {{ data.summary.reels.failed }} reel</div>
                 </div>
             </div>
+            <div class="mb-3 rounded-2xl border border-line p-4">
+                <div class="mb-2 text-sm font-semibold">Хэрэв бүгдийг (админы тест орно) хэрэглэгч үнийн жагсаалтаар төлсөн бол</div>
+                <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                    <div><div class="text-xs text-muted">Орлого (дууссан бүтээл)</div><div class="text-xl font-semibold tabular-nums">{{ money(data.summary.as_customer.revenue_mnt) }}</div></div>
+                    <div><div class="text-xs text-muted">Бодит өртөг</div><div class="text-xl font-semibold tabular-nums">{{ money(data.summary.as_customer.cost_mnt) }}</div>
+                        <div class="text-[11px] text-muted">үүнээс бүтэлгүйтсэн ажил {{ money(data.summary.as_customer.failed_cost_mnt) }}</div></div>
+                    <div><div class="text-xs text-muted">{{ data.summary.as_customer.profit_mnt < 0 ? 'Алдагдал' : 'Ашиг' }}</div>
+                        <div class="text-xl font-semibold tabular-nums" :class="data.summary.as_customer.profit_mnt < 0 ? 'text-red-300' : 'text-lime'">{{ signed(data.summary.as_customer.profit_mnt) }}</div></div>
+                    <div><div class="text-xs text-muted">Үнэ ÷ өртөг</div>
+                        <div class="text-xl font-semibold tabular-nums" :class="tone(data.summary.as_customer.margin, data.margin.typical)">{{ data.summary.as_customer.margin === null ? '—' : `×${data.summary.as_customer.margin}` }}</div>
+                        <div class="text-[11px] text-muted">{{ data.summary.as_customer.losing_jobs }} бүтээл үнээсээ их өртөгтэй</div></div>
+                </div>
+            </div>
             <div class="mb-8 overflow-x-auto rounded-2xl border border-line">
                 <table class="w-full text-left text-sm">
                     <thead class="bg-surface text-xs text-muted uppercase">

@@ -63,6 +63,8 @@ class VertexTest extends TestCase
         $ai = app(AiManager::class);
 
         $this->assertSame(['gemini_pro'], $ai->available('image'));
+        $this->assertFalse($ai->noteFailure('gemini_pro', 'Gemini: Resource has been exhausted (e.g. check quota).')); // Vertex per-minute 429
+        $this->assertSame(['gemini_pro'], $ai->available('image'));
         $ai->noteFailure('gemini_pro', 'Your prepayment credits are depleted.');
         $this->assertContains('gemini', $ai->available('image'));
         $this->assertNotContains('gemini_pro', $ai->available('image'));

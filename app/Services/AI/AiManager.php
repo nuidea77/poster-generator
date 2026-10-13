@@ -64,7 +64,8 @@ class AiManager
         }
 
         // Out of quota / credits pauses the provider; a transient "try again later" rate limit does not.
-        if (preg_match('/try again later/i', $error) || ! preg_match('/quota|no credits|credits are depleted|prepayment|credit balance|billing|insufficient_quota/i', $error)) {
+        // Vertex's 429 "Resource has been exhausted (e.g. check quota)" is a per-minute limit, not billing.
+        if (preg_match('/try again later|Resource has been exhausted/i', $error) || ! preg_match('/quota|no credits|credits are depleted|prepayment|credit balance|billing|insufficient_quota/i', $error)) {
             return false;
         }
 

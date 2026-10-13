@@ -238,7 +238,7 @@ class CostMeter
     public function summary(?int $days = null): array
     {
         $jobs = $this->since($days)->whereIn('status', [Creation::DONE, Creation::FAILED])
-            ->get(['id', 'type', 'status', 'cost_usd', 'assets', 'input_tokens', 'output_tokens', 'cache_read_tokens', 'cache_write_tokens']);
+            ->get(['id', 'type', 'duration', 'formats', 'reel_clips', 'status', 'cost_usd', 'assets', 'input_tokens', 'output_tokens', 'cache_read_tokens', 'cache_write_tokens']);
         $assets = $jobs->flatMap(fn (Creation $c) => $c->assets ?? []);
         $images = $assets->filter(fn ($a) => ($a['kind'] ?? '') === 'image' && ($a['cost'] ?? 0) > 0);
         $videos = $assets->filter(fn ($a) => ($a['kind'] ?? '') === 'video' && ($a['source'] ?? '') === 'generated' && ($a['cost'] ?? 0) > 0);
@@ -282,6 +282,22 @@ class CostMeter
             'cash_mnt' => $cash,
             'test_payments' => ['count' => $fake->count(), 'mnt' => (int) $fake->sum('amount')],
             'profit_mnt' => $cash - $spent,
+            // As if every job (admin tests included) had been paid at list price;
+            // failed jobs are refunded, so they earn nothing but still cost.
+            'as_customer' => (function () use ($jobs, $spent) {
+                $done = $jobs->where('status', Creation::DONE);
+                $revenue = (int) $done->sum(fn (Creation $c) => $this->listCredits($c) * config('pricing.credit_mnt'));
+                $doneCost = $this->mnt((float) $done->sum('cost_usd'));
+
+                return [
+                    'revenue_mnt' => $revenue,
+                    'cost_mnt' => $spent,
+                    'profit_mnt' => $revenue - $spent,
+                    'margin' => $spent ? round($revenue / $spent, 2) : null,
+                    'failed_cost_mnt' => $spent - $doneCost,
+                    'losing_jobs' => $done->filter(fn (Creation $c) => $this->listCredits($c) * config('pricing.credit_mnt') < $this->mnt($c->cost_usd))->count(),
+                ];
+            })(),
         ];
     }
 
