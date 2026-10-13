@@ -46,9 +46,10 @@ class TextOverlay
      * @param  bool  $still  an image (poster): static text, PNG out; else a clip: timed text, MP4 out
      * @param  string  $scrim  soft gradient behind the text zones: none | top | bottom | top_bottom
      * @param  string  $footerColor  hex of the band behind `footer` items (default near-black)
+     * @param  string  $footerStyle  band (full width at the foot) | pill (rounded bar inset from the edges)
      * @return string Absolute path of the new file (caller moves it).
      */
-    public function burn(string $video, array $items, float $duration, bool $still = false, array $reserved = [], string $scrim = 'none', string $scrimColor = '000000', string $footerColor = ''): string
+    public function burn(string $video, array $items, float $duration, bool $still = false, array $reserved = [], string $scrim = 'none', string $scrimColor = '000000', string $footerColor = '', string $footerStyle = 'band'): string
     {
         $this->placed = [];
         $this->lastScrim = [$scrim, $this->hex($scrimColor)];
@@ -87,7 +88,10 @@ class TextOverlay
             }
 
             foreach ($list as $i => $item) {
-                $text = $this->clean($item['text'] ?? '');
+                // *word* marks an accent run (two-tone headline); the stars are not drawn.
+                $raw = $this->clean($item['text'] ?? '');
+                $marked = substr_count($raw, '*') >= 2 && substr_count($raw, '*') % 2 === 0;
+                $text = $marked ? str_replace('*', '', $raw) : $raw;
                 if ($text === '') {
                     continue;
                 }
@@ -124,15 +128,15 @@ class TextOverlay
                 $fontFile = resource_path('fonts/'.self::FONTS[$font]);
                 $widest = max(array_map(fn ($line) => ($box = imagettfbbox(100 * 0.75, 0, $fontFile, $line)) ? $box[2] - $box[0] : 0, explode("\n", $text)));
                 // Panel shape: rect (drawtext box), pill (rounded, box colour) or glass (frosted light pill).
-                $shape = in_array($item['box_shape'] ?? 'rect', ['pill', 'glass'], true) ? $item['box_shape'] : 'rect';
-                if ($shape === 'pill' && empty($item['box'])) {
+                $shape = in_array($item['box_shape'] ?? 'rect', ['pill', 'glass', 'card'], true) ? $item['box_shape'] : 'rect';
+                if (in_array($shape, ['pill', 'card'], true) && empty($item['box'])) {
                     $shape = 'rect';
                 }
                 $panel = ! empty($item['box']) || $shape === 'glass';
                 $boxed = $panel ? ($shape === 'rect' ? 0.7 : 1.4) : 0.0;
                 $size = (int) max(8, min($size, floor($w * ($paired ? 0.86 * $share - 0.03 : 0.86) / max(0.01, $widest / 100 + $boxed + ($paired && ($item['icon'] ?? 'none') !== 'none' ? 1.3 : 0)))));
                 $soft = ! $still && ! $panel && in_array($item['role'] ?? '', ['subtitle', 'small'], true); // soft dark panel on footage
-                $pad = (int) round($size * ($panel ? 0.35 : ($soft ? 0.4 : 0)));
+                $pad = (int) round($size * ($shape === 'card' ? 0.7 : ($panel ? 0.35 : ($soft ? 0.4 : 0))));
                 $lines = substr_count($text, "\n") + 1;
                 $position = in_array($item['position'] ?? '', ['top', 'center', 'lower_third', 'bottom', 'footer'], true) ? $item['position'] : 'lower_third';
                 // A footer row of 3+ is justified: first on the left edge, last on the right, the rest centred.
@@ -145,7 +149,7 @@ class TextOverlay
                 }
 
                 $display = ($item['role'] ?? '') === 'display'; // big digits/caps: no descenders, sits tight on the next line
-                $blocks[$position][] = compact('i', 'item', 'text', 'font', 'size', 'pad', 'soft', 'same', 'align', 'shape', 'column', 'columns', 'rowNo')
+                $blocks[$position][] = compact('i', 'item', 'text', 'raw', 'marked', 'font', 'size', 'pad', 'soft', 'same', 'align', 'shape', 'column', 'columns', 'rowNo')
                     + ['ems' => ['pad' => $pad / max(1, $size), 'line' => ($display ? 0.9 : 1.2) * $lines + 0.2 * ($lines - 1), 'gap' => $display ? 0.12 : 0.3, 'width' => min($w * 0.9 / max(1, $size), $longest * self::WIDTH[$font] * $caps)]];
             }
 
@@ -194,8 +198,19 @@ class TextOverlay
                 $bandTop = $bandBottom - $group - 2 * $padY;
                 $footerTop = $bandTop + $padY;
                 $bottomLimit = min($bottomLimit, $bandTop - (int) round(min($w, $h) * 0.025));
-                File::put("{$dir}/band.png", $this->band($w, $bandBottom - $bandTop, $this->hex($footerColor ?: '141414')));
-                $panels[] = ['band.png', 0, $bandTop, null];
+                if ($footerStyle === 'pill') {
+                    // A rounded bar floating above the foot, inset from the edges (contact strip).
+                    $inset = (int) round($w * 0.04);
+                    $lift = $still && $h <= $w * 1.5 ? (int) round($h * 0.03) : 0;
+                    $bandTop -= $lift;
+                    $footerTop -= $lift;
+                    $bottomLimit -= $lift;
+                    File::put("{$dir}/band.png", $this->panel($w - 2 * $inset, $bandBottom - $lift - $bandTop, 'pill', $this->hex($footerColor ?: 'FFFFFF'), (int) round(($bandBottom - $bandTop) * 0.3)));
+                    $panels[] = ['band.png', $inset, $bandTop, null];
+                } else {
+                    File::put("{$dir}/band.png", $this->band($w, $bandBottom - $bandTop, $this->hex($footerColor ?: '141414')));
+                    $panels[] = ['band.png', 0, $bandTop, null];
+                }
             }
 
             foreach (['top', 'center', 'lower_third', 'bottom', 'footer'] as $position) {
@@ -270,6 +285,10 @@ class TextOverlay
                             default => (int) round($cx - ($lead + $textW + 2 * $pad) / 2),
                         };
                         $x = (string) ($iconX + $lead + $pad);
+                        if ($icon === 'arrow') { // trails the text: "Захиалах →"
+                            $x = (string) ($iconX + $pad);
+                            $iconX += $pad + $textW + (int) round($size * 0.35);
+                        }
                         $width = $lead + $textW + 2 * $pad;
                         File::put("{$dir}/i{$i}.png", app(IconSet::class)->png($icon, $iconPx, $this->hex($item['color'] ?? '')));
                         $icons[] = ["i{$i}.png", $iconX, $top + (int) round($size * 0.37 - $iconPx / 2), $still ? null : "between(t,{$start},{$end})"];
@@ -278,7 +297,7 @@ class TextOverlay
                         // Rounded pill / frosted glass panel, measured from the real glyphs; an icon sits inside it.
                         $fontFile = resource_path('fonts/'.self::FONTS[$b['font']]);
                         $textW = max(array_map(fn ($line) => ($bb = imagettfbbox($size * 0.75, 0, $fontFile, $line)) ? $bb[2] - $bb[0] : 0, explode("\n", $b['text'])));
-                        $padX = (int) round($size * 0.7);
+                        $padX = (int) round($size * ($b['shape'] === 'card' ? 0.9 : 0.7));
                         $iconPx = (int) round($size * 0.95);
                         $lead = $icon ? $iconPx + (int) round($size * 0.35) : 0;
                         $width = $lead + $textW + 2 * $padX;
@@ -288,8 +307,9 @@ class TextOverlay
                             default => (int) round($cx - $width / 2),
                         };
                         $multi = str_contains($b['text'], "\n");
+                        $trail = $icon === 'arrow' ? $lead : 0; // the arrow sits after the text
                         $x = match (true) {
-                            ! $multi || $left => (string) ($panelX + $padX + $lead),
+                            ! $multi || $left => (string) ($panelX + $padX + $lead - $trail),
                             $right => ($panelX + $width - $padX).'-text_w',
                             default => "{$cx}-text_w/2",
                         };
@@ -299,10 +319,10 @@ class TextOverlay
                             $yExpr = "{$y}+({$b['height']}-text_h)/2".(! $still && ($item['animation'] ?? '') === 'slide_up' ? "+{$size}*0.6*(1-min(1,max(0,(t-{$start})/{$in})))" : '');
                         }
                         if ($icon) {
-                            $icons[array_key_last($icons)][1] = $panelX + $padX;
+                            $icons[array_key_last($icons)][1] = $trail ? $panelX + $padX + $textW + (int) round($size * 0.35) : $panelX + $padX;
                             $icons[array_key_last($icons)][2] = $y + (int) round(($b['height'] - $iconPx) / 2);
                         }
-                        File::put("{$dir}/p{$i}.png", $this->panel($width, $b['height'], $b['shape'], $this->hex($item['box_color'] ?? ''), $multi ? (int) round($size * 0.6) : null));
+                        File::put("{$dir}/p{$i}.png", $this->panel($width, $b['height'], $b['shape'] === 'card' ? 'pill' : $b['shape'], $this->hex($item['box_color'] ?? 'FFFFFF'), $b['shape'] === 'card' ? (int) round($size * 0.5) : ($multi ? (int) round($size * 0.6) : null)));
                         $panels[] = ["p{$i}.png", $panelX, $y, $still ? null : "between(t,{$start},{$end})"];
                     }
 
@@ -319,10 +339,51 @@ class TextOverlay
                     // Every line is drawn on its own on a shared baseline grid: drawtext would centre
                     // a block with its lines flush left, and some fonts (Oswald) space lines far apart.
                     $lines = explode("\n", $b['text']);
+                    $rawLines = explode("\n", $b['raw']);
                     foreach ($lines as $k => $line) {
-                        File::put("{$dir}/t{$i}_{$k}.txt", $line);
                         $lineY = count($lines) === 1 ? $yExpr : "({$yExpr})+".($k * (int) round($size * 1.4) + (int) round($size * 0.92)).'-ascent';
-                        $filters[] = "drawtext=fontfile=f{$i}.ttf:textfile=t{$i}_{$k}.txt:line_spacing=".round($size * 0.2).":y='{$lineY}':{$common}";
+                        $runs = $b['marked'] ? explode('*', $rawLines[$k] ?? $line) : [$line];
+                        if (count($runs) === 1) {
+                            File::put("{$dir}/t{$i}_{$k}.txt", $line);
+                            $filters[] = "drawtext=fontfile=f{$i}.ttf:textfile=t{$i}_{$k}.txt:line_spacing=".round($size * 0.2).":y='{$lineY}':{$common}";
+
+                            continue;
+                        }
+
+                        // Two-tone line: each run drawn on one baseline, the odd runs in the accent colour.
+                        $fontFile = resource_path('fonts/'.self::FONTS[$b['font']]);
+                        $advance = function (string $s) use ($size, $fontFile): int {
+                            if ($s === '') {
+                                return 0;
+                            }
+                            $with = imagettfbbox($size * 0.75, 0, $fontFile, $s.'H');
+                            $mark = imagettfbbox($size * 0.75, 0, $fontFile, 'H');
+
+                            return ($with[2] - $with[0]) - ($mark[2] - $mark[0]);
+                        };
+                        $lineW = $advance($line);
+                        $startX = match (true) {
+                            is_numeric($x) => (int) $x,
+                            $right && $b['shape'] !== 'rect' => $panelX + $width - $padX - $lineW,
+                            $right => $w - $margin - $pad - $lineW,
+                            default => (int) round($cx - $lineW / 2),
+                        };
+                        $baseY = count($lines) === 1
+                            ? ($b['shape'] !== 'rect' ? "{$y}+".(int) round(($b['height'] + 0.7 * $size) / 2).'-ascent' : "({$yExpr})+".(int) round($size * 0.92).'-ascent')
+                            : $lineY;
+                        $accent = $this->color($item['accent_color'] ?? '', 'FFB703');
+                        $done = '';
+                        foreach ($runs as $r => $run) {
+                            if (trim($run) !== '') {
+                                // Leading spaces are skipped and replaced by the measured offset (drawtext
+                                // places a run that starts with a space a little too far right).
+                                $lead = mb_strlen($run) - mb_strlen(ltrim($run));
+                                File::put("{$dir}/t{$i}_{$k}_{$r}.txt", ltrim($run));
+                                $runCommon = str_replace(["x={$x}:", "fontcolor={$this->color($item['color'] ?? '', 'FFFFFF')}"], ['x='.($startX + $advance($done.mb_substr($run, 0, $lead))).':', 'fontcolor='.($r % 2 ? $accent : $this->color($item['color'] ?? '', 'FFFFFF'))], $common);
+                                $filters[] = "drawtext=fontfile=f{$i}.ttf:textfile=t{$i}_{$k}_{$r}.txt:y='{$baseY}':{$runCommon}";
+                            }
+                            $done .= $run;
+                        }
                     }
                     $x0 = $b['shape'] !== 'rect' ? $panelX : match (true) {
                         $left => $margin,

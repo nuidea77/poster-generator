@@ -55,6 +55,14 @@ Patterns add identity and texture to flat or minimal designs. They are part of t
 - Brand patterns: when the brand has a shape (leaf, wave, dot grid), echo it as a faint pattern in one corner.
 - Image models sometimes turn patterns into letters — add "no text, no letters, no symbols that look like writing".
 
+## 3b. Image direction from strong social templates
+- **Colour field + cut-out subject:** a flat or gradient brand-colour field with the subject (product, phone, person) on one side; text gets the other side. Ask: "solid deep-blue background, the phone floating on the right, the left half empty".
+- **Shaped photo:** the photo inside a rounded rectangle, an arch or a circle on a colour field ("the photo framed in a tall rounded arch on a white background").
+- **Accent swoosh / arc:** one curved band or arc in the accent colour crossing a corner — gives energy without clutter.
+- **Glowing 3D objects** for tech, finance, security (coins, shields, phones, padlocks) on a dark blue field with soft light.
+- **Person + device:** a smiling person holding the phone with the app or pointing at the empty side where the headline goes.
+- Always: "no text, no letters, no logos" — every word comes from add_text.
+
 ## 4. Shapes, bands, badges
 - **Band:** a solid brand-colour band at the bottom for the facts (ask the visual for "a clean solid {colour} band across the bottom 18%"); then the facts in white with icons. Best on event, clinic, hiring, retail.
 - **Badge:** one circle/pill for `-30%` / `ШИНЭ` — via `box` on the price item, or a circle shape requested in the visual. One badge per poster.

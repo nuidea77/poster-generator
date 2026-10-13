@@ -318,12 +318,13 @@ class CreativeAgent
                 'scrim' => ['type' => 'string', 'enum' => TextOverlay::SCRIMS, 'description' => 'Soft gradient from the frame edge behind the text zones, when the photo is too busy or bright for the text; none if the zone is already calm'],
                 'scrim_color' => ['type' => 'string', 'description' => 'Hex of the scrim: 000000 (dark, for white text) or a light/brand tone for dark text'],
                 'footer_color' => ['type' => 'string', 'description' => 'Hex of the footer band behind footer items: the brand\'s dark colour (deep teal, navy, brown) or 141414; text on it white'],
+                'footer_style' => ['type' => 'string', 'enum' => ['band', 'pill'], 'description' => 'band = full-width strip at the foot; pill = rounded contact bar inset from the edges (white with dark text, or the brand colour)'],
                 'items' => [
                     'type' => 'array',
                     'items' => [
                         'type' => 'object',
                         'properties' => [
-                            'text' => ['type' => 'string'],
+                            'text' => ['type' => 'string', 'description' => 'Exact words; wrap a key word in *stars* to draw it in accent_color'],
                             'role' => ['type' => 'string', 'enum' => ['display', 'title', 'price', 'subtitle', 'small'], 'description' => 'display = a huge hero number or 1–2 short words (15, -30%, 2026), about twice a title'],
                             'position' => ['type' => 'string', 'enum' => ['top', 'center', 'lower_third', 'bottom', 'footer'], 'description' => 'footer = the contact band at the very bottom (address, phone, hours, web, delivery), drawn on a full-width colour band'],
                             'align' => ['type' => 'string', 'enum' => ['center', 'left', 'right']],
@@ -332,7 +333,8 @@ class CreativeAgent
                             'color' => ['type' => 'string', 'description' => 'Hex, e.g. FFFFFF'],
                             'box' => ['type' => 'boolean', 'description' => 'Solid panel behind the text'],
                             'box_color' => ['type' => 'string', 'description' => 'Hex of the panel'],
-                            'box_shape' => ['type' => 'string', 'enum' => ['rect', 'pill', 'glass'], 'description' => 'rect = square panel; pill = rounded pill in box_color (badges, chips, CTA bars — needs box true); glass = frosted light pill (calm, premium; dark text)'],
+                            'box_shape' => ['type' => 'string', 'enum' => ['rect', 'pill', 'glass', 'card'], 'description' => 'rect = square panel; pill = rounded pill in box_color (badges, chips, CTA bars — needs box true); glass = frosted light pill (calm, premium; dark text); card = rounded content card in box_color (a short paragraph or headline on a photo — needs box true)'],
+                            'accent_color' => ['type' => 'string', 'description' => 'Hex for *starred* words in text (two-tone headline: "Is your business *invisible?*")'],
                             'start' => ['type' => 'number'],
                             'end' => ['type' => 'number'],
                             'animation' => ['type' => 'string', 'enum' => ['fade', 'slide_up', 'none']],
@@ -617,7 +619,7 @@ class CreativeAgent
             : $item, array_values($in['items'] ?? []));
 
         $base = $this->exactFrame($asset);
-        $tmp = $this->text->burn($base ?? MediaStore::absolute($asset['path']), $in['items'], (float) ($asset['duration'] ?? 0), $still, $asset['reserved'] ?? [], (string) ($in['scrim'] ?? 'none'), (string) ($in['scrim_color'] ?? '000000'), (string) ($in['footer_color'] ?? ''));
+        $tmp = $this->text->burn($base ?? MediaStore::absolute($asset['path']), $in['items'], (float) ($asset['duration'] ?? 0), $still, $asset['reserved'] ?? [], (string) ($in['scrim'] ?? 'none'), (string) ($in['scrim_color'] ?? '000000'), (string) ($in['footer_color'] ?? ''), (string) ($in['footer_style'] ?? 'band'));
         $busy = $still ? $this->text->busyLines($base ?? MediaStore::absolute($asset['path'])) : [];
         $faint = $still ? $this->text->lowContrastLines($base ?? MediaStore::absolute($asset['path'])) : [];
         $file = MediaStore::put("creations/{$creation->public_id}/work", file_get_contents($tmp), $still ? 'image/png' : 'video/mp4');

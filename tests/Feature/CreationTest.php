@@ -880,6 +880,45 @@ class CreationTest extends TestCase
         Http::assertSent(fn ($r) => str_contains(collect($r['messages'][2]['content'][0]['content'] ?? [])->firstWhere('type', 'text')['text'] ?? '', 'footer holds 5 facts in 3 rows'));
     }
 
+    public function test_starred_words_are_drawn_in_the_accent_colour_in_place(): void
+    {
+        if (! Process::run([config('ai.ffmpeg'), '-version'])->successful()) {
+            $this->markTestSkipped('ffmpeg not installed');
+        }
+
+        $bg = imagecreatetruecolor(1080, 400);
+        $file = sys_get_temp_dir().'/bg-'.uniqid().'.png';
+        imagepng($bg, $file);
+        $item = fn (string $t, string $pos) => ['text' => $t, 'role' => 'title', 'position' => $pos, 'align' => 'left', 'font' => 'bold_sans', 'color' => 'FFFFFF', 'accent_color' => 'FFB703', 'box' => false, 'box_shape' => 'rect'];
+        $out = app(TextOverlay::class)->burn($file, [$item('Бизнес харагдахгүй уу', 'top'), $item('Бизнес *харагдахгүй* уу', 'center')], 0, true);
+        $img = imagecreatefrompng($out);
+        @unlink($file);
+        @unlink($out);
+
+        // Ink extent and accent pixels of each line.
+        $scan = function (int $y0, int $y1) use ($img) {
+            [$min, $max, $amber] = [1080, 0, 0];
+            for ($y = $y0; $y < $y1; $y += 2) {
+                for ($x = 0; $x < 1080; $x++) {
+                    $c = imagecolorat($img, $x, $y);
+                    [$r, $g, $b] = [$c >> 16 & 0xFF, $c >> 8 & 0xFF, $c & 0xFF];
+                    if ($r > 120) {
+                        [$min, $max] = [min($min, $x), max($max, $x)];
+                        $amber += $r > 200 && $b < 80 ? 1 : 0;
+                    }
+                }
+            }
+
+            return [$min, $max, $amber];
+        };
+        [$a0, $a1, $plainAmber] = $scan(40, 140);
+        [$b0, $b1, $accentAmber] = $scan(160, 260);
+        $this->assertSame(0, $plainAmber);
+        $this->assertGreaterThan(200, $accentAmber);          // the starred word is amber
+        $this->assertEqualsWithDelta($a0, $b0, 3);             // and the line sits where the plain one does
+        $this->assertEqualsWithDelta($a1, $b1, 4);
+    }
+
     public function test_placeholder_text_calls_are_refused(): void
     {
         $this->expectException(AiException::class);

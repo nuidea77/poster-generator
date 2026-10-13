@@ -21,6 +21,18 @@ Studied from professional Mongolian posters (a clinic package, a telecom promo, 
 
 Rows of 3–4 work best when the **visual already has matching spots** (round photo insets, product tiles, icons in a row) — ask the image model for "a row of four round photo insets evenly spaced across the lower third, empty below each for a caption", then put the captions in `lower_third` / `bottom` as one row. Without matching spots, a row of words alone is still clean.
 
+## 1b. More building blocks (from international social templates)
+| Element | How | Use for |
+|---|---|---|
+| **Two-tone headline** | wrap the key word in stars and set `accent_color`: `Таны бизнес *харагдахгүй* байна уу?`, `Мөрөөдлөө *бодит* болго`, `*Шинэ* цуглуулга` | almost every headline: one accent word — the benefit, the emotion or the product name |
+| **Kicker chip** | small pill/glass above the headline: `Шинэ үйлчилгээ`, `Зөвлөгөө`, `Урамшуулал` | tells what kind of post it is before the headline |
+| **Header row** | `top`, `small`: brand name left, category right (`same_line`) | series of posts with one look |
+| **Content card** | `box: true`, `box_shape: card`, white (or brand) `box_color`, dark text, 1–3 lines | a short paragraph, quote or question on a photo |
+| **CTA with arrow** | pill + `icon: arrow` (the arrow trails the text): `Захиалах →`, `Бүртгүүлэх →`, `Дэлгэрэнгүй →` | the action, at the bottom of the content, above the footer |
+| **Feature pills** | 3 stacked `small` pills/glass with `icon: check` (or numbers `01` `02` `03` as separate display items) | benefits, steps, what is included |
+| **Big stat** | `display` number (`76%`, `4.9★`, `10,000+`) + a `small` label under it | trust, results |
+| **Contact strip** | add_text `footer_style: pill` with `footer_color` white (dark text) or the brand colour — a rounded bar inset from the edges; one row of 3: web · mail/social · phone | app, agency, online shop posters (lighter than a full band) |
+
 ## 2. Layout recipes
 **Clinic / service package (Medica style)** — 4:5
 1. Visual: a clean medical hero (3D anatomy render, device, doctor) in the top half on a soft light-blue/white gradient; a row of 4 round photo insets in the lower third; a solid teal band at the very bottom.
@@ -37,8 +49,18 @@ Rows of 3–4 work best when the **visual already has matching spots** (round ph
 2. Text: huge thin-geometric `title` under the product → 2-line `subtitle` (how to win) → step flow of chips at the bottom left + date/time (`10.15 | 17:00 цагт`) on the right as a `same_line` pair.
 3. A small glass chip with `gift` naming the product (`Apple Watch SE`) in the zone beside the product.
 
+**Tech / fintech / agency (international template style)** — 4:5
+1. Visual: brand-colour field (deep blue, violet) with a glowing 3D object or the product (phone with the app, a laptop, a card) floating, a soft light on one side; or a person holding the phone; lots of empty colour field.
+2. Text: kicker chip → two-tone headline (one accent word) → 1–2 line `small` subtitle → CTA pill with arrow → contact strip (`footer_style: pill`).
+
+**Question / problem-solution post** — 4:5
+1. Visual: the problem shown simply (an empty shop, a confused person, a cluttered desk) or a clean colour field.
+2. Text: question headline with the accent on the pain word (`Таны бизнес *харагдахгүй* байна уу?`) → a content card with the answer in one sentence → feature pills (3 checks) → CTA pill → contact strip.
+
 ## 3. Rules from these posters
-- **One accent colour**, used only for pills, badges and the key number. Text is black/dark grey on light, white on dark.
+- **One accent colour**, used only for pills, badges, the key number and the one starred word of the headline. Text is black/dark grey on light, white on dark.
+- **A two-colour system**: one brand colour for fields and bands (blue, deep green, violet) + one contrasting accent (orange, yellow, lime) — stated in the visual prompt ("deep royal-blue background with a curved orange accent swoosh in one corner") and reused in add_text (`accent_color`, pill `box_color`).
+- **Series look:** the same header row, colours, kicker chips and footer on every post of a brand, so a feed reads as one campaign.
 - **Headline 2–3 words, huge** (title or display); everything else ≤ 1/3 of its size.
 - **Air:** at least a third of the poster is calm background. Don't fill every zone.
 - **Facts are elements, not sentences:** chips, pills, rows, a checklist — 1–5 words each.
