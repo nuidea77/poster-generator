@@ -202,7 +202,7 @@ class TextOverlay
 
                 $display = ($item['role'] ?? '') === 'display'; // big digits/caps: no descenders, sits tight on the next line
                 $blocks[$position][] = compact('i', 'item', 'text', 'raw', 'marked', 'font', 'size', 'pad', 'soft', 'same', 'align', 'shape', 'column', 'columns', 'rowNo')
-                    + ['ems' => ['pad' => $pad / max(1, $size), 'line' => ($display ? 0.9 : 1.2) * $lines + 0.2 * ($lines - 1), 'gap' => $display ? 0.12 : (! empty($item['air_after']) ? 1.1 : 0.3), 'width' => min($w * 0.9 / max(1, $size), $longest * self::WIDTH[$font] * $caps)]];
+                    + ['ems' => ['pad' => $pad / max(1, $size), 'line' => ($display ? 0.9 : 1.2) * $lines + 0.2 * ($lines - 1), 'gap' => $display ? 0.12 : (! empty($item['air_after']) ? 1.8 : 0.3), 'width' => min($w * 0.9 / max(1, $size), $longest * self::WIDTH[$font] * $caps)]];
             }
 
             // Items in one row share one size (the smallest), then every block gets its box.
