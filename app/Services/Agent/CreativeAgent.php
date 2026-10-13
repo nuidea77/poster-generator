@@ -634,7 +634,7 @@ class CreativeAgent
         if ($busy) {
             // Measured, not guessed: these lines cover a detailed part of the picture (product, face, hair, texture).
             $content .= ' WARNING — measured on the clean visual, these lines sit on a detailed area (likely the product, a face or busy texture): "'.implode('", "', $busy).'". '
-                .'Look closely; unless that is intended, call add_text again on `'.$asset['id'].'` with them in a calmer zone, fewer or shorter lines in that zone (a panel does not stop it covering the product), or a `scrim` when the area is only busy background — or regenerate the visual with more empty space.';
+                .'Look closely; unless that is intended, call add_text again on `'.$asset['id'].'` with them in a calmer zone, fewer or shorter lines in that zone (a panel or scrim does not stop it covering the product). If you can see the lines sit only on busy background (not the product, a face or the main subject) and a scrim or panel keeps them readable, that is fine — otherwise move them or regenerate the visual with an empty band for the facts.';
         }
 
         return ['summary' => "{$new} ← {$asset['id']} + ".count($lines).' text', 'content' => $still ? [['type' => 'text', 'text' => $content.' Review it:'], $this->imageBlock($file['path'])] : $content];

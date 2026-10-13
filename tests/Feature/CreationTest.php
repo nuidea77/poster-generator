@@ -802,6 +802,36 @@ class CreationTest extends TestCase
         $this->assertFalse($green($pill[0] + 1, $pill[1] + 1));
     }
 
+    public function test_text_sits_in_the_middle_of_its_pill(): void
+    {
+        if (! Process::run([config('ai.ffmpeg'), '-version'])->successful()) {
+            $this->markTestSkipped('ffmpeg not installed');
+        }
+
+        $bg = imagecreatetruecolor(1080, 600);
+        $file = sys_get_temp_dir().'/bg-'.uniqid().'.png';
+        imagepng($bg, $file);
+        $overlay = app(TextOverlay::class);
+        $out = $overlay->burn($file, [['text' => 'ШИНЭ НАМРЫН УНДАА', 'role' => 'subtitle', 'position' => 'center', 'align' => 'center', 'font' => 'bold_sans', 'color' => 'FFFFFF', 'box' => true, 'box_color' => 'C2410C', 'box_shape' => 'pill', 'icon' => 'none']], 0, true);
+        $img = imagecreatefrompng($out);
+        @unlink($file);
+        @unlink($out);
+
+        // White glyph rows inside the orange pill: the gap above them equals the gap below.
+        [$x0, $y0, $x1, $y1] = $overlay->placed[0]['rect'];
+        $rows = [];
+        for ($y = $y0; $y < $y1; $y++) {
+            for ($x = $x0 + 20; $x < $x1 - 20; $x += 2) {
+                $c = imagecolorat($img, $x, $y);
+                if (($c >> 8 & 0xFF) > 200 && ($c & 0xFF) > 200) {
+                    $rows[] = $y;
+                    break;
+                }
+            }
+        }
+        $this->assertEqualsWithDelta(min($rows) - $y0, $y1 - max($rows), 4);
+    }
+
     public function test_placeholder_text_calls_are_refused(): void
     {
         $this->expectException(AiException::class);

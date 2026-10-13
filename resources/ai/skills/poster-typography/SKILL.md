@@ -92,6 +92,7 @@ Facts support the hook; they must not eat the poster. A tall stack of centred fa
 - A long fact (an address) takes its own row **aligned left**, so the block keeps one left edge and one right edge — don't centre it between paired rows.
 - Shorten facts before stacking them: "Сүхбаатар дүүрэг, Олимпийн гудамж 8" → "Олимпийн гудамж 8" when the district adds nothing; "12:00 цагаас" not "Нээлт 12:00 цагаас эхэлнэ".
 - Put the block on a calm band or a `scrim`; one colour for all facts, the phone may be bold.
+- **The facts sit below the product, not on it.** Plan the visual for it: "the product stands in the middle; the bottom 18% is an empty, calm table surface / plain band for text". A scrim over the product's lower half still hides the product.
 
 ## 4. Writing the strings
 - Copy names, prices, dates, phones exactly from the brief; write them per `mongolian-ad-copy` (`150,000₮`, `-18%`, `10.15 · 15:00`, `9911-2233`).

@@ -36,9 +36,6 @@ class TextOverlay
      */
     public array $placed = [];
 
-    /** The scrim of the last burn(): lines on it are readable like on a panel. */
-    private string $lastScrim = 'none';
-
     public const SCRIMS = ['none', 'top', 'bottom', 'top_bottom'];
 
     /**
@@ -50,7 +47,6 @@ class TextOverlay
     public function burn(string $video, array $items, float $duration, bool $still = false, array $reserved = [], string $scrim = 'none', string $scrimColor = '000000'): string
     {
         $this->placed = [];
-        $this->lastScrim = $scrim;
 
         if (! $items) {
             throw new AiException('Give at least one text item.');
@@ -248,8 +244,14 @@ class TextOverlay
                             $right => ($panelX + $width - $padX).'-text_w',
                             default => "{$cx}-text_w/2",
                         };
+                        if (! $multi) {
+                            // Centre the glyphs themselves in the pill: the line box keeps room for
+                            // descenders, so capitals placed at its top sat high with a gap below.
+                            $yExpr = "{$y}+({$b['height']}-text_h)/2".(! $still && ($item['animation'] ?? '') === 'slide_up' ? "+{$size}*0.6*(1-min(1,max(0,(t-{$start})/{$in})))" : '');
+                        }
                         if ($icon) {
                             $icons[array_key_last($icons)][1] = $panelX + $padX;
+                            $icons[array_key_last($icons)][2] = $y + (int) round(($b['height'] - $iconPx) / 2);
                         }
                         File::put("{$dir}/p{$i}.png", $this->panel($width, $b['height'], $b['shape'], $this->hex($item['box_color'] ?? ''), $multi ? (int) round($size * 0.6) : null));
                         $panels[] = ["p{$i}.png", $panelX, $y, $still ? null : "between(t,{$start},{$end})"];
@@ -347,7 +349,7 @@ class TextOverlay
     /**
      * Lines of the last burn() that sit on a detailed part of the clean image (the
      * product, a face, hair, busy texture), panel or not — most likely overlapping
-     * the subject. Lines on a scrim are left out. Measured per 32 px tile as the mean brightness step between pixels.
+     * the subject. Measured per 32 px tile as the mean brightness step between pixels.
      *
      * @return list<string>
      */
@@ -368,12 +370,8 @@ class TextOverlay
 
         $busy = [];
         foreach ($this->placed as $p) {
-            $mid = ($p['rect'][1] + $p['rect'][3]) / 2 / $H;
-            $onScrim = ($mid < 0.4 && in_array($this->lastScrim, ['top', 'top_bottom'], true)) || ($mid > 0.55 && in_array($this->lastScrim, ['bottom', 'top_bottom'], true));
-            // Panels (pills, glass, boxes) still count: on the product they hide it even when readable.
-            if ($onScrim) {
-                continue;
-            }
+            // Panels and scrims make text readable but do not stop it covering the product, so
+            // every line is measured; the agent judges whether it is only busy background.
             [$x0, $y0, $x1, $y1] = [max(0, $p['rect'][0]), max(0, $p['rect'][1]), min($W - 3, $p['rect'][2]), min($H - 3, $p['rect'][3])];
             $tiles = [];
             for ($ty = $y0; $ty < $y1; $ty += 32) {
