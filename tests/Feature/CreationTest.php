@@ -714,8 +714,7 @@ class CreationTest extends TestCase
         imagepng($bg, $file);
 
         $out = app(TextOverlay::class)->burn($file, [
-            ['text' => 'ӨВЛИЙН ШИНЭ ЦУГЛУУЛГА
-ЦАМЦ', 'role' => 'title', 'position' => 'top', 'align' => 'center', 'font' => 'serif', 'color' => 'FFFFFF', 'box' => false, 'box_color' => '', 'start' => 0, 'end' => 0, 'animation' => 'none'],
+            ['text' => "ӨВЛИЙН ШИНЭ ЦУГЛУУЛГА\nЦАМЦ", 'role' => 'title', 'position' => 'top', 'align' => 'center', 'font' => 'serif', 'color' => 'FFFFFF', 'box' => false, 'box_color' => '', 'start' => 0, 'end' => 0, 'animation' => 'none'],
         ], 0, true);
         $img = imagecreatefrompng($out);
         @unlink($file);

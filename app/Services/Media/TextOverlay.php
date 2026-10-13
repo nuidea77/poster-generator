@@ -120,8 +120,7 @@ class TextOverlay
 
                     // drawtext centres a multi-line text as one block, leaving its lines flush left
                     // inside it; centred text is drawn line by line on a shared baseline grid.
-                    $lines = $left ? [$b['text']] : explode('
-', $b['text']);
+                    $lines = $left ? [$b['text']] : explode("\n", $b['text']);
                     foreach ($lines as $k => $line) {
                         File::put("{$dir}/t{$i}_{$k}.txt", $line);
                         $lineY = count($lines) === 1 ? $yExpr : "({$yExpr})+".($k * (int) round($size * 1.4) + (int) round($size * 0.92)).'-ascent';
