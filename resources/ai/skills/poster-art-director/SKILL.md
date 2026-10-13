@@ -26,7 +26,9 @@ Three things make this better than typing a prompt into an image model:
 Never invent facts, prices, phone numbers, discounts or claims.
 
 ## 2. Decide the design (write 5 lines for yourself)
-- **Design read** (`poster-taste`): "Reading this as: <kind> for <audience>, <mood>, leaning toward <style>" + the three dials. Then pick one **style** from `poster-styles` and commit to it.
+- **Design read** — write it as a note: "Reading this as: <kind> for <audience>, <mood>, leaning toward <style>". Dials: variance (centred 1 … asymmetric 10), density (one word 1 … packed promo 10), energy (muted 1 … loud 10) — clinic/finance 4/4/4, premium 5/2/3, café 5/3/5, retail sale 6/6/8, youth/agency 8/5/8.
+- **Style** — one of: Minimal Editorial, Soft Structuralism, Editorial Warmth, Ethereal Tech, Colour-field Tech, Swiss Industrial, Tactical Dark, Generative Abstract (recipes in `poster-styles`; anti-template rules in `poster-taste`). Commit to it for every ratio.
+- **Avoid the AI defaults:** purple-glow backgrounds by reflex, everything centred, glass on everything, beige + brass as "premium", neon glows, gradient text, cliché words (`Шилдэг`, `Хамгийн`, `Дэлхийн жишигт`), emoji, model-drawn text or fake UI.
 - **Message:** the one thing the viewer must get ("UV sterilizer, 18% off, now 123,000₮").
 - **Archetype** (pick one, matching business and mood):
   - *Bold retail* — saturated brand-colour field, big offer badge, product cut-out with shadow, high contrast.
@@ -52,7 +54,12 @@ Ask for independent drafts **in the same turn** (they run in parallel) when you 
 Per format: one strong attempt + up to two corrections. A weak first idea → try a **different archetype**, not another seed. Derive other formats from the approved poster (same scene, re-laid-out text for the new ratio) and check the text again in each.
 
 ## 5. Review
-Run the `poster-critique` pass on the returned poster (first impression, message, hierarchy, consistency, legibility; critical → fix, moderate → fix if one add_text call does it, minor → deliver).
+Critique the returned poster before delivering (`poster-critique` for the full pass), in a short note:
+1. **2-second test:** the eye lands on the hook or the product first — not a footer, logo or decoration.
+2. **Message:** every brief fact exact; the offer prominent; CTA and contact findable.
+3. **Hierarchy & consistency:** one dominant element, one accent colour, ≤ 2 fonts, same choices in every ratio.
+4. **Legibility:** headline the most contrasted thing; nothing over the product or a face; small facts readable at phone size; act on add_text warnings.
+Critical issues (spelling, wrong fact, text over product, illegible) → fix; moderate → fix if one add_text call does it; minor → deliver. Max two fix rounds.
 Reject or fix when: the message is missing or wrong; any text is misspelled or has extra pseudo-letters; hierarchy is unclear (several things shout); the product differs from the photo; the logo is warped, huge or redrawn; text sits over the product or faces; hands/faces/objects are malformed; something important is outside the safe area (9:16: top 14%, bottom 20%). Change the prompt deliberately when you regenerate.
 
 ## Templates

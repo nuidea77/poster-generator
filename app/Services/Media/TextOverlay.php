@@ -80,8 +80,13 @@ class TextOverlay
             // Room an item needs in a row: its characters (+ icon) at its role's size.
             $len = fn ($it) => (max(4, mb_strlen((string) ($it['text'] ?? ''))) + (($it['icon'] ?? 'none') !== 'none' ? 2 : 0)
                 + (! empty($it['box']) || ($it['box_shape'] ?? '') === 'glass' ? 2.5 : 0)) * (self::SIZES[$it['role'] ?? ''] ?? self::SIZES['subtitle']);
+            $badge = fn ($it) => ! empty($it['box']); // filled pills (price, offer); glass chips may pair long labels
             foreach ($list as $j => $it) {
-                $r += empty($it['same_line']) || $j === 0 ? 1 : 0;
+                // Two badges side by side only when both are short (≤ 12 characters): a long offer pill beside the
+                // price pill shrinks both, so it is stacked under it instead.
+                $tooLong = $j > 0 && ! empty($it['same_line']) && $badge($it) && $badge($list[$j - 1])
+                    && max(mb_strlen((string) ($it['text'] ?? '')), mb_strlen((string) ($list[$j - 1]['text'] ?? ''))) > 12;
+                $r += empty($it['same_line']) || $j === 0 || $tooLong ? 1 : 0;
                 $rowSize[$r] = ($rowSize[$r] ?? 0) + 1;
                 $rowLen[$r] = ($rowLen[$r] ?? 0) + $len($it);
                 $rowOf[$j] = [$r, $rowSize[$r] - 1];

@@ -929,6 +929,28 @@ class CreationTest extends TestCase
         $this->assertEqualsWithDelta(0x4C, $rgba(39, 50)[0], 30);     // the phone outline in violet inside it
     }
 
+    public function test_a_long_offer_pill_is_stacked_under_the_price_pill(): void
+    {
+        if (! Process::run([config('ai.ffmpeg'), '-version'])->successful()) {
+            $this->markTestSkipped('ffmpeg not installed');
+        }
+
+        $bg = imagecreatetruecolor(1080, 1350);
+        $file = sys_get_temp_dir().'/bg-'.uniqid().'.png';
+        imagepng($bg, $file);
+        $pill = fn (string $t, bool $same) => ['text' => $t, 'role' => 'price', 'position' => 'top', 'align' => 'center', 'same_line' => $same, 'font' => 'bold_sans', 'color' => 'FFFFFF', 'box' => true, 'box_color' => 'C2410C', 'box_shape' => 'pill', 'icon' => 'none'];
+        $overlay = app(TextOverlay::class);
+
+        @unlink($overlay->burn($file, [$pill('9,900₮', false), $pill('2 ДАХЬ АЯГА 50% ХЯМД', true)], 0, true));
+        [$price, $offer] = array_column($overlay->placed, 'rect');
+        $this->assertGreaterThan($price[3], $offer[1]); // the long offer moved under the price
+
+        @unlink($overlay->burn($file, [$pill('9,900₮', false), $pill('-50%', true)], 0, true));
+        [$price, $offer] = array_column($overlay->placed, 'rect');
+        $this->assertSame($price[1], $offer[1]);        // two short badges stay side by side
+        @unlink($file);
+    }
+
     public function test_placeholder_text_calls_are_refused(): void
     {
         $this->expectException(AiException::class);
