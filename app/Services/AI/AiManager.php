@@ -17,6 +17,7 @@ class AiManager
         return match ($this->configured($name, 'image')) {
             'openai' => new OpenAIProvider(config('ai.providers.openai'), config('ai.timeout')),
             'gemini' => new GeminiProvider(config('ai.providers.gemini'), config('ai.timeout')),
+            'gemini_pro' => new GeminiProvider(config('ai.providers.gemini_pro'), config('ai.timeout')),
         };
     }
 

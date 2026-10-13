@@ -60,7 +60,7 @@ Use a named device only when the brief or style asks for it (or its style clearl
 - **Physics:** weight, contact, gravity, inertia and follow-through — liquid pours with viscosity and splash, cloth and hair lag behind, steam rises and drifts, products set down with contact shadows, vehicles have tyre contact and body roll.
 - **Separate** subject motion, camera motion and environmental motion in the prompt.
 - **Light from a source:** say where it comes from and what it does — window light raking across the food, a warm practical lamp, neon bounce on wet pavement, backlight rim on the bottle. Avoid flat front light and generic beauty fill; no daylight leaking into night.
-- **People:** a playable intent (what they want, one visible change) and 2–3 motivated actions, not random fidgeting. Close shots can carry eyes, breath, a small smile; wide shots need body-readable actions (turn, step, lift, laugh). Nobody talks — the reel is silent.
+- **People:** a playable intent (what they want, one visible change) and 2–3 motivated actions, not random fidgeting. Close shots can carry eyes, breath, a small smile; wide shots need body-readable actions (turn, step, lift, laugh). Nobody talks — no dialogue or lip-sync; sound is ambience/foley only (see `video-prompting` → Sound).
 
 ## 9. Prompt shape for one clip
 Keep it compact, critical space before style:

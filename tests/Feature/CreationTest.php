@@ -10,6 +10,7 @@ use App\Models\Subscription;
 use App\Models\User;
 use App\Services\AI\AiManager;
 use App\Services\Billing\BillingService;
+use App\Services\Media\ReelAssembler;
 use Database\Seeders\PlanSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
@@ -37,6 +38,7 @@ class CreationTest extends TestCase
             'ai.providers.anthropic.base_url' => 'https://api.anthropic.com',
             'ai.providers.openai.key' => 'k-openai',
             'ai.providers.gemini.key' => 'k-gemini',
+            'ai.providers.gemini_pro.key' => 'k-gemini',
             'ai.providers.seedance.key' => 'k-seedance',
             'ai.providers.seedance.poll_interval' => 0,
             'ai.providers.veo.key' => 'k-gemini',
@@ -449,6 +451,21 @@ class CreationTest extends TestCase
         $this->assertStringContainsString('Over the media budget', $results[3]['content']);
     }
 
+    public function test_gemini_pro_uses_its_own_model_and_2k_size(): void
+    {
+        Http::fake(['generativelanguage.googleapis.com/*' => Http::response(['candidates' => [['content' => ['parts' => [['inlineData' => ['mimeType' => 'image/png', 'data' => base64_encode(self::png())]]]]]]])]);
+
+        app(AiManager::class)->image('gemini_pro')->generateImage('poster with "ХЯМДРАЛ"', '4:5');
+        app(AiManager::class)->image('gemini')->generateImage('plain photo', '4:5');
+
+        $sent = collect(Http::recorded())->map(fn ($p) => $p[0]);
+        $this->assertStringContainsString('/models/gemini-3-pro-image-preview:generateContent', $sent[0]->url());
+        $this->assertSame(['aspectRatio' => '4:5', 'imageSize' => '2K'], $sent[0]['generationConfig']['imageConfig']);
+        $this->assertStringContainsString('/models/gemini-2.5-flash-image:generateContent', $sent[1]->url());
+        $this->assertSame(['aspectRatio' => '4:5'], $sent[1]['generationConfig']['imageConfig']);
+        $this->assertContains('gemini_pro', app(AiManager::class)->available('image'));
+    }
+
     public function test_veo_request_uses_the_shape_the_api_accepts(): void
     {
         // The live API rejects `inlineData` images and string durations (both shown in Google's docs).
@@ -464,6 +481,31 @@ class CreationTest extends TestCase
         $this->assertSame(8, $sent[1]['parameters']['durationSeconds']);
         $this->assertSame('1080p', $sent[1]['parameters']['resolution']);
         $this->assertArrayNotHasKey('image', $sent[1]['instances'][0]);
+    }
+
+    public function test_reel_keeps_clip_sound_and_fills_silent_clips(): void
+    {
+        $ffmpeg = config('ai.ffmpeg');
+        if (! Process::run([$ffmpeg, '-version'])->successful()) {
+            $this->markTestSkipped('ffmpeg not installed');
+        }
+
+        $loud = tempnam(sys_get_temp_dir(), 'loud').'.mp4';
+        $mute = tempnam(sys_get_temp_dir(), 'mute').'.mp4';
+        Process::run([$ffmpeg, '-y', '-f', 'lavfi', '-i', 'testsrc=size=320x568:rate=24', '-f', 'lavfi', '-i', 'sine=frequency=440:sample_rate=44100', '-t', '2', '-pix_fmt', 'yuv420p', '-shortest', $loud])->throw();
+        Process::run([$ffmpeg, '-y', '-f', 'lavfi', '-i', 'testsrc=size=320x568:rate=24', '-t', '1.5', '-pix_fmt', 'yuv420p', $mute])->throw();
+
+        $assembler = app(ReelAssembler::class);
+        $out = $assembler->assemble([$loud, $mute], 1080, 1920);
+
+        $this->assertEqualsWithDelta(3.5, $assembler->duration($out), 0.15);
+        $level = fn (string $from, string $to) => (float) (preg_match('/mean_volume: (-?[\d.]+) dB/', Process::run([$ffmpeg, '-ss', $from, '-to', $to, '-i', $out, '-af', 'volumedetect', '-f', 'null', '-'])->errorOutput(), $m) ? $m[1] : -99);
+        $this->assertGreaterThan(-35, $level('0.3', '1.7'));   // the Veo-like clip keeps its sound
+        $this->assertLessThan(-60, $level('2.3', '3.3'));      // the silent clip stays silent
+
+        @unlink($loud);
+        @unlink($mute);
+        @unlink($out);
     }
 
     public function test_reel_delivery_needs_clips_and_respects_the_cap(): void

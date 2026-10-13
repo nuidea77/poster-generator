@@ -27,6 +27,7 @@ Each generation tool lists only the providers that are available. Choose per cal
 
 | Need | Choice | Why |
 |---|---|---|
+| **Any image that carries text** (poster typography step, title / info / end cards), wordmark logos, premium hero shots | `gemini_pro` (+ references) | By far the best lettering — Mongolian Cyrillic, ₮, prices, dates — and finest detail; slower and ~3× the price of `gemini` |
 | Keep the client's real product / logo / dish / venue recognisably identical | `gemini` + `reference_image_ids` | Faithful image editing, identity and product preservation |
 | Place the client's product into a new scene, change background, relight | `gemini` + references | Native image-in / image-out |
 | Photoreal lifestyle, food, interiors, materials — no strict reference | `openai` | Strong photorealism and lighting |

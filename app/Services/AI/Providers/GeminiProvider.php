@@ -31,7 +31,7 @@ class GeminiProvider implements ImageProvider
                 'contents' => [['role' => 'user', 'parts' => $parts]],
                 'generationConfig' => [
                     'responseModalities' => ['IMAGE'],
-                    'imageConfig' => ['aspectRatio' => $aspect],
+                    'imageConfig' => ['aspectRatio' => $aspect] + (filled($this->config['image_size'] ?? null) ? ['imageSize' => $this->config['image_size']] : []),
                 ],
             ]);
     }

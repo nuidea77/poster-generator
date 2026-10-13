@@ -33,6 +33,7 @@ return [
         'image' => [
             'openai' => (float) env('COST_OPENAI_IMAGE', 0.25),
             'gemini' => (float) env('COST_GEMINI_IMAGE', 0.039),
+            'gemini_pro' => (float) env('COST_GEMINI_PRO_IMAGE', 0.134), // Nano Banana Pro, 1K–2K
         ],
         // USD per second of generated video (Seedance 1.0 Pro 1080p; Veo 3.1 standard 720p/1080p).
         'video_second' => [

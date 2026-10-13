@@ -11,7 +11,14 @@ description: Writing prompts for the video models (Seedance, Veo) — camera mov
 | `seedance` | 5 / 10 s | longer continuous shots, steady product orbits, stylised looks, quick 5 s cuts |
 | `veo` | 4 / 6 / 8 s | photoreal people, natural physics (liquids, fabric, hair), realistic light; 8 s clips render in 1080p |
 
-Use one model for the whole reel when you can, so the look stays consistent. Mix only when a beat clearly needs the other model's strength, or to replace clips that failed. Both take an image as the first frame. Veo also renders sound, but the reel is delivered silent, so never rely on audio — carry the message with pictures and text cards.
+Use one model for the whole reel when you can, so the look stays consistent. Mix only when a beat clearly needs the other model's strength, or to replace clips that failed. Both take an image as the first frame.
+
+## Sound
+`veo` renders sound with the clip and the reel **keeps it** (loudness-matched across clips); `seedance` clips are silent. So:
+- When sound matters (food sizzle, café ambience, nature, event buzz, product clicks), use `veo` for every clip — a reel that switches between sound and silence feels broken.
+- Write one **Audio:** line in every Veo prompt, the same style throughout the reel: ambience + foley + an optional soft music bed ("Audio: gentle café ambience, cup clink, soft warm lo-fi music bed"). Natural sound of what is on screen sells best.
+- No speech, narration, lyrics or voices (they cannot be scripted and get garbled); no loud music stings.
+- Reels still autoplay **muted** — sound is a bonus; the message is carried by pictures and text cards.
 
 ## Prompt skeleton
 For shot design (one job per clip, first frame, camera placement, field of view, creative devices) follow `cinematic-shot-design`; this is the short form.

@@ -9,8 +9,9 @@ use Illuminate\Support\Str;
 
 /**
  * Builds the final reel: every clip is scaled/cropped to the reel size (9:16 or 16:9) @30fps,
- * concatenated in order (the reel is as long as the clips together), and
- * given a silent stereo AAC track so Instagram/Facebook accept the file.
+ * concatenated in order (the reel is as long as the clips together). Each clip
+ * keeps its own sound (Veo renders audio; silent clips get silence), and the
+ * whole stereo AAC track is loudness-normalised so Instagram/Facebook accept it.
  */
 class ReelAssembler
 {
@@ -34,10 +35,26 @@ class ReelAssembler
 
             foreach (array_values($clipPaths) as $i => $clip) {
                 $out = "{$dir}/n{$i}.mp4";
+                $seconds = max(0.1, $this->duration($clip));
+                $video = "[0:v]scale={$w}:{$h}:force_original_aspect_ratio=increase,crop={$w}:{$h},fps={$fps},setsar=1,format=yuv420p[v]";
+
+                // Keep the clip's own sound (Veo renders audio); silence for clips without any.
+                // Audio is padded/trimmed to the clip's length and faded at the cut to avoid clicks.
+                if ($this->hasAudio($clip)) {
+                    $fadeOut = max(0, $seconds - 0.12);
+                    $inputs = [$ffmpeg, '-y', '-i', $clip];
+                    $audio = "[0:a]aresample=48000,aformat=sample_fmts=fltp:channel_layouts=stereo,apad,atrim=0:{$seconds},asetpts=N/SR/TB,afade=t=in:d=0.06,afade=t=out:st={$fadeOut}:d=0.12[a]";
+                } else {
+                    $inputs = [$ffmpeg, '-y', '-i', $clip, '-f', 'lavfi', '-t', (string) $seconds, '-i', 'anullsrc=channel_layout=stereo:sample_rate=48000'];
+                    $audio = '[1:a]aformat=sample_fmts=fltp:channel_layouts=stereo[a]';
+                }
+
                 $this->run([
-                    $ffmpeg, '-y', '-i', $clip,
-                    '-vf', "scale={$w}:{$h}:force_original_aspect_ratio=increase,crop={$w}:{$h},fps={$fps},setsar=1,format=yuv420p",
-                    '-an', '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '19',
+                    ...$inputs,
+                    '-filter_complex', "{$video};{$audio}",
+                    '-map', '[v]', '-map', '[a]',
+                    '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '19',
+                    '-c:a', 'aac', '-b:a', '160k', '-ar', '48000', '-ac', '2',
                     $out,
                 ]);
                 $list[] = "file '".str_replace("'", "'\\''", $out)."'";
@@ -48,13 +65,14 @@ class ReelAssembler
             $joined = "{$dir}/joined.mp4";
             $this->run([$ffmpeg, '-y', '-f', 'concat', '-safe', '0', '-i', "{$dir}/list.txt", '-c', 'copy', $joined]);
 
+            // One loudness for the whole reel so clips from different models match.
             $final = "{$dir}/reel.mp4";
             $this->run([
                 $ffmpeg, '-y', '-i', $joined,
-                '-f', 'lavfi', '-i', 'anullsrc=channel_layout=stereo:sample_rate=48000',
-                '-map', '0:v', '-map', '1:a', '-shortest',
+                '-map', '0:v', '-map', '0:a',
+                '-af', 'loudnorm=I=-16:TP=-1.5:LRA=11',
                 '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '19', '-pix_fmt', 'yuv420p', '-r', (string) $fps,
-                '-c:a', 'aac', '-b:a', '128k',
+                '-c:a', 'aac', '-b:a', '160k', '-ar', '48000',
                 '-movflags', '+faststart',
                 $final,
             ]);
@@ -88,6 +106,15 @@ class ReelAssembler
         ]);
 
         return (float) trim($result->output());
+    }
+
+    private function hasAudio(string $path): bool
+    {
+        $result = Process::timeout(60)->run([
+            config('ai.ffprobe'), '-v', 'error', '-select_streams', 'a', '-show_entries', 'stream=index', '-of', 'csv=p=0', $path,
+        ]);
+
+        return trim($result->output()) !== '';
     }
 
     private function run(array $command): void

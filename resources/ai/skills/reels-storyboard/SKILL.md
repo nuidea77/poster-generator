@@ -5,7 +5,7 @@ description: Planning a complete reel (9:16 or 16:9, at the length the client or
 
 # Reel storyboard
 
-The reel is assembled from your clips in order and is exactly as long as they are together. The client ordered the length (15, 30, 45 or 60 s) and the orientation (9:16 or 16:9); the clips must add up to the ordered length ± 3 s. Reels autoplay **muted** and nothing is overlaid later, so the pictures — and the text cards you build into them — must carry the whole message.
+The reel is assembled from your clips in order and is exactly as long as they are together. The client ordered the length (15, 30, 45 or 60 s) and the orientation (9:16 or 16:9); the clips must add up to the ordered length ± 3 s. Reels autoplay **muted** and nothing is overlaid later, so the pictures — and the text cards you build into them — must carry the whole message. Veo clips keep their own sound (ambience, foley, a soft music bed): use Veo for the whole reel when sound adds to it, with one consistent **Audio:** line in every prompt.
 
 ## 1. Message first
 One sentence: what the viewer must know and do at the end ("Snow-leopard open day, 15 Oct, 15:00, Shangri-La — come"). Every fact the brief gives (offer, price, date, time, place, phone) must appear **on screen** somewhere, as text on a held card.

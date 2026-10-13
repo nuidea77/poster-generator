@@ -52,7 +52,7 @@ Name the style concretely in the prompt ("bold condensed sans-serif in white, al
 
 ## 5. Two-step method (recommended)
 1. **Visual first** — make and approve the image without text but **with the empty zones** the layout needs ("leave the top third as calm empty space for a headline; leave a clean band at the bottom").
-2. **Typography second** — pass the approved image (and the logo) as references and ask the model to "keep the photo exactly as it is and add the following typography" with the exact strings, positions, sizes and style. Prefer `openai` for this step when available (stronger lettering); use `gemini` if not.
+2. **Typography second** — pass the approved image (and the logo) as references and ask the model to "keep the photo exactly as it is and add the following typography" with the exact strings, positions, sizes and style. Use `gemini_pro` for this step (best lettering, Mongolian Cyrillic and ₮); `gemini` / `openai` only when it is unavailable.
 One-shot (visual + text in one prompt) is fine for simple graphic posters.
 
 **Every edit redraws the whole image** — the logo and any text already in it are re-rendered and degrade a little each time. So: put the logo and all text in the **same final step**, do not edit a finished poster again to fix one detail (go back to the clean visual and redo the typography step), and keep a wordmark logo big enough to stay legible (≥ 18–20% of the frame width; a small logo turns its letters into mush).

@@ -49,6 +49,16 @@ return [
             'image_model' => env('GEMINI_IMAGE_MODEL', 'gemini-2.5-flash-image'),
         ],
 
+        // Nano Banana Pro: much better lettering (Mongolian Cyrillic, prices) and
+        // detail, slower and ~3× the price — for typography and hero images.
+        'gemini_pro' => [
+            'kind' => 'image',
+            'key' => env('GEMINI_PRO_API_KEY', env('GEMINI_API_KEY')),
+            'base_url' => env('GEMINI_BASE_URL', 'https://generativelanguage.googleapis.com/v1beta'),
+            'image_model' => env('GEMINI_PRO_IMAGE_MODEL', 'gemini-3-pro-image-preview'),
+            'image_size' => env('GEMINI_PRO_IMAGE_SIZE', '2K'), // 1K | 2K (same price) | 4K
+        ],
+
         // Video models. Seedance: ByteDance via BytePlus ModelArk.
         'seedance' => [
             'kind' => 'video',
