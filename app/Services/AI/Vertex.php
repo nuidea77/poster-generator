@@ -35,7 +35,11 @@ class Vertex
     public function generateContentUrl(string $model): string
     {
         if ($this->credentials() === null) {
-            return "https://aiplatform.googleapis.com/v1/publishers/google/models/{$model}:generateContent";
+            // With an API key the bare URL lets Google pick a region, which may lack the image
+            // models (it routed to asia-southeast1); naming the project pins the global endpoint.
+            return filled($this->config['project'] ?? null)
+                ? "https://aiplatform.googleapis.com/v1/projects/{$this->config['project']}/locations/global/publishers/google/models/{$model}:generateContent"
+                : "https://aiplatform.googleapis.com/v1/publishers/google/models/{$model}:generateContent";
         }
 
         $location = $this->config['image_location'] ?: 'global';

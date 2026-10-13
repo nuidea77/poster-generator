@@ -71,6 +71,12 @@ class VertexTest extends TestCase
 
         Http::assertSent(fn (Request $r) => str_starts_with($r->url(), 'https://aiplatform.googleapis.com/v1/publishers/google/models/gemini-2.5-flash-image:generateContent?key=AQ.vertex-key'));
         $this->assertNotContains('veo', $ai->available('video')); // Veo on Vertex needs a service account
+
+        // With a project the key is pinned to the global endpoint (Google's own pick may lack the model).
+        config(['ai.vertex.project' => 'my-proj']);
+        app()->forgetInstance(AiManager::class);
+        app(AiManager::class)->image('gemini')->generateImage('photo', '1:1');
+        Http::assertSent(fn (Request $r) => str_starts_with($r->url(), 'https://aiplatform.googleapis.com/v1/projects/my-proj/locations/global/publishers/google/models/gemini-2.5-flash-image:generateContent?key=AQ.vertex-key'));
     }
 
     public function test_vertex_without_credentials_falls_back_to_the_gemini_api(): void
