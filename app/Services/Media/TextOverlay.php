@@ -61,7 +61,8 @@ class TextOverlay
         // The model sometimes fires a stray call whose only "text" is a placeholder; refuse it
         // instead of rendering the word "text" on the poster.
         $words = array_map(fn ($it) => mb_strtolower(preg_replace('/^[\s.…]+|[\s.…]+$/u', '', (string) ($it['text'] ?? ''))), $items);
-        if (! array_diff($words, ['', 'text', 'placeholder', 'tbd', 'todo', 'x', 'lorem ipsum', 'dummy', 'sample', 'test', 'example', 'foo', 'abc'])) {
+        $junk = ['', 'text', 'placeholder', 'tbd', 'todo', 'x', 'lorem ipsum', 'dummy', 'sample', 'test', 'example', 'foo', 'abc'];
+        if (! array_diff($words, $junk) || max(array_map(fn ($w) => preg_match('/\d/', $w) ? 9 : mb_strlen(preg_replace('/[\p{C}\s]/u', '', $w)), $words)) <= 1) { // a stray single letter; numbers like "15" are real
             throw new AiException('That call held only placeholder text ("'.trim((string) ($items[0]['text'] ?? '')).'"). Send the real items — every string, in one call.');
         }
 
@@ -77,9 +78,14 @@ class TextOverlay
             // Rows: an item with same_line joins the previous item's row. 2 items sit on the two
             // text edges; 3+ items share the width in equal columns (steps, gifts, features).
             [$rowOf, $rowSize, $rowLen, $r] = [[], [], [], -1];
+            // Size share of a role; in the footer every fact is near `small` (the phone at most 1.25×),
+            // so the strip stays even — a "subtitle" phone must not dwarf the other facts.
+            $roleSize = fn ($it) => ($it['position'] ?? '') === 'footer'
+                ? min(self::SIZES[$it['role'] ?? ''] ?? self::SIZES['subtitle'], self::SIZES['small'] * 1.25)
+                : (self::SIZES[$it['role'] ?? ''] ?? self::SIZES['subtitle']);
             // Room an item needs in a row: its characters (+ icon) at its role's size.
             $len = fn ($it) => (max(4, mb_strlen((string) ($it['text'] ?? ''))) + (($it['icon'] ?? 'none') !== 'none' ? 2 : 0)
-                + (! empty($it['box']) || ($it['box_shape'] ?? '') === 'glass' ? 2.5 : 0)) * (self::SIZES[$it['role'] ?? ''] ?? self::SIZES['subtitle']);
+                + (! empty($it['box']) || ($it['box_shape'] ?? '') === 'glass' ? 2.5 : 0)) * $roleSize($it);
             $badge = fn ($it) => ! empty($it['box']); // filled pills (price, offer); glass chips may pair long labels
             foreach ($list as $j => $it) {
                 // Two badges side by side only when both are short (≤ 12 characters): a long offer pill beside the
@@ -126,7 +132,7 @@ class TextOverlay
 
                 $longest = max(array_map('mb_strlen', explode("\n", $text)));
                 $caps = mb_strtoupper($text) === $text ? 1.12 : 1.0;
-                $size = (int) round(min($w, $h) * (self::SIZES[$item['role'] ?? ''] ?? self::SIZES['subtitle']));
+                $size = (int) round(min($w, $h) * $roleSize($item));
                 $size = (int) min($size, floor($w * (0.84 * $share - ($paired ? 0.02 : 0)) / max(1, $longest * self::WIDTH[$font] * $caps)));
                 // Then measure the real glyphs (wide serif capitals beat the estimate): the widest
                 // line plus its panel must stay inside 86% of the width.
@@ -202,7 +208,7 @@ class TextOverlay
                 $bandBottom = $still && $h <= $w * 1.5 ? $h : (int) round($h * ($still ? 0.87 : 0.8));
                 $bandTop = $bandBottom - $group - 2 * $padY;
                 $footerTop = $bandTop + $padY;
-                $bottomLimit = min($bottomLimit, $bandTop - (int) round(min($w, $h) * 0.025));
+                $bottomLimit = min($bottomLimit, $bandTop - (int) round(min($w, $h) * 0.045)); // air between the CTA and the strip
                 if ($footerStyle === 'pill') {
                     // A rounded bar floating above the foot, inset from the edges (contact strip).
                     $inset = (int) round($w * 0.04);
@@ -399,7 +405,7 @@ class TextOverlay
                         $right => $w - $margin - $width,
                         default => (int) round($cx - $width / 2),
                     };
-                    $this->placed[] = ['text' => $b['text'], 'panel' => $pad > 0 || $position === 'footer', 'rect' => [$x0, $y, $x0 + $width, $y + $b['height']], 'color' => $this->hex($item['color'] ?? ''), 'accent' => $b['marked'] ? $this->hex($item['accent_color'] ?? 'FFB703') : null, 'position' => $position, 'row' => $b['rowNo'], 'shrunk' => $size < (int) round(min($w, $h) * (self::SIZES[$item['role'] ?? ''] ?? self::SIZES['subtitle']) * 0.75)];
+                    $this->placed[] = ['text' => $b['text'], 'panel' => $pad > 0 || $position === 'footer', 'rect' => [$x0, $y, $x0 + $width, $y + $b['height']], 'color' => $this->hex($item['color'] ?? ''), 'accent' => $b['marked'] ? $this->hex($item['accent_color'] ?? 'FFB703') : null, 'position' => $position, 'row' => $b['rowNo'], 'shrunk' => $size < (int) round(min($w, $h) * $roleSize($item) * 0.75)];
                     $rowGap = max($same ? $row['gap'] : 0, $b['gap']);
                     $row = ['y' => $rowStart, 'gap' => $rowGap, 'end' => $rowStart + $rowH[$b['rowNo']] + $rowGap];
                     $y = $row['end'];

@@ -615,6 +615,16 @@ class CreativeAgent
             throw new AiException('In a reel, add_text needs a clip (use animate_still first for a card).');
         }
 
+        // A stray partial call (1–3 items after a full layout on the same visual) wastes a render;
+        // a poster's add_text must carry the complete set every time.
+        $before = collect($creation->steps)
+            ->filter(fn ($s) => ($s['name'] ?? '') === 'add_text' && ! isset($s['error']) && (($s['input']['asset_id'] ?? '') === $id))
+            ->map(fn ($s) => count($s['input']['items'] ?? []))->max() ?? 0;
+        $count = count($in['items'] ?? []);
+        if ($still && $before >= 4 && $count < $before / 2) {
+            throw new AiException("This call has only {$count} of the {$before} items you set before on `{$id}` — it would replace the poster with a fragment. Send the complete set of items in one call.");
+        }
+
         // The model sometimes sends Cyrillic as "\u0410" escapes (or a stray CR before "u0410"); set the real letters.
         $in['items'] = array_map(fn ($item) => is_array($item) && is_string($item['text'] ?? null)
             ? [...$item, 'text' => preg_replace_callback('/(?:\\\\+|\r)u([0-9a-fA-F]{4})/', fn ($m) => mb_chr(hexdec($m[1]), 'UTF-8'), $item['text'])]

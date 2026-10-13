@@ -951,6 +951,30 @@ class CreationTest extends TestCase
         @unlink($file);
     }
 
+    public function test_a_partial_add_text_after_a_full_layout_is_refused(): void
+    {
+        if (! Process::run([config('ai.ffmpeg'), '-version'])->successful()) {
+            $this->markTestSkipped('ffmpeg not installed');
+        }
+
+        Storage::disk('public')->put('in/visual.png', self::png(1080, 1350));
+        $item = fn (string $t) => ['text' => $t, 'role' => 'small', 'position' => 'top', 'align' => 'center', 'same_line' => false, 'font' => 'sans', 'color' => 'FFFFFF', 'box' => false, 'box_color' => '', 'box_shape' => 'rect', 'start' => 0, 'end' => 0, 'animation' => 'none', 'icon' => 'none'];
+        Http::fake([
+            'api.anthropic.com/*' => Http::sequence()
+                ->push($this->turn([['add_text', ['asset_id' => 'img_1', 'items' => [$item('Нэг'), $item('Хоёр'), $item('Гурав'), $item('Дөрөв')]]]]))
+                ->push($this->turn([['add_text', ['asset_id' => 'img_1', 'items' => [$item('SAMSUNG')]]]]))
+                ->push($this->turn([['finish', ['summary' => 'ok']]])),
+        ]);
+        $creation = Creation::create(['user_id' => $this->user->id, 'type' => 'poster', 'formats' => ['4:5'], 'prompt' => 'x', 'status' => 'running',
+            'assets' => [['id' => 'img_1', 'kind' => 'image', 'source' => 'generated', 'provider' => 'gemini', 'path' => 'in/visual.png', 'aspect' => '4:5', 'cost' => 0.039]]]);
+
+        app(CreativeAgent::class)->run($creation);
+        $steps = collect($creation->fresh()->steps)->where('name', 'add_text')->values();
+
+        $this->assertArrayNotHasKey('error', $steps[0]);
+        $this->assertStringContainsString('only 1 of the 4 items', $steps[1]['error']);
+    }
+
     public function test_placeholder_text_calls_are_refused(): void
     {
         $this->expectException(AiException::class);
