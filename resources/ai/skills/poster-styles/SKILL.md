@@ -22,31 +22,31 @@ Pick **one** style per poster set and commit to it; never mix two. The brand's o
 ## Minimal Editorial
 - **Palette:** off-white `F7F6F3` or white canvas, charcoal `2F3437` text (never pure black), muted grey `787774`; one washed pastel for tags (pale blue `E1F3FE` / text `1F6C9F`, pale green `EDF3EC` / `346538`).
 - **Visual prompt:** "a single object photographed on a plain warm-white background, soft natural daylight, very large empty space around it, desaturated warm tones, subtle paper grain". No gradients, no glow.
-- **add_text:** headline `title` in `serif` (editorial) or `bold_sans`, charcoal; secondary `sans` muted grey; tags as small `glass` or pale `pill`; CTA a dark `rect` box (`box_color 111111`, white text); footer `band` in white/very light with charcoal text, or plain `bottom` facts. Left alignment, lots of air (density 2).
+- **add_text:** headline `title` in `serif` (editorial) or `bold_sans`, charcoal; secondary `sans` muted grey; tags as small `glass` or pale `pill`; CTA a dark `rect` box (`box_color 111111`, white text); contacts `open` in small charcoal type. Left alignment, lots of air (density 2).
 - **Avoid:** big colour fields, pill-shaped large containers, emoji, gradients, 3D glass.
 
 ## Soft Structuralism
 - **Palette:** white / silver-grey canvas, one calm brand colour (teal, cobalt, green) + one soft accent.
 - **Visual prompt:** "clean bright scene, soft diffused light, floating subject with a very soft ambient shadow, airy, white and light-grey background, generous empty space top and bottom".
-- **add_text:** massive bold `bold_sans` headline (two-tone with the brand colour), kicker `glass` chip, checklist with `check` icons, CTA `pill` with `arrow`, footer `pill` in the brand colour with circle icons.
+- **add_text:** massive bold `bold_sans` headline (two-tone with the brand colour), kicker `glass` chip, checklist with `check` icons, CTA `pill` with `arrow`.
 - **Avoid:** harsh shadows, busy photos behind text, more than one accent.
 
 ## Editorial Warmth
 - **Palette (rotate, not always beige):** forest + bone + amber; terracotta + slate; black + tan; olive + brick + paper.
 - **Visual prompt:** "warm natural light, real textures (wood, linen, ceramic), shallow depth of field, a calm plain area of wall or table for text, film-like grain".
-- **add_text:** `serif` or `bold_sans` headline in deep brown/near-black (never cream on beige), accent pill for price/offer, footer `band` in the dark tone.
+- **add_text:** `serif` or `bold_sans` headline in deep brown/near-black (never cream on beige), accent pill for price/offer.
 - **Avoid:** the default beige + brass + espresso combination unless the brand is truly that.
 
 ## Ethereal Tech
 - **Palette:** near-black `050505` / deep navy, one glowing accent (emerald, cyan, violet used with intent).
 - **Visual prompt:** "deep dark background with one or two soft radial glows of colour, a glossy 3D object or phone floating with rim light, subtle depth, clean negative space for text".
-- **add_text:** white `bold_sans` headline with a starred accent word; `glass` kicker chip; CTA `pill` in the accent with `arrow`; footer `pill` in a dark glass tone or `band` near-black with white circle icons.
+- **add_text:** white `bold_sans` headline with a starred accent word; `glass` kicker chip; CTA `pill` in the accent with `arrow`.
 - **Avoid:** purple glow by default, gradient text, many orbs.
 
 ## Colour-field Tech
 - **Palette:** a saturated brand field (royal blue, violet, green) + a contrasting accent (orange, lime, yellow) — the international social-template look.
 - **Visual prompt:** "solid {brand colour} background with a soft gradient, the product / phone / smiling person cut out on one side, one curved accent swoosh in {accent} crossing a corner, the other side empty".
-- **add_text:** white two-tone headline (accent word), feature pills, CTA accent `pill` with `arrow`, footer `pill` white with dark text or in the darker brand tone.
+- **add_text:** white two-tone headline (accent word), feature pills, CTA accent `pill` with `arrow`.
 - **Avoid:** footer and CTA in the same colour; three accents.
 
 ## Swiss Industrial
@@ -58,14 +58,16 @@ Pick **one** style per poster set and commit to it; never mix two. The brand's o
 ## Tactical Dark
 - **Palette:** off-black `0A0A0A`, white-phosphor `EAEAEA` text, red `E61919` accent (optional single green status).
 - **Visual prompt:** "dark technical scene, scanline / grain texture, thin HUD-like lines and crosshairs as decoration without any letters or numbers, one dramatic subject".
-- **add_text:** uppercase `condensed` headline, `sans` small facts with generous spacing via short strings, square boxes, footer `band` black.
+- **add_text:** uppercase `condensed` headline, `sans` small facts with generous spacing via short strings, square boxes.
 - **Avoid:** fake readable data, model-drawn numbers, pastel colours.
 
 ## Generative Abstract
 For posters without a product photo: the visual is an original generative-art-like image the image model paints from a clear "algorithmic" idea.
 - **Prompt ideas:** "flowing field of thousands of fine lines following a smooth noise field, {two brand colours} on {background}, calm and dense in one half, sparse in the other"; "particles drifting into a spiral, soft depth of field"; "concentric ripples in a grid of dots, one area disturbed"; "layered translucent waves of {colour}". State "abstract, no text, no letters, no symbols".
-- **add_text:** the headline over the sparse half; few items (density 2–3); footer `pill` or `band`.
+- **add_text:** the headline over the sparse half; few items (density 2–3).
 - **Avoid:** copying a known artist's style; busy texture under the text.
+
+Footer: any style may use `open`, `band` or `pill` — choose per picture and vary across posts.
 
 ## After choosing
 Write the chosen style in the design read note, keep it for every ratio, and check the result with `poster-critique`.

@@ -367,8 +367,9 @@ class CreativeAgent
                 'asset_id' => ['type' => 'string', 'description' => $creation->type === Creation::REEL ? 'Clip id' : 'Image id'],
                 'scrim' => ['type' => 'string', 'enum' => TextOverlay::SCRIMS, 'description' => 'Soft gradient from the frame edge behind the text zones, when the photo is too busy or bright for the text; none if the zone is already calm'],
                 'scrim_color' => ['type' => 'string', 'description' => 'Hex of the scrim: 000000 (dark, for white text) or a light/brand tone for dark text'],
-                'footer_color' => ['type' => 'string', 'description' => 'Hex of the footer strip. House style: the brand\'s main colour (or its dark tone) with white text and circle icons; white (FFFFFF) only when the poster itself is that brand colour all over'],
-                'footer_style' => ['type' => 'string', 'enum' => ['band', 'pill', 'open'], 'description' => 'band = full-width strip at the foot; pill = rounded contact bar inset from the edges (white with dark text, or the brand colour); open = no strip, the facts sit on a calm or dark foot of the picture (add scrim bottom if it is busy)'],
+                'footer_color' => ['type' => 'string', 'description' => 'Hex of the footer strip (band/pill); ignored for open'],
+                'footer_style' => ['type' => 'string', 'enum' => ['open', 'band', 'pill'], 'description' => 'How the contact facts sit — your design choice per poster, vary it: open = no strip, plain type on a calm foot of the picture (scrim bottom if needed); band = full-width strip; pill = rounded bar inset from the edges'],
+                'footer_dividers' => ['type' => 'boolean', 'description' => 'thin lines between facts on one row'],
                 'items' => [
                     'type' => 'array',
                     'items' => [
@@ -376,7 +377,7 @@ class CreativeAgent
                         'properties' => [
                             'text' => ['type' => 'string', 'description' => 'Exact words; wrap a key word in *stars* to draw it in accent_color'],
                             'role' => ['type' => 'string', 'enum' => ['display', 'title', 'price', 'subtitle', 'small'], 'description' => 'display = a huge hero number or 1–2 short words (15, -30%, 2026), about twice a title'],
-                            'position' => ['type' => 'string', 'enum' => ['top', 'center', 'lower_third', 'bottom', 'footer'], 'description' => 'footer = the contact band at the very bottom (address, phone, hours, web, delivery), drawn on a full-width colour band'],
+                            'position' => ['type' => 'string', 'enum' => ['top', 'center', 'lower_third', 'bottom', 'footer'], 'description' => 'footer = the contact facts at the very bottom (address, phone, hours, web, social), styled by footer_style'],
                             'align' => ['type' => 'string', 'enum' => ['center', 'left', 'right']],
                             'same_line' => ['type' => 'boolean', 'description' => 'true = on the same row as the previous item. 2 items: left and right edge (phone | delivery, date | time); 3–4 items: equal centred columns (steps, gifts, features). Usually false'],
                             'font' => ['type' => 'string', 'enum' => array_keys(TextOverlay::FONTS)],
@@ -389,7 +390,7 @@ class CreativeAgent
                             'end' => ['type' => 'number'],
                             'animation' => ['type' => 'string', 'enum' => ['fade', 'slide_up', 'none']],
                             'icon' => ['type' => 'string', 'enum' => ['none', ...IconSet::NAMES], 'description' => 'Small icon before a one-line fact (phone, location, clock, calendar, web, mail, delivery, gift, instagram, facebook, chat …) in the text colour; none for headlines. One fact per icon item: hours and phone are two items, not one line joined with ·'],
-                            'icon_style' => ['type' => 'string', 'enum' => ['plain', 'circle'], 'description' => 'circle = the icon inside a disc of the text colour (footer contact style); plain = the bare icon'],
+                            'icon_style' => ['type' => 'string', 'enum' => ['plain', 'circle'], 'description' => 'circle = the icon inside a disc of the text colour; plain = the bare icon'],
                             'icon_color' => ['type' => 'string', 'description' => 'Hex of the glyph inside a circle icon: the band/panel colour behind it (default dark or white for contrast)'],
                         ],
                         'required' => ['text', 'role', 'position', 'align', 'same_line', 'font', 'color', 'box', 'box_color', 'box_shape', 'start', 'end', 'animation', 'icon'],
@@ -698,7 +699,7 @@ class CreativeAgent
             : $item, array_values($in['items'] ?? []));
 
         $base = $this->exactFrame($asset);
-        $tmp = $this->text->burn($base ?? MediaStore::absolute($asset['path']), $in['items'], (float) ($asset['duration'] ?? 0), $still, $asset['reserved'] ?? [], (string) ($in['scrim'] ?? 'none'), (string) ($in['scrim_color'] ?? '000000'), (string) ($in['footer_color'] ?? ''), (string) ($in['footer_style'] ?? 'band'));
+        $tmp = $this->text->burn($base ?? MediaStore::absolute($asset['path']), $in['items'], (float) ($asset['duration'] ?? 0), $still, $asset['reserved'] ?? [], (string) ($in['scrim'] ?? 'none'), (string) ($in['scrim_color'] ?? '000000'), (string) ($in['footer_color'] ?? ''), (string) ($in['footer_style'] ?? 'open'), (bool) ($in['footer_dividers'] ?? false));
         $busy = $still ? $this->text->busyLines($base ?? MediaStore::absolute($asset['path'])) : [];
         $faint = $still ? $this->text->lowContrastLines($base ?? MediaStore::absolute($asset['path'])) : [];
         $stripOverSubject = $still ? $this->text->footerOverDetail($base ?? MediaStore::absolute($asset['path'])) : 0.0;
@@ -738,7 +739,7 @@ class CreativeAgent
         }
         // A poster without an action: every ad except a pure greeting gets a CTA pill.
         if ($still && $creation->type === Creation::POSTER && ! collect($in['items'])->contains(fn ($it) => ($it['icon'] ?? '') === 'arrow')) {
-            $content .= ' CTA — there is no call to action. Unless this is a pure greeting, add a short accent pill with icon arrow (`Захиалах →`, `Бүртгүүлэх →`, `Залгах →`) in the lower third, above the footer.';
+            $content .= ' CTA — there is no call to action. Unless this is a pure greeting, add one (`Захиалах`, `Бүртгүүлэх`, `Залгах`) in a form that suits this layout — a button, an underlined line, a word next to the phone.';
         }
 
         if ($faint) {

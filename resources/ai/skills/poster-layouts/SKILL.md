@@ -17,7 +17,7 @@ Studied from professional Mongolian posters (a clinic package, a telecom promo, 
 | **Row of 3–4** | `small` bold items, the 2nd–4th with `same_line: true` → equal columns, one size | services (`ЭХО · РЕНТГЕН · ШИНЖИЛГЭЭ · ҮЗЛЭГ`), gifts, steps, features |
 | **Step flow** | 2–3 glass chips in a row, last one an accent pill with an icon | `Unitel app` → `Багц шилжих` → `Бэлэг авах` |
 | **Checklist** | 3–4 `small` lines, `icon: check`, `align: left` | benefits of a service or package |
-| **Footer info bar** | `position: footer` + `footer_color` (brand dark): a full-width band at the foot. `small` address with `location` on the left; phone **`subtitle` bold** with `phone`, `same_line`, on the right; a second row for hours/date/web | contact on every service poster |
+| **Footer info bar** | `footer_style: band` + `footer_color`: address left, phone bold right, a second row for hours/web | one option among open / band / pill |
 
 Rows of 3–4 work best when the **visual already has matching spots** (round photo insets, product tiles, icons in a row) — ask the image model for "a row of four round photo insets evenly spaced across the lower third, empty below each for a caption", then put the captions in `lower_third` / `bottom` as one row. Without matching spots, a row of words alone is still clean.
 
@@ -31,7 +31,7 @@ Rows of 3–4 work best when the **visual already has matching spots** (round ph
 | **CTA with arrow** | pill + `icon: arrow` (the arrow trails the text): `Захиалах →`, `Бүртгүүлэх →`, `Дэлгэрэнгүй →` | the action, at the bottom of the content, above the footer |
 | **Feature pills** | 3 stacked `small` pills/glass with `icon: check` (or numbers `01` `02` `03` as separate display items) | benefits, steps, what is included |
 | **Big stat** | `display` number (`76%`, `4.9★`, `10,000+`) + a `small` label under it | trust, results |
-| **Contact strip** | add_text `footer_style: pill` with `footer_color` white (dark text) or the brand colour — a rounded bar inset from the edges; one row of 3: web · mail/social · phone | app, agency, online shop posters (lighter than a full band) |
+| **Contact strip** | `footer_style: pill` — a rounded bar inset from the edges; one row of 3: web · social · phone | another option; or `open`: plain facts straight on the picture |
 
 ## 2. Layout recipes
 **Clinic / service package (Medica style)** — 4:5
@@ -51,7 +51,7 @@ Rows of 3–4 work best when the **visual already has matching spots** (round ph
 
 **Tech / fintech / agency (international template style)** — 4:5
 1. Visual: brand-colour field (deep blue, violet) with a glowing 3D object or the product (phone with the app, a laptop, a card) floating, a soft light on one side; or a person holding the phone; lots of empty colour field.
-2. Text: kicker chip → two-tone headline (one accent word) → 1–2 line `small` subtitle → CTA pill with arrow → contact strip (`footer_style: pill`).
+2. Text: kicker chip → two-tone headline (one accent word) → 1–2 line `small` subtitle → CTA → contacts in the footer.
 
 **Question / problem-solution post** — 4:5
 1. Visual: the problem shown simply (an empty shop, a confused person, a cluttered desk) or a clean colour field.
@@ -60,7 +60,7 @@ Rows of 3–4 work best when the **visual already has matching spots** (round ph
 ## 3. Rules from these posters
 - **One accent colour**, used only for pills, badges, the key number and the one starred word of the headline. Text is black/dark grey on light, white on dark.
 - **A two-colour system**: one brand colour for fields and bands (blue, deep green, violet) + one contrasting accent (orange, yellow, lime) — stated in the visual prompt ("deep royal-blue background with a curved orange accent swoosh in one corner") and reused in add_text (`accent_color`, pill `box_color`).
-- **Series look:** the same header row, colours, kicker chips and footer on every post of a brand, so a feed reads as one campaign.
+- **Brand thread, not a template:** keep the brand's colours and fonts recognisable across posts, but vary the layout, picture and footer from post to post (`poster-design` Variety).
 - **Headline 2–3 words, huge** (title or display); everything else ≤ 1/3 of its size.
 - **Air:** at least a third of the poster is calm background. Don't fill every zone.
 - **Facts are elements, not sentences:** chips, pills, rows, a checklist — 1–5 words each.

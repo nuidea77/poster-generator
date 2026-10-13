@@ -18,7 +18,7 @@ Related: `poster-layouts` (pills, cards, rows, recipes), `graphic-elements` (ico
 | 2. Support | Product name or one short line | `subtitle` | `UV ариутгагч`, `Шинэ серум` |
 | 3. Offer & price | Price, old → new, the offer badge | `price` (pill) | `150,000₮ → 123,000₮`, `2 ДАХЬ АЯГА 50% ХЯМД` |
 | 4. Action | CTA | `subtitle` pill with `arrow` | `Захиалах →` |
-| 5. Facts | date, time, place, phone, web | `footer` (`small`, phone `subtitle` bold) | |
+| 5. Facts | date, time, place, phone, web | `footer` (usually `small`) | |
 | 6. Brand | the logo with `add_logo` | — | see `logo-placement` |
 
 - **Max ~12 words** outside the footer; headline ≤ 4 words (two lines of `title` beat one cramped line); one hook only.
@@ -31,7 +31,7 @@ Related: `poster-layouts` (pills, cards, rows, recipes), `graphic-elements` (ico
 |---|---|
 | **Sale / promo** | `display` `-18%` or a big badge in the top third; product hero in the middle; price pill(s); CTA; footer |
 | **New product / launch** | product large; `ШИНЭ` kicker + product name headline in the top band; one benefit line; CTA |
-| **Event / opening** | event name in the top third; key visual; date · time · place in the footer (row of 3) |
+| **Event / opening** | event name in the top third; key visual; date · time · place in the footer |
 | **Greeting / holiday** | occasion name over calm space; symbolic still life (`mongolian-culture`); brand small at the bottom |
 | **Anniversary / milestone** | the number is the poster (§4) |
 | **Hiring** | `АЖИЛД УРЬЖ БАЙНА`; position; 2–3 short lines; contact footer |

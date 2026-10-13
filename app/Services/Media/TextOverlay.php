@@ -52,7 +52,7 @@ class TextOverlay
      * @param  string  $footerStyle  band (full width at the foot) | pill (rounded bar inset from the edges) | open (no strip, on the picture)
      * @return string Absolute path of the new file (caller moves it).
      */
-    public function burn(string $video, array $items, float $duration, bool $still = false, array $reserved = [], string $scrim = 'none', string $scrimColor = '000000', string $footerColor = '', string $footerStyle = 'band'): string
+    public function burn(string $video, array $items, float $duration, bool $still = false, array $reserved = [], string $scrim = 'none', string $scrimColor = '000000', string $footerColor = '', string $footerStyle = 'band', bool $footerDividers = true): string
     {
         $this->placed = [];
         $this->footerArea = null;
@@ -340,7 +340,7 @@ class TextOverlay
                     if ($icon) {
                         $box = imagettfbbox($size * 0.75, 0, resource_path('fonts/'.self::FONTS[$b['font']]), $b['text']);
                         $textW = $box[2] - $box[0];
-                        $iconPx = (int) round($size * (($item['icon_style'] ?? ($position === 'footer' ? 'circle' : 'plain')) === 'circle' ? ($position === 'footer' ? 1.1 : 1.3) : 0.95));
+                        $iconPx = (int) round($size * (($item['icon_style'] ?? 'plain') === 'circle' ? ($position === 'footer' ? 1.1 : 1.3) : 0.95));
                         $lead = $iconPx + (int) round($size * 0.35);
                         $iconX = match (true) {
                             $left => $margin,
@@ -355,7 +355,7 @@ class TextOverlay
                         $width = $lead + $textW + 2 * $pad;
                         // icon_style circle: the icon sits in a disc of the text colour, the glyph in the
                         // colour behind it (the panel / band, else dark or white for contrast).
-                        $disc = ($item['icon_style'] ?? ($position === 'footer' ? 'circle' : 'plain')) === 'circle'; // footer icons default to discs
+                        $disc = ($item['icon_style'] ?? 'plain') === 'circle';
                         $glyph = $disc ? $this->hex($item['icon_color'] ?? ($position === 'footer' ? ($footerColor ?: ($footerStyle === 'pill' ? 'FFFFFF' : '141414')) : ($this->light($item['color'] ?? '') ? '1F2937' : 'FFFFFF'))) : $this->hex($item['color'] ?? '');
                         File::put("{$dir}/i{$i}.png", app(IconSet::class)->png($icon, $iconPx, $glyph, $disc ? $this->hex($item['color'] ?? '') : null));
                         $icons[] = ["i{$i}.png", $iconX, $top + (int) round($size * 0.37 - $iconPx / 2), $still ? null : "between(t,{$start},{$end})"];
@@ -473,7 +473,7 @@ class TextOverlay
                     $footerRows[$p['row']][] = $p;
                 }
             }
-            foreach ($footerRows as $facts) {
+            foreach ($footerDividers ? $footerRows : [] as $facts) {
                 usort($facts, fn ($a, $b) => $a['rect'][0] <=> $b['rect'][0]);
                 for ($k = 1; $k < count($facts); $k++) {
                     [$left, $right] = [$facts[$k - 1]['rect'], $facts[$k]['rect']];

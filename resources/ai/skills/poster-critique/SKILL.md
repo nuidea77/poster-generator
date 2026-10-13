@@ -24,7 +24,7 @@ Look at the returned poster the way a customer scrolling Instagram would, then l
 
 ## 4. Consistency
 - One brand colour + one accent; the accent only on offer / CTA / starred word / key icons.
-- Same panel style for the same job (all chips glass, all CTAs pills); the footer style matches the brand's series.
+- Same panel style within one poster (all chips glass, all CTAs pills).
 - Several ratios: the same choices in each.
 
 ## 5. Legibility and correctness

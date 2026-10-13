@@ -33,7 +33,7 @@ Icons make **fact lines** scannable: the eye finds "where / when / how to order"
 - Premium / minimal / greeting posters usually look better **without** icons; retail, services, events, clinics, restaurants, hiring benefit from them.
 - Left-aligned grids: icons line up on the 7% left edge like bullets. Centred layouts: each icon+line pair is centred.
 
-## 1b. Footer band (`position: footer`)
+## 1b. Footer (`position: footer`)
 The contact facts (address, phone, hours, date, web, social) go in the footer. Its look — no strip, a band or a rounded bar, colours, rows, icons — is designed per poster with add_text's footer options (`footer_style` open/band/pill, `footer_color`, rows via `same_line`, icons). It never covers the product.
 
 ## 2. Gradient scrim (`scrim` on `add_text`)
