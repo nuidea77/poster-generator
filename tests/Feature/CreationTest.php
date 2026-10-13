@@ -739,6 +739,33 @@ class CreationTest extends TestCase
         }
     }
 
+    public function test_wide_serif_capitals_keep_clear_of_the_edges(): void
+    {
+        if (! Process::run([config('ai.ffmpeg'), '-version'])->successful()) {
+            $this->markTestSkipped('ffmpeg not installed');
+        }
+
+        $bg = imagecreatetruecolor(1080, 1080);
+        $file = sys_get_temp_dir().'/bg-'.uniqid().'.png';
+        imagepng($bg, $file);
+        $out = app(TextOverlay::class)->burn($file, [['text' => 'САР ШИНИЙН МЭНД ХҮРГЭЕ', 'role' => 'title', 'position' => 'top', 'align' => 'center', 'font' => 'serif', 'color' => 'FFFFFF', 'box' => false, 'box_color' => '', 'start' => 0, 'end' => 0, 'animation' => 'none']], 0, true);
+        $img = imagecreatefrompng($out);
+        @unlink($file);
+        @unlink($out);
+
+        [$min, $max] = [1080, 0];
+        for ($y = 0; $y < 400; $y += 2) {
+            for ($x = 0; $x < 1080; $x++) {
+                if ((imagecolorat($img, $x, $y) >> 16 & 0xFF) > 128) {
+                    [$min, $max] = [min($min, $x), max($max, $x)];
+                }
+            }
+        }
+        $this->assertGreaterThan(60, $min);       // ≥ ~6% margin on the left
+        $this->assertLessThan(1080 - 60, $max);   // and on the right
+        $this->assertGreaterThan(700, $max - $min); // still a big headline
+    }
+
     public function test_a_display_number_is_huge_and_never_in_old_style_serif_digits(): void
     {
         if (! Process::run([config('ai.ffmpeg'), '-version'])->successful()) {

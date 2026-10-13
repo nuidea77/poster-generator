@@ -47,7 +47,7 @@ Patterns add identity and texture to flat or minimal designs. They are part of t
 - **When:** flat colour backgrounds (sale, holiday, kids, food), cultural / national occasions, brand-colour fields, empty calm zones that feel bare.
 - **When not:** behind the product or faces, in photographic scenes, on premium minimal posters, anywhere text sits (keep text zones plain).
 - **How to prompt:** "a subtle tone-on-tone geometric pattern (thin diagonal lines / small dots / soft waves) in the background, low contrast, only around the edges, the centre and the top band stay plain for text".
-- **Mongolian motifs** (see `mongolian-culture`): ulzii (endless knot), khee (traditional border), cloud scrolls, as a thin border or a faint corner ornament — tone-on-tone gold on deep blue/red for Tsagaan Sar, Naadam, national days, anniversaries, culture brands. Respectful use: no motifs on discount junk, no motifs cut by the frame edge mid-shape.
+- **Mongolian motifs** (names, meanings and exact prompt wording in `mongolian-culture` → Mongolian ornaments): ulzii (endless knot), khee (traditional border), cloud scrolls, as a thin border or a faint corner ornament — tone-on-tone gold on deep blue/red for Tsagaan Sar, Naadam, national days, anniversaries, culture brands. Respectful use: no motifs on discount junk, no motifs cut by the frame edge mid-shape.
 - Brand patterns: when the brand has a shape (leaf, wave, dot grid), echo it as a faint pattern in one corner.
 - Image models sometimes turn patterns into letters — add "no text, no letters, no symbols that look like writing".
 

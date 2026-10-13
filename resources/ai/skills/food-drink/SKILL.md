@@ -21,7 +21,7 @@ If the client attached a photo of the dish, use `gemini` + reference and phrase 
 - Leave some imperfection — perfectly symmetric food looks fake.
 
 ## Mongolian dishes
-Buuz, khuushuur, tsuivan, bansh, khorkhog, suutei tsai, boortsog, aaruul: show them in honest homely styling — stoneware or traditional bowls, wooden boards, felt or ornament textiles as accents (see `mongolian-culture`), never plastic plates. Steam is essential for buuz and tsai.
+Buuz, khuushuur, tsuivan, bansh, khorkhog, suutei tsai, boortsog, aaruul: show them in honest homely styling — stoneware or traditional bowls, wooden boards, felt or ornament textiles as accents (see `mongolian-culture`), never plastic plates. Steam is essential for buuz and tsai. Ul boov, idee, shuus and the Tsagaan Sar table have their own exact wording in `mongolian-culture` — image models otherwise draw croissants or puff pastry.
 
 ## Drinks & coffee
 Glass with condensation, ice and a garnish; coffee with latte art, a saucer and a spoon, beans or a pastry as a prop; backlight makes drinks glow.

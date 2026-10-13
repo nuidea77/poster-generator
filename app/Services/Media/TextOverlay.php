@@ -81,6 +81,12 @@ class TextOverlay
                 $caps = mb_strtoupper($text) === $text ? 1.12 : 1.0;
                 $size = (int) round(min($w, $h) * (self::SIZES[$item['role'] ?? ''] ?? self::SIZES['subtitle']));
                 $size = (int) min($size, floor($w * 0.84 / max(1, $longest * self::WIDTH[$font] * $caps)));
+                // Then measure the real glyphs (wide serif capitals beat the estimate): the widest
+                // line plus its panel must stay inside 86% of the width.
+                $fontFile = resource_path('fonts/'.self::FONTS[$font]);
+                $widest = max(array_map(fn ($line) => ($box = imagettfbbox(100 * 0.75, 0, $fontFile, $line)) ? $box[2] - $box[0] : 0, explode("\n", $text)));
+                $boxed = ! empty($item['box']) ? 0.7 : 0.0;
+                $size = (int) max(8, min($size, floor($w * 0.86 / max(0.01, $widest / 100 + $boxed))));
                 $soft = ! $still && empty($item['box']) && in_array($item['role'] ?? '', ['subtitle', 'small'], true); // soft dark panel on footage
                 $pad = (int) round($size * (! empty($item['box']) ? 0.35 : ($soft ? 0.4 : 0)));
                 $lines = substr_count($text, "\n") + 1;

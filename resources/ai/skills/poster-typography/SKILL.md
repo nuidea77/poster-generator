@@ -101,6 +101,8 @@ Logos are never typed or drawn — place the client's file with `add_logo` after
 `add_text` sets exactly what you write, so check **your strings** against the brief before calling it (names, digits, ₮, %, Ө/Ү). Then check the returned poster: one element clearly biggest, nothing over the product, margins clear, text readable at phone size. The visual itself must contain **no** logo or letters from the model (the real logo goes on with `add_logo`).
 
 ## 7. When it does not fit
+**Fit the text to the visual, not the visual to the text.** Regenerate a visual for space at most once; after that adapt the type: fewer lines (≤ 6 items on a poster), merge facts into one `·` line (then without icons), smaller roles, a `scrim`, or another zone. Image models keep a reference's geometry, so asking again for "more space" rarely works and burns the budget.
+
 1. Too many words → cut to the hierarchy (hook, one fact line, CTA); move details to the caption.
 2. Text over the product or a face → use another zone, or regenerate the visual with a bigger calm area.
 3. Low contrast → switch dark/white text, or put the line on a `box` in the brand colour.
