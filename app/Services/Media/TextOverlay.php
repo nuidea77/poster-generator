@@ -24,7 +24,7 @@ class TextOverlay
     ];
 
     /** Font size as a share of the frame's short side. */
-    private const SIZES = ['display' => 0.24, 'title' => 0.105, 'price' => 0.095, 'subtitle' => 0.058, 'small' => 0.04];
+    private const SIZES = ['display' => 0.24, 'title' => 0.105, 'price' => 0.095, 'subtitle' => 0.058, 'small' => 0.034];
 
     /** Average glyph width relative to font size, to shrink lines that would overflow. */
     private const WIDTH = ['bold_sans' => 0.74, 'sans' => 0.6, 'condensed' => 0.5, 'serif' => 0.6, 'rounded' => 0.68];
@@ -64,7 +64,8 @@ class TextOverlay
             // Pass 1: size every line; pass 2: lay the zones out top to bottom without overlaps.
             $blocks = [];
 
-            foreach (array_values($items) as $i => $item) {
+            $list = array_values($items);
+            foreach ($list as $i => $item) {
                 $text = $this->clean($item['text'] ?? '');
                 if ($text === '') {
                     continue;
@@ -77,23 +78,33 @@ class TextOverlay
                     $font = 'condensed'; // Playfair's old-style digits sink below the capitals ("15 ЖИЛ" looked weak)
                 }
 
+                // same_line: this item shares the row with the previous one (e.g. phone left, delivery right);
+                // each of the pair gets half the width, and a centred pair is split left / right.
+                $same = ! empty($item['same_line']) && $i > 0;
+                $paired = $same || ! empty($list[$i + 1]['same_line'] ?? false);
+                $share = $paired ? 0.5 : 1.0;
+                $align = in_array($item['align'] ?? '', ['left', 'right', 'center'], true) ? $item['align'] : 'center';
+                if ($paired && $align === 'center') {
+                    $align = $same ? 'right' : 'left';
+                }
+
                 $longest = max(array_map('mb_strlen', explode("\n", $text)));
                 $caps = mb_strtoupper($text) === $text ? 1.12 : 1.0;
                 $size = (int) round(min($w, $h) * (self::SIZES[$item['role'] ?? ''] ?? self::SIZES['subtitle']));
-                $size = (int) min($size, floor($w * 0.84 / max(1, $longest * self::WIDTH[$font] * $caps)));
+                $size = (int) min($size, floor($w * 0.84 * $share / max(1, $longest * self::WIDTH[$font] * $caps)));
                 // Then measure the real glyphs (wide serif capitals beat the estimate): the widest
                 // line plus its panel must stay inside 86% of the width.
                 $fontFile = resource_path('fonts/'.self::FONTS[$font]);
                 $widest = max(array_map(fn ($line) => ($box = imagettfbbox(100 * 0.75, 0, $fontFile, $line)) ? $box[2] - $box[0] : 0, explode("\n", $text)));
                 $boxed = ! empty($item['box']) ? 0.7 : 0.0;
-                $size = (int) max(8, min($size, floor($w * 0.86 / max(0.01, $widest / 100 + $boxed))));
+                $size = (int) max(8, min($size, floor($w * ($paired ? 0.4 : 0.86) / max(0.01, $widest / 100 + $boxed + ($paired && ($item['icon'] ?? 'none') !== 'none' ? 1.3 : 0)))));
                 $soft = ! $still && empty($item['box']) && in_array($item['role'] ?? '', ['subtitle', 'small'], true); // soft dark panel on footage
                 $pad = (int) round($size * (! empty($item['box']) ? 0.35 : ($soft ? 0.4 : 0)));
                 $lines = substr_count($text, "\n") + 1;
                 $position = in_array($item['position'] ?? '', ['top', 'center', 'lower_third', 'bottom'], true) ? $item['position'] : 'lower_third';
 
                 $display = ($item['role'] ?? '') === 'display'; // big digits/caps: no descenders, sits tight on the next line
-                $blocks[$position][] = compact('i', 'item', 'text', 'font', 'size', 'pad', 'soft') + ['width' => (int) min($w * 0.9, $longest * self::WIDTH[$font] * $caps * $size) + 2 * $pad, 'height' => (int) round($size * ($display ? 0.9 : 1.2) * $lines + $size * 0.2 * ($lines - 1)) + 2 * $pad, 'gap' => (int) round($size * ($display ? 0.12 : 0.3))];
+                $blocks[$position][] = compact('i', 'item', 'text', 'font', 'size', 'pad', 'soft', 'same', 'align') + ['width' => (int) min($w * 0.9, $longest * self::WIDTH[$font] * $caps * $size) + 2 * $pad, 'height' => (int) round($size * ($display ? 0.9 : 1.2) * $lines + $size * 0.2 * ($lines - 1)) + 2 * $pad, 'gap' => (int) round($size * ($display ? 0.12 : 0.3))];
             }
 
             $filters = [];
@@ -104,15 +115,20 @@ class TextOverlay
                 $y = max($this->baseY($position, $w, $h, $still), $floor);
 
                 if ($position === 'bottom' && isset($blocks['bottom'])) {
-                    $group = array_sum(array_map(fn ($b) => $b['height'] + $b['gap'], $blocks['bottom']));
+                    $group = array_sum(array_map(fn ($b) => $b['same'] ? 0 : $b['height'] + $b['gap'], $blocks['bottom']));
                     $y = max($floor, min($y, (int) round($h * ($still ? 0.95 : 0.8)) - $group));
                 }
 
+                $row = null; // the row the last block started on: ['y' => top, 'end' => next free y]
                 foreach ($blocks[$position] ?? [] as $b) {
                     ['i' => $i, 'item' => $item, 'size' => $size, 'pad' => $pad, 'soft' => $soft] = $b;
+                    $same = $b['same'] && $row;
+                    if ($same) {
+                        $y = $row['y'];
+                    }
 
                     // Keep clear of the logo (or any reserved area): move below it when they would overlap.
-                    foreach ($reserved as [$x0, $y0, $x1, $y1]) {
+                    foreach ($same ? [] : $reserved as [$x0, $y0, $x1, $y1]) {
                         $top0 = $y0 * $h - $size * 0.3;
                         $bottom0 = $y1 * $h + $size * 0.3;
                         if ($y < $bottom0 && $y + $b['height'] > $top0) {
@@ -133,8 +149,14 @@ class TextOverlay
                     $yExpr = ! $still && ($item['animation'] ?? '') === 'slide_up'
                         ? "{$top}+".round($size * 0.6)."*(1-min(1,max(0,(t-{$start})/{$in})))"
                         : (string) $top;
-                    $left = ($item['align'] ?? 'center') === 'left';
-                    $x = $left ? (string) round($w * 0.07 + $pad) : '(w-text_w)/2';
+                    $left = $b['align'] === 'left';
+                    $right = $b['align'] === 'right';
+                    $margin = (int) round($w * 0.07);
+                    $x = match (true) {
+                        $left => (string) ($margin + $pad),
+                        $right => 'w-text_w-'.($margin + $pad),
+                        default => '(w-text_w)/2',
+                    };
                     $width = $b['width'];
 
                     // An icon sits before a one-line item, the pair centred (or on the left edge) together.
@@ -144,7 +166,11 @@ class TextOverlay
                         $textW = $box[2] - $box[0];
                         $iconPx = (int) round($size * 0.95);
                         $lead = $iconPx + (int) round($size * 0.35);
-                        $iconX = $left ? (int) round($w * 0.07) : (int) round(($w - $lead - $textW - 2 * $pad) / 2);
+                        $iconX = match (true) {
+                            $left => $margin,
+                            $right => $w - $margin - ($lead + $textW + 2 * $pad),
+                            default => (int) round(($w - $lead - $textW - 2 * $pad) / 2),
+                        };
                         $x = (string) ($iconX + $lead + $pad);
                         $width = $lead + $textW + 2 * $pad;
                         File::put("{$dir}/i{$i}.png", app(IconSet::class)->png($icon, $iconPx, $this->hex($item['color'] ?? '')));
@@ -167,9 +193,15 @@ class TextOverlay
                         $lineY = count($lines) === 1 ? $yExpr : "({$yExpr})+".($k * (int) round($size * 1.4) + (int) round($size * 0.92)).'-ascent';
                         $filters[] = "drawtext=fontfile=f{$i}.ttf:textfile=t{$i}_{$k}.txt:line_spacing=".round($size * 0.2).":y='{$lineY}':{$common}";
                     }
-                    $x0 = $left ? (int) round($w * 0.07) : (int) round(($w - $width) / 2);
+                    $x0 = match (true) {
+                        $left => $margin,
+                        $right => $w - $margin - $width,
+                        default => (int) round(($w - $width) / 2),
+                    };
                     $this->placed[] = ['text' => $b['text'], 'panel' => $pad > 0, 'rect' => [$x0, $y, $x0 + $width, $y + $b['height']]];
-                    $y += $b['height'] + $b['gap'];
+                    $rowY = $y;
+                    $y = max($same ? $row['end'] : 0, $y + $b['height'] + $b['gap']);
+                    $row = ['y' => $rowY, 'end' => $y];
                 }
 
                 $floor = $y + (int) round(min($w, $h) * 0.02);

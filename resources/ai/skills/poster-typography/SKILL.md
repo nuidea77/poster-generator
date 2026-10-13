@@ -74,6 +74,20 @@ When the message is a number — `15` years, `-30%`, `2026`, `100` guests, `1-р
 - **The visual** must leave that space: ask for "a large calm, evenly toned area in the top half for a big number" and keep the scene simple; for anniversaries a sense of occasion (warm glow, subtle sparkle, confetti-like snow, dawn light), not a plain landscape.
 - One display item per poster; `-30%` on a sale poster can be the display item, the price row then stays `price`.
 
+## 3d. A compact fact block (date, time, place, phone, delivery, web)
+Facts support the hook; they must not eat the poster. A tall stack of centred fact lines (one per line, each with an icon) looks like a form and pushes the picture away.
+
+- Facts are `small`, never `subtitle`. The whole fact block takes **≤ 15–18% of the frame height** — usually **2–3 rows**.
+- **Pair short facts on one row** with `same_line: true` on the second item: the first sits on the left text edge, the second ends on the right edge (a centred pair is split this way automatically). Good pairs: date | time, phone | delivery, phone | web, hours | phone, price-from | CTA.
+  ```
+  small · calendar · "10 сарын 20"           small · clock · "12:00 цагаас"      (same_line)
+  small · location · "Олимпийн гудамж 8"      align left
+  small · phone · "7711-5566" (bold)          small · delivery · "Хүргэлттэй"     (same_line)
+  ```
+- A long fact (an address) takes its own row **aligned left**, so the block keeps one left edge and one right edge — don't centre it between paired rows.
+- Shorten facts before stacking them: "Сүхбаатар дүүрэг, Олимпийн гудамж 8" → "Олимпийн гудамж 8" when the district adds nothing; "12:00 цагаас" not "Нээлт 12:00 цагаас эхэлнэ".
+- Put the block on a calm band or a `scrim`; one colour for all facts, the phone may be bold.
+
 ## 4. Writing the strings
 - Copy names, prices, dates, phones exactly from the brief; write them per `mongolian-ad-copy` (`150,000₮`, `-18%`, `10.15 · 15:00`, `9911-2233`).
 - Use `\n` to break a long headline into two balanced lines instead of letting it shrink.

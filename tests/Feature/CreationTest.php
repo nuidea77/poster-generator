@@ -739,6 +739,28 @@ class CreationTest extends TestCase
         }
     }
 
+    public function test_two_short_facts_share_one_row_at_the_two_edges(): void
+    {
+        if (! Process::run([config('ai.ffmpeg'), '-version'])->successful()) {
+            $this->markTestSkipped('ffmpeg not installed');
+        }
+
+        $bg = imagecreatetruecolor(1080, 1350);
+        $file = sys_get_temp_dir().'/bg-'.uniqid().'.png';
+        imagepng($bg, $file);
+        $item = fn (string $t, string $icon, bool $same) => ['text' => $t, 'role' => 'small', 'position' => 'bottom', 'align' => 'center', 'same_line' => $same, 'font' => 'sans', 'color' => 'FFFFFF', 'box' => false, 'box_color' => '', 'start' => 0, 'end' => 0, 'animation' => 'none', 'icon' => $icon];
+        $overlay = app(TextOverlay::class);
+        @unlink($overlay->burn($file, [$item('7711-5566', 'phone', false), $item('Хүргэлттэй', 'delivery', true), $item('Олимпийн гудамж 8', 'location', false)], 0, true));
+        @unlink($file);
+
+        [$phone, $delivery, $address] = array_column($overlay->placed, 'rect');
+        $this->assertSame($phone[1], $delivery[1]);                  // same row
+        $this->assertSame(76, $phone[0]);                             // phone on the left text edge (7%)
+        $this->assertEqualsWithDelta(1080 - 76, $delivery[2], 2);     // delivery ends on the right edge
+        $this->assertGreaterThan($phone[3], $address[1]);             // the next fact starts below the row
+        $this->assertLessThan(0.034 * 1080 * 1.25, $phone[3] - $phone[1]); // small facts stay small (line = 1.2 × size)
+    }
+
     public function test_wide_serif_capitals_keep_clear_of_the_edges(): void
     {
         if (! Process::run([config('ai.ffmpeg'), '-version'])->successful()) {
