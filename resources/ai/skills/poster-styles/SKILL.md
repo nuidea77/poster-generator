@@ -46,7 +46,7 @@ Pick **one** style per poster set and commit to it; never mix two. The brand's o
 ## Colour-field Tech
 - **Palette:** a saturated brand field (royal blue, violet, green) + a contrasting accent (orange, lime, yellow) — the international social-template look.
 - **Visual prompt:** "solid {brand colour} background with a soft gradient, the product / phone / smiling person cut out on one side, one curved accent swoosh in {accent} crossing a corner, the other side empty".
-- **add_text:** white two-tone headline (accent word), feature pills, CTA accent `pill` with `arrow`, footer `pill` white with dark text or in the darker brand tone (`poster-footer` default).
+- **add_text:** white two-tone headline (accent word), feature pills, CTA accent `pill` with `arrow`, footer `pill` white with dark text or in the darker brand tone.
 - **Avoid:** footer and CTA in the same colour; three accents.
 
 ## Swiss Industrial

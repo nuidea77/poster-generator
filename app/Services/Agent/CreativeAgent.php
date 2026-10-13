@@ -682,12 +682,14 @@ class CreativeAgent
 
         // A stray partial call (1–3 items after a full layout on the same visual) wastes a render;
         // a poster's add_text must carry the complete set every time.
-        $before = collect($creation->steps)
-            ->filter(fn ($s) => ($s['name'] ?? '') === 'add_text' && ! isset($s['error']) && (($s['input']['asset_id'] ?? '') === $id))
-            ->map(fn ($s) => count($s['input']['items'] ?? []))->max() ?? 0;
+        $layouts = collect($creation->steps)
+            ->filter(fn ($s) => ($s['name'] ?? '') === 'add_text' && ! isset($s['error']) && (($s['input']['asset_id'] ?? '') === $id));
+        $before = $layouts->map(fn ($s) => count($s['input']['items'] ?? []))->max() ?? 0;
         $count = count($in['items'] ?? []);
         if ($still && $before >= 4 && $count < $before / 2) {
-            throw new AiException("This call has only {$count} of the {$before} items you set before on `{$id}` — it would replace the poster with a fragment. Send the complete set of items in one call.");
+            // Hand back the last full layout so the fix is one copy-and-edit, not a guessing loop.
+            $last = collect($layouts->last()['input']['items'] ?? [])->map(fn ($it) => collect($it)->only(['text', 'role', 'position', 'align', 'same_line', 'font', 'color', 'box', 'box_color', 'box_shape', 'icon'])->all())->values();
+            throw new AiException("This call has only {$count} of the {$before} items you set before on `{$id}`. add_text always redraws the WHOLE poster on the clean visual — it does not patch. To change a few items, send this last layout again with your edits applied (and the same scrim/footer settings): ".json_encode($last, JSON_UNESCAPED_UNICODE));
         }
 
         // The model sometimes sends Cyrillic as "\u0410" escapes (or a stray CR before "u0410"); set the real letters.

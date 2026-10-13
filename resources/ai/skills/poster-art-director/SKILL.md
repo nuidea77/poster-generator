@@ -49,12 +49,12 @@ Write a note: **"Reading this as: <kind> for <audience>, <mood>, leaning toward 
 English prompt, art-directed per `poster-design` §3 (colour world in hex, painted graphic structure, intentional crop, one light idea): subject, setting, composition **with the type zones named** ("the top 35% is calm empty wall for the headline; the product stands in the middle; the bottom 12% is a plain table surface for the contact strip"), light, palette (brand colour + accent), style words from the chosen style. With a product photo: `gemini` + reference, phrased as an edit ("keep the product exactly as in the reference; change only the scene"). Never pass the logo. End with "No text, no letters, no numbers, no logos." Review it (`image-review`); regenerate once at most for space — after that adapt the text.
 
 ## 5. The words — one complete add_text call
-Every item in reading order, real strings, nothing invented (`poster-typography` for roles and parameters, `poster-layouts` for blocks, `poster-footer` for the strip):
+Every item in reading order, real strings, nothing invented (`poster-typography` for roles and parameters, `poster-layouts` for blocks):
 - **Kicker / brand** — one small plain line (a chip only if it carries meaning), or none.
 - **Headline** — `title` (or `display` for a hero number), two-tone: one `*starred*` word + `accent_color`.
 - **Offer & price** — the strongest after the headline: a big plain number, or **one** accent shape (`box: true`). At most 2 filled shapes on the poster besides the footer (`poster-design` §1).
 - **CTA** — `subtitle` pill with `icon: arrow`, accent colour.
-- **Contacts** — every contact fact (address, phone, social, web, hours) with `position: footer`; design the footer for this poster (`poster-footer`).
+- **Contacts** — every contact fact (address, phone, social, web, hours) with `position: footer`; its look is yours to design for this poster (`footer_style` open/band/pill, `footer_color`, rows via `same_line`, icons).
 Then check it against the quality bar (`poster-design` §8), read its warnings (detail under a line, low contrast, footer layout) and fix them on the **clean visual**.
 
 ## 6. Logo

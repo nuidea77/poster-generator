@@ -95,7 +95,7 @@ class TextOverlay
             // facts fit across at full size; otherwise two balanced rows (the phone last). The facts
             // keep their order; items are reordered only to move the phone to the end.
             $footerKeys = array_keys(array_filter($list, fn ($it) => ($it['position'] ?? '') === 'footer' && trim((string) ($it['text'] ?? '')) !== ''));
-            // The agent designs the strip (rows via same_line, following the poster-footer skill);
+            // The agent designs the strip (rows via same_line);
             // only an unplanned footer (no same_line at all) is laid out here.
             $planned = collect($footerKeys)->contains(fn ($k) => ! empty($list[$k]['same_line']));
             if (! $planned && count($footerKeys) >= 2 && count($footerKeys) <= 6 && end($footerKeys) - reset($footerKeys) === count($footerKeys) - 1) {

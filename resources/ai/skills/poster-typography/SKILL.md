@@ -9,7 +9,7 @@ A poster without its message is just a product photo. When the brief gives words
 
 **Image models misspell Mongolian** (Ө/Ү/Э/Е, ₮). The poster's words are **set with `add_text`** in real fonts on a visual generated **without any text**. Never ask an image model to write words, and never describe fonts in the image prompt — the type comes only from add_text.
 
-Related: `poster-layouts` (pills, cards, rows, recipes), `poster-footer` (contact strip), `graphic-elements` (icons, scrims), `poster-taste` (what makes it look generic), `mongolian-ad-copy` (wording).
+Related: `poster-layouts` (pills, cards, rows, recipes), `graphic-elements` (icons, scrims), `poster-taste` (what makes it look generic), `mongolian-ad-copy` (wording).
 
 ## 1. Hierarchy first
 | Level | Content | Role | Example |
@@ -18,7 +18,7 @@ Related: `poster-layouts` (pills, cards, rows, recipes), `poster-footer` (contac
 | 2. Support | Product name or one short line | `subtitle` | `UV ариутгагч`, `Шинэ серум` |
 | 3. Offer & price | Price, old → new, the offer badge | `price` (pill) | `150,000₮ → 123,000₮`, `2 ДАХЬ АЯГА 50% ХЯМД` |
 | 4. Action | CTA | `subtitle` pill with `arrow` | `Захиалах →` |
-| 5. Facts | date, time, place, phone, web | `footer` (`small`, phone `subtitle` bold) | see `poster-footer` |
+| 5. Facts | date, time, place, phone, web | `footer` (`small`, phone `subtitle` bold) | |
 | 6. Brand | the logo with `add_logo` | — | see `logo-placement` |
 
 - **Max ~12 words** outside the footer; headline ≤ 4 words (two lines of `title` beat one cramped line); one hook only.
@@ -62,7 +62,7 @@ The number alone in a `display` item (about twice a title), the word under it as
 - `box: true` + `box_shape`: `pill` (accent badge, CTA), `glass` (frosted chip, labels), `card` (rounded content card for a short paragraph on a photo), `rect` (square panel). The CTA uses `icon: arrow` (it trails the text).
 - Rows: the 2nd–4th item of a row gets `same_line: true`. A pair sits on the two text edges; 3–4 items share equal columns with one size.
 - Icons before one-line facts: one fact per item, never several facts joined by `·` behind one icon.
-- **Contact facts go in the footer** (`position: footer`); its design is free per poster — see `poster-footer`.
+- **Contact facts go in the footer** (`position: footer`); its design is free per poster.
 
 ## 6. The add_text call
 1. **Visual** — generated with no text, with calm zones matching the layout ("the top third is calm empty sky for the headline; the bottom 15% is a plain surface"). End the prompt with "No text, no letters, no numbers, no logos."

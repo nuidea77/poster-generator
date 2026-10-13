@@ -95,7 +95,7 @@ E CENTRED ICON    F DIAGONAL        G GRID/TILES      H FULL-BLEED MOOD
 - **Grouping:** related lines sit tight together; groups are separated by clear space. Kicker → headline tight; headline → offer a clear gap; CTA alone.
 - **Restraint:** plain type on calm areas (use `scrim` for photos) beats boxes. Use a filled shape only where it adds meaning (the deal, the button).
 - **Benefits:** ≤ 3 short lines, or turn them into one strong line. A checklist is for services, not for every poster.
-- Exact strings and fonts: `poster-typography`; panels/chips: `poster-layouts`; footer: `poster-footer`.
+- Exact strings and fonts: `poster-typography`; panels/chips: `poster-layouts`.
 
 ## 6. Colour
 Palette from the logo / brand / packaging, as hex. Max 2 main + 1 accent; the accent is used once or twice (offer, CTA). Type colour contrasts strongly with what is behind it. Mood: premium → dark/neutral + one jewel tone; food → warm; youth/sport → saturated, hard light; family → warm, soft; health → clean whites with one confident brand colour, not pale blue everywhere. Style recipes: `poster-styles`; avoiding generic looks: `poster-taste`.
