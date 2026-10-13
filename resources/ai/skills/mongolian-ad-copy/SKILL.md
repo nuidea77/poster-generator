@@ -27,7 +27,7 @@ You write very little — a headline, a fact line, a CTA — so every word must 
 (See `mongolian-culture` for what to show.)
 
 ## CTA bank
-`Захиалах`, `Одоо захиалаарай`, `Утас: 9911-2233`, `Холбогдох: 8800-1122`, `Хаяг: …`, `Ирээрэй`, `Бүртгүүлэх`, `Хүргэлттэй`, `Хязгаарлагдмал тоонд`.
+`Захиалах`, `Одоо захиалаарай`, `Холбогдох: 8800-1122`, `Хаяг: …` (no `Утас:` / `Хаяг:` label when the line has its phone / location icon), `Ирээрэй`, `Бүртгүүлэх`, `Хүргэлттэй`, `Хязгаарлагдмал тоонд`.
 
 ## Facts — how to write them
 - **Price:** `4,500₮`, `150,000₮` (comma thousands, ₮ right after the number, no space). Old → new: `1,200,000₮ → 840,000₮`. Large: `3.5 сая₮`. "From": `3.5 сая₮-өөс`.

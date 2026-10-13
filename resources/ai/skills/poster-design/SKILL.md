@@ -31,7 +31,7 @@ Placed last with `add_logo` (the client's file, pixel-exact) — size, corner, c
 
 ## Colour
 - Palette from the logo / brand / packaging; state it as hex or names. Max 2 main colours + 1 accent; text colour must contrast strongly with its background.
-- Mood: premium → dark/neutral + gold or one jewel tone; fresh/food → warm daylight; youth/sport → saturated, high contrast; family → warm, soft; tech → cool with one neon accent.
+- Mood: premium → dark/neutral + one jewel tone or metal (rotate palettes — see `poster-taste`); fresh/food → warm daylight; youth/sport → saturated, high contrast; family → warm, soft; tech → deep dark or a saturated brand field with one bright accent (no default purple glow). Full style recipes: `poster-styles`.
 
 ## Text
 Messages, prices, dates and CTAs from the brief go on the poster — follow `poster-typography` (hierarchy, exact strings, two-step method, letter-by-letter check). No invented facts.

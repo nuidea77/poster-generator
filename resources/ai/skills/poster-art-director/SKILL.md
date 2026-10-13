@@ -26,6 +26,7 @@ Three things make this better than typing a prompt into an image model:
 Never invent facts, prices, phone numbers, discounts or claims.
 
 ## 2. Decide the design (write 5 lines for yourself)
+- **Design read** (`poster-taste`): "Reading this as: <kind> for <audience>, <mood>, leaning toward <style>" + the three dials. Then pick one **style** from `poster-styles` and commit to it.
 - **Message:** the one thing the viewer must get ("UV sterilizer, 18% off, now 123,000₮").
 - **Archetype** (pick one, matching business and mood):
   - *Bold retail* — saturated brand-colour field, big offer badge, product cut-out with shadow, high contrast.
@@ -51,6 +52,7 @@ Ask for independent drafts **in the same turn** (they run in parallel) when you 
 Per format: one strong attempt + up to two corrections. A weak first idea → try a **different archetype**, not another seed. Derive other formats from the approved poster (same scene, re-laid-out text for the new ratio) and check the text again in each.
 
 ## 5. Review
+Run the `poster-critique` pass on the returned poster (first impression, message, hierarchy, consistency, legibility; critical → fix, moderate → fix if one add_text call does it, minor → deliver).
 Reject or fix when: the message is missing or wrong; any text is misspelled or has extra pseudo-letters; hierarchy is unclear (several things shout); the product differs from the photo; the logo is warped, huge or redrawn; text sits over the product or faces; hands/faces/objects are malformed; something important is outside the safe area (9:16: top 14%, bottom 20%). Change the prompt deliberately when you regenerate.
 
 ## Templates

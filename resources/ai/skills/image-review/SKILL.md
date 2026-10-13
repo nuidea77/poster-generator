@@ -7,6 +7,8 @@ description: A quality checklist for every generated image and still frame — p
 
 Look at every image the tool returns before you deliver or animate it. Ship nothing you would not post on the client's page.
 
+For a finished poster (after add_text / add_logo) also run the structured `poster-critique` pass.
+
 ## Checklist (in this order)
 1. **Product fidelity** — same shape, colours, label layout, proportions as the client's photo. A changed label or invented variant is a fail.
 2. **Logo** — the visual from a model must contain **no logo at all** (the real one goes on with `add_logo`); after `add_logo`, check the corner/size/plate look right and nothing important is covered.
