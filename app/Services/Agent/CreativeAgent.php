@@ -670,8 +670,6 @@ class CreativeAgent
         $cramped = array_column(array_filter($this->text->placed, fn ($p) => $p['position'] === 'footer' && $p['shrunk']), 'text');
         if ($footerRows > 2 || count($footer) > 6) {
             $content .= ' LAYOUT — the footer holds '.count($footer).' facts in '.$footerRows.' rows; keep it to 2 rows (up to 3 short facts per row with same_line; the phone bold on the right). Drop the weakest fact or move it to a pill.';
-        } elseif (count($footer) <= 4 && $footerRows > 1 && ! $cramped) {
-            $content .= ' LAYOUT — the footer\'s '.count($footer).' facts fit one strip: put them in one row (same_line on all but the first, all small, the phone bold last on the right) instead of '.$footerRows.' rows.';
         } elseif ($cramped) {
             $content .= ' LAYOUT — footer facts had to shrink to fit their row ("'.implode('", "', $cramped).'"): shorten them (address without the district, "07:30–22:00" not "Цагийн хуваарь 07:30–22:00") or move one to the other row.';
         }
@@ -688,6 +686,13 @@ class CreativeAgent
             // Measured: text colour against the picture (and scrim) behind it.
             $content .= ' WARNING — low contrast, measured: "'.implode('", "', $faint).'" is too close in brightness to the area behind it and will be hard to read on a phone. '
                 .'Call add_text again on `'.$asset['id'].'` with a darker colour on light areas (or white on dark ones), a `scrim` in that zone, or a pill/glass panel.';
+        }
+
+        // Polishing loops cost more than they give: from the 4th layout on the same visual the
+        // measured hints stop and the agent is told to deliver.
+        $round = collect($creation->steps)->filter(fn ($s) => ($s['name'] ?? '') === 'add_text' && ! isset($s['error']) && (($s['input']['asset_id'] ?? '') === $asset['id']))->count() + 1;
+        if ($still && $round >= 4) {
+            $content = "`{$new}` = `{$asset['id']}` with the text set (layout {$round} on this visual). That is enough polishing: deliver `{$new}` now. Only call add_text again if a word is misspelled or text covers the product or a face.";
         }
 
         return ['summary' => "{$new} ← {$asset['id']} + ".count($lines).' text', 'content' => $still ? [['type' => 'text', 'text' => $content.' Review it:'], $this->imageBlock($file['path'])] : $content];

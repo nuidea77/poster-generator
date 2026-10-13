@@ -85,7 +85,7 @@ class TextOverlay
             // Size share of a role; in the footer every fact is near `small` (the phone at most 1.25×),
             // so the strip stays even — a "subtitle" phone must not dwarf the other facts.
             $roleSize = fn ($it) => ($it['position'] ?? '') === 'footer'
-                ? min(self::SIZES[$it['role'] ?? ''] ?? self::SIZES['subtitle'], self::SIZES['small'] * (! empty($it['solo']) ? 1.2 : 1.25))
+                ? min(self::SIZES[$it['role'] ?? ''] ?? self::SIZES['subtitle'], self::SIZES['small'] * (! empty($it['solo']) ? 1.35 : 1.25))
                 : (self::SIZES[$it['role'] ?? ''] ?? self::SIZES['subtitle']);
             // Room an item needs in a row: its characters (+ icon) at its role's size.
             $len = fn ($it) => (max(4, mb_strlen((string) ($it['text'] ?? ''))) + (($it['icon'] ?? 'none') !== 'none' ? 2 : 0)
@@ -202,7 +202,7 @@ class TextOverlay
 
                 $display = ($item['role'] ?? '') === 'display'; // big digits/caps: no descenders, sits tight on the next line
                 $blocks[$position][] = compact('i', 'item', 'text', 'raw', 'marked', 'font', 'size', 'pad', 'soft', 'same', 'align', 'shape', 'column', 'columns', 'rowNo')
-                    + ['ems' => ['pad' => $pad / max(1, $size), 'line' => ($display ? 0.9 : 1.2) * $lines + 0.2 * ($lines - 1), 'gap' => $display ? 0.12 : (! empty($item['air_after']) ? 1.8 : 0.3), 'width' => min($w * 0.9 / max(1, $size), $longest * self::WIDTH[$font] * $caps)]];
+                    + ['ems' => ['pad' => $pad / max(1, $size), 'line' => ($display ? 0.9 : 1.2) * $lines + 0.2 * ($lines - 1), 'gap' => $display ? 0.12 : (! empty($item['air_after']) ? 1.0 : 0.3), 'width' => min($w * 0.9 / max(1, $size), $longest * self::WIDTH[$font] * $caps)]];
             }
 
             // Items in one row share one size (the smallest), then every block gets its box.
@@ -448,7 +448,7 @@ class TextOverlay
                         $right => $w - $margin - $width,
                         default => (int) round($cx - $width / 2),
                     };
-                    $this->placed[] = ['text' => $b['text'], 'panel' => $pad > 0 || $position === 'footer', 'rect' => [$x0, $y, $x0 + $width, $y + $b['height']], 'color' => $this->hex($item['color'] ?? ''), 'accent' => $b['marked'] ? $this->hex($item['accent_color'] ?? 'FFB703') : null, 'position' => $position, 'row' => $b['rowNo'], 'shrunk' => $size < (int) round(min($w, $h) * $roleSize($item) * 0.75)];
+                    $this->placed[] = ['text' => $b['text'], 'panel' => $pad > 0 || $position === 'footer', 'rect' => [$x0, $y, $x0 + $width, $y + $b['height']], 'color' => $this->hex($item['color'] ?? ''), 'accent' => $b['marked'] ? $this->hex($item['accent_color'] ?? 'FFB703') : null, 'position' => $position, 'row' => $b['rowNo'], 'shrunk' => $size < (int) round(min($w, $h) * $roleSize($item) * ($position === 'footer' ? 0.58 : 0.75))];
                     $rowGap = max($same ? $row['gap'] : 0, $b['gap']);
                     $row = ['y' => $rowStart, 'gap' => $rowGap, 'end' => $rowStart + $rowH[$b['rowNo']] + $rowGap];
                     $y = $row['end'];
@@ -576,7 +576,7 @@ class TextOverlay
                 }
             }
             $share = count(array_filter($tiles, fn ($t) => $t > 6)) / max(1, count($tiles));
-            if ($share >= 0.2 || (max($tiles ?: [0]) >= 20 && $share >= 0.05)) {
+            if ($share >= 0.3 || (max($tiles ?: [0]) >= 22 && $share >= 0.08)) {
                 $busy[] = str_replace("\n", ' / ', $p['text']);
             }
         }
