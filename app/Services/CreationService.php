@@ -95,7 +95,71 @@ class CreationService
             'product' => $source->product,
         ]);
 
-        // Эх бүтээлийн оруулсан файлуудыг шинэ хавтас руу хуулна; устсан файлыг алгасна.
+        $creation->update(['inputs' => $this->copyInputs($source, $creation)]);
+
+        RunCreation::dispatch($creation);
+
+        return $creation;
+    }
+
+    /**
+     * Бэлэн постерыг хэрэглэгчийн хүсэлтээр засварлана: шинэ бүтээл (parent_id) болж, эх постер
+     * болон түүний текстгүй цэвэр зургийг авч явна — ингэснээр agent зөвхөн хүссэн зүйлийг өөрчилнө.
+     */
+    public function revise(Creation $source, string $request): Creation
+    {
+        abort_unless($source->type === Creation::POSTER && $source->status === Creation::DONE && $source->outputs, 409, 'Зөвхөн бэлэн болсон постерыг засварлана.');
+        $this->guardFairUse($source->user, $source->type);
+
+        $creation = $this->createCharged($source->user, [
+            'parent_id' => $source->id,
+            'revision' => trim($request),
+            'type' => $source->type,
+            'formats' => $source->formats,
+            'duration' => $source->duration,
+            'prompt' => $source->prompt,
+            'product' => $source->product,
+        ]);
+
+        // Анхны оролтууд (лого, бүтээгдэхүүн, жишээ), дээр нь формат бүрийн бэлэн постер ба цэвэр зураг.
+        $disk = Storage::disk('public');
+        $dir = "creations/{$creation->public_id}";
+        $inputs = array_values(array_filter($this->copyInputs($source, $creation), fn ($i) => $i['role'] !== 'previous'));
+        $assets = [];
+        foreach (array_values($source->outputs) as $n => $output) {
+            if (($output['kind'] ?? 'image') !== 'image' || ! $disk->exists($output['path'] ?? '')) {
+                continue;
+            }
+            $k = $n + 1;
+            $path = "{$dir}/inputs/previous_{$k}.".pathinfo($output['path'], PATHINFO_EXTENSION);
+            $disk->copy($output['path'], $path);
+            $inputs[] = ['id' => "previous_{$k}", 'kind' => 'image', 'role' => 'previous', 'source' => 'upload', 'path' => $path, 'format' => $output['format'] ?? null];
+
+            [$clean] = $source->cleanVisual($output['source_asset'] ?? null);
+            if ($clean && $disk->exists($clean['path'])) {
+                $id = 'img_'.(count($assets) + 1);
+                $copy = "{$dir}/assets/{$id}.".pathinfo($clean['path'], PATHINFO_EXTENSION);
+                $disk->copy($clean['path'], $copy);
+                // Өртөг 0: зургийг өмнөх ажил аль хэдийн төлсөн.
+                $assets[] = ['id' => $id, 'kind' => 'image', 'source' => 'generated', 'provider' => $clean['provider'] ?? 'previous', 'path' => $copy,
+                    'aspect' => $clean['aspect'] ?? null, 'cost' => 0.0, 'note' => 'clean visual of the previous version', 'revision_of' => $output['format'] ?? null];
+            }
+        }
+
+        $creation->update(['inputs' => $inputs, 'assets' => $assets]);
+
+        RunCreation::dispatch($creation);
+
+        return $creation;
+    }
+
+    /**
+     * Эх бүтээлийн оруулсан файлуудыг шинэ хавтас руу хуулна; устсан файлыг алгасна.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function copyInputs(Creation $source, Creation $creation): array
+    {
         $inputs = [];
         foreach ($source->inputs as $input) {
             $path = "creations/{$creation->public_id}/inputs/".basename($input['path']);
@@ -105,11 +169,7 @@ class CreationService
             }
         }
 
-        $creation->update(['inputs' => $inputs]);
-
-        RunCreation::dispatch($creation);
-
-        return $creation;
+        return $inputs;
     }
 
     /**

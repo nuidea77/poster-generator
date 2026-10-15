@@ -50,6 +50,7 @@ Route::prefix('api/v1')->group(function () {
         // Багцын хязгаарыг (free tier орно) CreationService төрөл тус бүрээр шалгана.
         Route::post('creations', [CreationController::class, 'store'])->middleware('throttle:20,1');
         Route::post('creations/{creation}/retry', [CreationController::class, 'retry'])->middleware('throttle:20,1');
+        Route::post('creations/{creation}/revise', [CreationController::class, 'revise'])->middleware('throttle:20,1');
 
         // Админ хэсэг: зөвхөн is_admin хэрэглэгч ('admin' middleware).
         Route::middleware('admin')->prefix('admin')->group(function () {

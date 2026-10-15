@@ -1192,6 +1192,52 @@ class CreationTest extends TestCase
         $this->actingAs($this->user)->deleteJson("/api/v1/creations/{$creation->public_id}")->assertNoContent();
     }
 
+    public function test_a_done_poster_can_be_revised_keeping_its_clean_visual_and_layout(): void
+    {
+        Queue::fake();
+        Storage::disk('public')->put('c/clean.png', 'clean');
+        Storage::disk('public')->put('c/text.png', 'text');
+        Storage::disk('public')->put('c/final.jpg', 'final');
+        $items = [['text' => '135,000₮', 'role' => 'price', 'x' => 0.1, 'y' => 0.7]];
+        $source = Creation::create(['user_id' => $this->user->id, 'type' => 'poster', 'formats' => ['4:5'], 'prompt' => 'Hydrafacial', 'status' => 'done',
+            'assets' => [
+                ['id' => 'img_1', 'kind' => 'image', 'source' => 'generated', 'provider' => 'gemini', 'path' => 'c/clean.png', 'aspect' => '4:5', 'cost' => 0.04],
+                ['id' => 'img_2', 'kind' => 'image', 'source' => 'generated', 'provider' => 'text', 'path' => 'c/text.png', 'from' => 'img_1', 'layout' => $items],
+                ['id' => 'img_3', 'kind' => 'image', 'source' => 'generated', 'provider' => 'logo', 'path' => 'c/text.png', 'prompt' => 'logo top_left on img_2'],
+            ],
+            'outputs' => [['kind' => 'image', 'format' => '4:5', 'label' => '4:5', 'path' => 'c/final.jpg', 'source_asset' => 'img_3']],
+            'steps' => [['type' => 'tool', 'name' => 'add_logo', 'input' => ['asset_id' => 'img_2', 'position' => 'top_left', 'width' => 0.2]]],
+        ]);
+
+        // Only the owner, only with a request.
+        $this->actingAs(User::factory()->create())->postJson("/api/v1/creations/{$source->public_id}/revise", ['request' => 'үнэ 129,000₮'])->assertNotFound();
+        $this->actingAs($this->user)->postJson("/api/v1/creations/{$source->public_id}/revise", ['request' => ''])->assertUnprocessable();
+
+        $id = $this->actingAs($this->user)->postJson("/api/v1/creations/{$source->public_id}/revise", ['request' => 'Үнийг 129,000₮ болго'])
+            ->assertStatus(202)->assertJsonPath('data.parent_id', $source->public_id)->assertJsonPath('data.revision', 'Үнийг 129,000₮ болго')
+            ->assertJsonCount(0, 'data.inputs') // the previous poster is internal
+            ->json('data.id');
+        $rev = Creation::where('public_id', $id)->first();
+        $this->assertSame($source->id, $rev->parent_id);
+        $this->assertSame('previous', $rev->inputs[0]['role']);
+        $this->assertEquals(['img_1', '4:5', 0], [$rev->assets[0]['id'], $rev->assets[0]['revision_of'], $rev->assets[0]['cost']]);
+        $this->assertSame('clean', Storage::disk('public')->get($rev->assets[0]['path']));
+        Queue::assertPushed(RunCreation::class);
+
+        // The brief carries the request, the clean visual, the previous items and the logo placement — and no new map.
+        $brief = json_encode((fn () => $this->brief($rev))->call(app(CreativeAgent::class)), JSON_UNESCAPED_UNICODE);
+        $this->assertStringContainsString('## Revision request', $brief);
+        $this->assertStringContainsString('Үнийг 129,000₮ болго', $brief);
+        $this->assertStringContainsString('clean visual without text = `img_1`', $brief);
+        $this->assertStringContainsString('135,000₮', $brief);
+        $this->assertStringContainsString('top_left', $brief);
+        $this->assertStringNotContainsString('Composition for this poster', $brief);
+
+        // Reels and unfinished posters cannot be revised.
+        $running = Creation::create(['user_id' => $this->user->id, 'type' => 'poster', 'formats' => ['4:5'], 'prompt' => 'x', 'status' => 'running']);
+        $this->actingAs($this->user)->postJson("/api/v1/creations/{$running->public_id}/revise", ['request' => 'өөрчил'])->assertStatus(409);
+    }
+
     public function test_admin_sees_internal_log(): void
     {
         $creation = Creation::create([

@@ -279,6 +279,41 @@ class CreativeAgent
     }
 
     /**
+     * Засварын заавар: харилцагчийн хүсэлт, формат бүрийн цэвэр зураг (img_N) ба өмнөх add_text item-ууд,
+     * өмнөх лого байрлуулалт — ингэснээр agent бүгдийг дахин зохиохгүйгээр зөвхөн хүссэнийг засна.
+     *
+     * @return list<string>
+     */
+    private function revisionBrief(Creation $creation): array
+    {
+        $lines = ['', '## Revision request',
+            'This job revises the client\'s earlier poster (attached above as `previous_N`). The client asks:',
+            '> '.str_replace("\n", "\n> ", trim($creation->revision)),
+            'Change only what they ask and keep everything else — picture, composition, colours, fonts, words, logo — exactly as it was. Their request overrides the original brief where they conflict.'];
+
+        $parent = $creation->parent;
+        foreach ($creation->assets as $asset) {
+            if (! isset($asset['revision_of'])) {
+                continue;
+            }
+            $lines[] = "- `{$asset['revision_of']}`: clean visual without text = `{$asset['id']}`.";
+            $output = collect($parent?->outputs)->firstWhere('format', $asset['revision_of']);
+            [, $layout] = $parent ? $parent->cleanVisual($output['source_asset'] ?? null) : [null, null];
+            if ($layout) {
+                $lines[] = '  Its previous add_text items: '.json_encode(array_values($layout), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            }
+        }
+        $logos = collect($parent?->steps)->filter(fn ($s) => ($s['name'] ?? '') === 'add_logo' && ! isset($s['error']))
+            ->map(fn ($s) => collect($s['input'] ?? [])->except('asset_id')->all())->unique()->values();
+        if ($logos->isNotEmpty()) {
+            $lines[] = '- The logo was placed with add_logo '.json_encode($logos->all(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES).'.';
+        }
+        $lines[] = 'If the change is about words, prices, colours, sizes or placement, do not generate a new image: call add_text on the clean visual with the previous items adjusted, place the logo the same way, check it and deliver. Generate a new visual only when the change is about the picture itself (then keep the layout and words).';
+
+        return $lines;
+    }
+
+    /**
      * Энэ постерын найруулгын map: харилцагчийн сүүлийн постеруудад хамгийн бага хэрэглэгдсэн нь,
      * тэнцвэл ажлын id-гаар ээлжилнэ — ингэснээр дараалсан постерууд өөр бүтэцтэй гарна.
      */
@@ -308,6 +343,7 @@ class CreativeAgent
             $label = match ($input['role']) {
                 'logo' => 'Brand logo (never give it to an image/video model; place it with add_logo, pixel-exact)',
                 'reference' => 'Style reference from the client (match its look, mood, composition and pacing; do not copy its content, text or logos)',
+                'previous' => 'The client\'s current poster'.(isset($input['format']) ? " ({$input['format']})" : '').' — the version to revise',
                 default => 'Product photo',
             };
             $content[] = ['type' => 'text', 'text' => "{$label} — asset id `{$input['id']}`:"];
@@ -360,12 +396,16 @@ class CreativeAgent
         $lines[] = '## Client brief';
         $lines[] = $creation->prompt;
 
+        // Засвар: өмнөх постерыг хадгалж, зөвхөн хүссэн зүйлийг өөрчилнө (шинэ map, олон янз байдал хэрэггүй).
+        if ($creation->revision) {
+            array_push($lines, ...$this->revisionBrief($creation));
+        }
         // Постерт: харилцагчийн сүүлийн постеруудын дизайн (олон янз байдлын сануулга).
-        if ($creation->type === Creation::POSTER && ! config('ai.agent.free_layout')) {
+        if ($creation->type === Creation::POSTER && ! $creation->revision && ! config('ai.agent.free_layout')) {
             array_push($lines, ...$this->recentDesigns($creation));
         }
         // Постер бүрт өөр найруулгын map оноож, бүгд нэг зүүн баганатай болохоос сэргийлнэ.
-        if ($creation->type === Creation::POSTER) {
+        if ($creation->type === Creation::POSTER && ! $creation->revision) {
             $map = $this->mapFor($creation);
             $lines[] = '';
             $lines[] = '## Composition for this poster';
@@ -945,7 +985,7 @@ class CreativeAgent
 
         $new = $creation->addAsset([
             'kind' => $asset['kind'], 'source' => 'generated', 'provider' => 'logo',
-            'path' => $file['path'], 'prompt' => "logo {$in['position']} on {$asset['id']}",
+            'path' => $file['path'], 'prompt' => "logo {$in['position']} on {$asset['id']}", 'from' => $asset['id'],
             'aspect' => $asset['aspect'] ?? null, 'duration' => $asset['duration'] ?? null,
             'note' => 'logo', 'cost' => 0.0,
         ]);

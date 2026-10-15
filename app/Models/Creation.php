@@ -34,7 +34,7 @@ class Creation extends Model
     public const ACTIVE = [self::QUEUED, self::RUNNING, self::ASSEMBLING];
 
     protected $fillable = [
-        'user_id', 'type', 'credits', 'charges', 'formats', 'duration', 'prompt', 'product', 'status', 'stage', 'progress',
+        'user_id', 'parent_id', 'revision', 'type', 'credits', 'charges', 'formats', 'duration', 'prompt', 'product', 'status', 'stage', 'progress',
         'inputs', 'assets', 'steps', 'outputs', 'reel_clips', 'summary', 'error_detail',
         'model', 'input_tokens', 'output_tokens', 'cache_read_tokens', 'cache_write_tokens', 'cost_usd', 'started_at', 'finished_at',
         'rating', 'rated_at', 'feedback',
@@ -127,6 +127,38 @@ class Creation extends Model
     /**
      * Үүсгэсэн/upload хийсэн медиа файлыг бүртгэнэ. Богино id-г нь буцаана (img_1, vid_3…).
      */
+    // Засварлаж буй эх бүтээл (засварын хувилбар бол).
+    public function parent(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(self::class, 'parent_id');
+    }
+
+    /**
+     * Хүргэсэн зургийн asset-аас (лого → текст → …) гинжээр буцаж, текстгүй цэвэр зураг болон
+     * сүүлчийн add_text-ийн item-уудыг олно.
+     *
+     * @return array{0: ?array, 1: ?array} [цэвэр зураг, layout]
+     */
+    public function cleanVisual(?string $id): array
+    {
+        $assets = collect($this->assets)->keyBy('id');
+        $layout = null;
+        for ($i = 0; $id && $i < 12; $i++) {
+            $a = $assets[$id] ?? null;
+            if (! $a) {
+                break;
+            }
+            if (! in_array($a['provider'] ?? '', ['text', 'logo'], true)) {
+                return [$a, $layout];
+            }
+            $layout ??= ! empty($a['layout']) ? $a['layout'] : null;
+            // Хуучин лого asset-д 'from' байхгүй: prompt-оос ("logo top_left on img_3") уншина.
+            $id = $a['from'] ?? (preg_match('/ on (\S+)$/', (string) ($a['prompt'] ?? ''), $m) ? $m[1] : null);
+        }
+
+        return [null, $layout];
+    }
+
     public function addAsset(array $asset): string
     {
         $assets = $this->assets;

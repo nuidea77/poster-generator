@@ -57,6 +57,24 @@ async function retry() {
     }
 }
 
+// Засвар: бэлэн постерыг хүсэлтээр засварлаж шинэ хувилбар болгон үүсгэнэ, түүний хуудас руу шилжинэ.
+const reviseOpen = ref(false);
+const reviseText = ref('');
+async function revise() {
+    busy.value = true;
+    try {
+        const { data } = await api.post(`/creations/${creation.value.id}/revise`, { request: reviseText.value.trim() });
+        reviseOpen.value = false;
+        reviseText.value = '';
+        router.push({ name: 'creation', params: { id: data.id } });
+    } catch (e) {
+        if (e.code === 'subscription_required') return router.push({ name: 'pricing', query: { next: route.fullPath } });
+        error.value = e.message;
+    } finally {
+        busy.value = false;
+    }
+}
+
 // Баталгаажуулаад бүтээлийг устгаж, жагсаалт руу буцна.
 async function remove() {
     if (!confirm('Энэ бүтээлийг устгах уу?')) return;
@@ -139,6 +157,11 @@ const fileName = (o) => `poster-studio-${creation.value.id.slice(-6).toLowerCase
                     <div>
                         <div class="mb-1 text-xs text-muted">Бриф</div>
                         <p class="text-sm leading-relaxed whitespace-pre-line">{{ creation.prompt }}</p>
+                        <template v-if="creation.revision">
+                            <div class="mt-3 mb-1 text-xs text-muted">Засварын хүсэлт</div>
+                            <p class="text-sm whitespace-pre-line">{{ creation.revision }}</p>
+                            <RouterLink v-if="creation.parent_id" :to="{ name: 'creation', params: { id: creation.parent_id } }" class="mt-1 inline-block text-xs text-muted underline">Өмнөх хувилбарыг харах</RouterLink>
+                        </template>
                         <template v-if="creation.product">
                             <div class="mt-3 mb-1 text-xs text-muted">Бүтээгдэхүүн</div>
                             <p class="text-sm whitespace-pre-line">{{ creation.product }}</p>
@@ -204,6 +227,22 @@ const fileName = (o) => `poster-studio-${creation.value.id.slice(-6).toLowerCase
                             <a :href="o.url" :download="fileName(o)" class="btn btn-lime ml-auto"><Icon name="download" size="14" /> Татах</a>
                         </div>
                     </div>
+                </div>
+
+                <!-- Засвар: юуг өөрчлөхийг бичээд шинэ хувилбар авах (бусад нь хэвээр үлдэнэ) -->
+                <div v-if="creation.type === 'poster'" class="panel mx-auto mt-6 max-w-xl p-4">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <span class="text-sm font-semibold">Засвар хэрэгтэй юу?</span>
+                        <button v-if="!reviseOpen" class="btn btn-ghost btn-sm ml-auto" @click="reviseOpen = true"><Icon name="edit" size="12" /> Засварлах</button>
+                    </div>
+                    <form v-if="reviseOpen" class="mt-3" @submit.prevent="revise">
+                        <textarea v-model="reviseText" maxlength="1000" rows="3" class="field resize-none py-2 text-sm" placeholder="Жишээ нь: үнийг 129,000₮ болго, гарчгийг томруул, утасны дугаарыг доод баруун буланд шилжүүл" />
+                        <p class="mt-1 text-xs text-muted">Зөвхөн бичсэн зүйлийг өөрчилж, бусдыг нь хэвээр үлдээнэ. Шинэ хувилбар болж хадгалагдана<template v-if="creation.credits"> · {{ creation.credits }} кредит</template>.</p>
+                        <div class="mt-2 flex justify-end gap-2">
+                            <button type="button" class="btn btn-ghost btn-sm" @click="reviseOpen = false">Болих</button>
+                            <button type="submit" class="btn btn-lime btn-sm" :disabled="busy || reviseText.trim().length < 3">Засуулах</button>
+                        </div>
+                    </form>
                 </div>
 
                 <!-- Үнэлгээ: таалагдсан эсэх, таалагдаагүй бол юуг сайжруулах -->

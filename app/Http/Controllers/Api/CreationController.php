@@ -70,6 +70,15 @@ class CreationController extends Controller
         return (new CreationResource($this->creations->retry($creation)->refresh()))->response()->setStatusCode(202);
     }
 
+    // Бэлэн постерыг засварлана: хэрэглэгчийн хүсэлтээр шинэ хувилбар үүсгэнэ (credit хасагдана).
+    public function revise(Request $request, Creation $creation): JsonResponse
+    {
+        abort_unless($creation->user_id === $request->user()->id, 404);
+        $data = $request->validate(['request' => ['required', 'string', 'min:3', 'max:1000']]);
+
+        return (new CreationResource($this->creations->revise($creation, $data['request'])->refresh()))->response()->setStatusCode(202);
+    }
+
     // Дууссан бүтээлийг эзэн нь үнэлнэ (1 = таалагдсан, -1 = үгүй) ба сонголттой санал үлдээнэ.
     public function rate(Request $request, Creation $creation): CreationResource
     {
