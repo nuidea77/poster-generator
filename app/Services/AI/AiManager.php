@@ -139,7 +139,7 @@ class AiManager
     private function configured(string $name, string $kind): string
     {
         if ($this->paused($name)) {
-            throw new AiException("Provider [{$name}] is paused: out of quota/credits. Use another model.");
+            throw new AiException("Provider [{$name}] is paused (out of quota/credits or temporarily blocked). Use another model.");
         }
 
         if (! in_array($name, $this->available($kind, false), true)) {

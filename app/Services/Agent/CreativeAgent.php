@@ -480,7 +480,8 @@ class CreativeAgent
      */
     private function tools(Creation $creation): array
     {
-        $images = $this->ai->available('image');
+        // Тогтоосон загвар (AI_IMAGE_ONLY) нь анхдагч; бусад нь түүнийг зогсох үед орлох тул enum-д бүгд байна.
+        $images = array_values(array_unique([...$this->ai->available('image'), ...$this->ai->available('image', false)]));
         $videos = $this->ai->available('video');
         $tools = [];
 
@@ -822,6 +823,12 @@ class CreativeAgent
      */
     private function prepareImage(Creation $creation, array $in, float $reserved = 0.0): array
     {
+        // Сонгосон загвар түр зогссон бол (quota, Google-ийн блок) ажиллаж буй өөр загвар руу автоматаар шилжинэ.
+        $asked = (string) ($in['provider'] ?? '');
+        if ($this->ai->paused($asked) && ($alt = collect($this->ai->available('image'))->first(fn ($p) => $p !== $asked))) {
+            $in['provider'] = $alt;
+            $in['purpose'] = trim(($in['purpose'] ?? '')." (switched from {$asked}: paused)");
+        }
         $provider = $this->ai->image((string) ($in['provider'] ?? ''));
         $cost = $this->cost->image($in['provider']);
         $this->guardBudget($creation, $cost + $reserved);

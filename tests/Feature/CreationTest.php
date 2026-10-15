@@ -1307,6 +1307,27 @@ class CreationTest extends TestCase
         Http::assertSent(fn ($r) => str_contains($r->url(), 'generativelanguage') && str_contains(json_encode($r->data()), 'STYLE references only'));
     }
 
+    public function test_a_paused_pinned_image_model_falls_back_to_another(): void
+    {
+        config(['ai.only.image' => 'gemini']);
+        \Illuminate\Support\Facades\Cache::put('ai:paused:gemini:'.(config('ai.providers.gemini.via') ?: 'direct'), 'blocked', now()->addMinutes(5));
+        app(\App\Services\AI\AiManager::class)->noteFailure('gemini', 'Gemini: <title>Sorry...</title> automated queries');
+        Http::fake([
+            'api.anthropic.com/*' => Http::sequence()
+                ->push($this->turn([['generate_image', ['provider' => 'gemini', 'prompt' => 'A chair', 'aspect' => '4:5', 'purpose' => 'hero', 'reference_image_ids' => []]]]))
+                ->push($this->turn([['finish', ['summary' => 'ok']]])),
+            'api.openai.com/v1/images/generations' => Http::response(['data' => [['b64_json' => base64_encode(self::png(800, 1000))]]]),
+        ]);
+        $creation = Creation::create(['user_id' => $this->user->id, 'type' => 'poster', 'formats' => ['4:5'], 'prompt' => 'x', 'status' => 'running']);
+        try {
+            app(CreativeAgent::class)->run($creation);
+        } catch (\Throwable) {
+        }
+
+        $this->assertNotSame('gemini', $creation->fresh()->asset('img_1')['provider'] ?? 'gemini');
+        \Illuminate\Support\Facades\Cache::flush();
+    }
+
     public function test_admin_sees_internal_log(): void
     {
         $creation = Creation::create([
