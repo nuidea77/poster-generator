@@ -29,7 +29,7 @@ return [
             'input' => 10.0,
             'output' => 50.0,
             'cache_write' => 12.5,
-            'cache_read' => 1.0,
+            'cache_read' => 0.25, // Fable 5.1: cache унших $0.25 / сая token
         ],
         // Агентад ашиглаж болох бусад Claude загварын үнэ (USD / сая token); энд байхгүй бол `claude`.
         'claude_models' => [
