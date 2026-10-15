@@ -851,7 +851,7 @@ class CreativeAgent
             'references' => array_map(fn ($id) => $this->readAsset($creation, $id, 'image'), $ids),
             'prompt' => trim((string) ($in['prompt'] ?? ''))
                 .(array_intersect($ids, array_column($this->autoRefs, 'id')) ? ' The ref_ images are STYLE references only: borrow their composition, light, colour mood and finish; do not copy their text, logos, people or products.' : '')
-                .' Full-bleed image edge to edge, no border, no frame, no margin; no third-party brand logos on objects. High quality, professional, no watermark.',
+                .' High quality, professional, no watermark.',
         ];
     }
 
