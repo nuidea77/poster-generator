@@ -37,6 +37,7 @@ class Creation extends Model
         'user_id', 'type', 'credits', 'charges', 'formats', 'duration', 'prompt', 'product', 'status', 'stage', 'progress',
         'inputs', 'assets', 'steps', 'outputs', 'reel_clips', 'summary', 'error_detail',
         'model', 'input_tokens', 'output_tokens', 'cache_read_tokens', 'cache_write_tokens', 'cost_usd', 'started_at', 'finished_at',
+        'rating', 'rated_at', 'feedback',
     ];
 
     // JSON жагсаалтууд хоосон массиваар эхэлнэ.
@@ -64,6 +65,8 @@ class Creation extends Model
             'progress' => 'integer',
             'started_at' => 'datetime',
             'finished_at' => 'datetime',
+            'rating' => 'integer',
+            'rated_at' => 'datetime',
         ];
     }
 

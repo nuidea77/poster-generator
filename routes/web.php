@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\Admin\CostController;
 use App\Http\Controllers\Api\Admin\CreationController as AdminCreationController;
 use App\Http\Controllers\Api\Admin\PlanController;
+use App\Http\Controllers\Api\Admin\StyleReferenceController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CreationController;
 use App\Http\Controllers\Api\MeController;
@@ -30,6 +31,9 @@ Route::prefix('api/v1')->group(function () {
         // Гарах, брэндийн мэдээлэл (лого, холбоо барих) шинэчлэх.
         Route::post('auth/logout', [AuthController::class, 'logout']);
         Route::post('me/brand', [MeController::class, 'updateBrand']);
+        Route::put('me/brand', [MeController::class, 'updateBrand']);
+        Route::post('me/brand/logo', [MeController::class, 'uploadLogo']);
+        Route::delete('me/brand/logo', [MeController::class, 'deleteLogo']);
 
         // Төлбөр: QPay нэхэмжлэх үүсгэх, төлөв шалгах, локалд төлбөр дуурайх (QPAY_FAKE).
         Route::post('payments', [PaymentController::class, 'store'])->middleware('throttle:10,1');
@@ -40,6 +44,8 @@ Route::prefix('api/v1')->group(function () {
         Route::get('creations', [CreationController::class, 'index']);
         Route::get('creations/{creation}', [CreationController::class, 'show']);
         Route::delete('creations/{creation}', [CreationController::class, 'destroy']);
+        // Хэрэглэгчийн үнэлгээ (👍/👎 + санал); DesignMemory үүнээс суралцана.
+        Route::post('creations/{creation}/rating', [CreationController::class, 'rate'])->middleware('throttle:30,1');
 
         // Багцын хязгаарыг (free tier орно) CreationService төрөл тус бүрээр шалгана.
         Route::post('creations', [CreationController::class, 'store'])->middleware('throttle:20,1');
@@ -68,6 +74,13 @@ Route::prefix('api/v1')->group(function () {
             Route::delete('skills/bundled/{name}', [SkillController::class, 'resetBundled']);
             Route::put('skills/{skill}', [SkillController::class, 'update']);
             Route::delete('skills/{skill}', [SkillController::class, 'destroy']);
+
+            // Хэв маягийн жишээ сан: агент зургийн моделд style reference болгон өгнө.
+            Route::get('references', [StyleReferenceController::class, 'index']);
+            Route::post('references', [StyleReferenceController::class, 'store']);
+            Route::put('references/{reference}', [StyleReferenceController::class, 'update']);
+            Route::post('references/{reference}/toggle', [StyleReferenceController::class, 'toggle']);
+            Route::delete('references/{reference}', [StyleReferenceController::class, 'destroy']);
         });
     });
 });

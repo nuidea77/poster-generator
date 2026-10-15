@@ -11,7 +11,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
 // Хэрэглэгч: брэнд, лого, захиалга, төлбөр, бүтээлүүд.
-#[Fillable(['name', 'email', 'password', 'brand_name', 'logo_path'])]
+#[Fillable(['name', 'email', 'password', 'brand_name', 'brand_colors', 'brand_fonts', 'brand_tone', 'brand_notes', 'brand_logo_path'])]
 #[Hidden(['password', 'remember_token', 'is_admin'])]
 class User extends Authenticatable
 {
@@ -25,7 +25,34 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_admin' => 'boolean',
+            'brand_colors' => 'array',
         ];
+    }
+
+    /**
+     * Агентэд өгөх брэндийн багцын товч (англи) тайлбар; юу ч тохируулаагүй бол null.
+     */
+    public function brandBrief(): ?string
+    {
+        $parts = array_filter([
+            'name' => $this->brand_name,
+            'colours' => $this->brand_colors ? implode(', ', $this->brand_colors) : null,
+            'fonts' => $this->brand_fonts,
+            'tone' => $this->brand_tone,
+            'notes' => $this->brand_notes ? preg_replace('/\s+/u', ' ', trim($this->brand_notes)) : null,
+        ], 'filled');
+
+        if (! $parts && ! $this->brand_logo_path) {
+            return null;
+        }
+
+        $brief = 'Brand kit — '.implode('; ', array_map(fn ($k, $v) => "{$k}: {$v}", array_keys($parts), $parts));
+
+        if ($this->brand_logo_path) {
+            $brief .= ($parts ? '; ' : '').'a saved logo is attached as the logo input';
+        }
+
+        return $brief.'.';
     }
 
     // Бүх захиалгын үеүд (үнэгүй олголтыг оруулаад).

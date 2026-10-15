@@ -156,7 +156,7 @@ class CreationTest extends TestCase
         $creation = Creation::where('public_id', $id)->first();
         $this->assertSame(['logo', 'product_1', 'reference_1'], array_column($creation->inputs, 'id'));
         $this->assertSame('reference', $creation->inputs[2]['role']);
-        $this->assertNotNull($this->user->fresh()->logo_path);
+        $this->assertNotNull($this->user->fresh()->brand_logo_path);
     }
 
     public function test_reel_orientation_defaults_to_vertical_and_reaches_the_video_model(): void

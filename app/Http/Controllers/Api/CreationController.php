@@ -70,6 +70,27 @@ class CreationController extends Controller
         return (new CreationResource($this->creations->retry($creation)->refresh()))->response()->setStatusCode(202);
     }
 
+    // Дууссан бүтээлийг эзэн нь үнэлнэ (1 = таалагдсан, -1 = үгүй) ба сонголттой санал үлдээнэ.
+    public function rate(Request $request, Creation $creation): CreationResource
+    {
+        // Зөвхөн эзэн (админ ч бусдын өмнөөс үнэлэхгүй).
+        abort_unless($creation->user_id === $request->user()->id, 404);
+        abort_unless($creation->status === Creation::DONE, 409, 'Зөвхөн бэлэн болсон бүтээлийг үнэлнэ.');
+
+        $data = $request->validate([
+            'rating' => ['required', 'integer', 'in:1,-1'],
+            'feedback' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $creation->update([
+            'rating' => (int) $data['rating'],
+            'rated_at' => now(),
+            'feedback' => filled($data['feedback'] ?? null) ? trim($data['feedback']) : null,
+        ]);
+
+        return new CreationResource($creation);
+    }
+
     // Бүтээл болон түүний файлуудыг устгана; ажиллаж байгаа бол 409.
     public function destroy(Request $request, Creation $creation): Response
     {

@@ -30,6 +30,8 @@ class CreationResource extends JsonResource
             'outputs' => collect($this->outputs)->map(fn ($o) => collect($o)->only(['kind', 'format', 'label', 'width', 'height', 'duration', 'url', 'thumb_url'])->all())->values(),
             'error' => $this->status === Creation::FAILED ? 'Бүтээх явцад алдаа гарлаа. Дахин оролдоно уу.' : null,
             'credits' => $this->credits,
+            'rating' => $this->rating,
+            'feedback' => $this->feedback,
             'created_at' => $this->created_at,
             'finished_at' => $this->finished_at,
         ];

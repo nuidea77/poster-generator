@@ -64,6 +64,32 @@ async function remove() {
     router.push('/library');
 }
 
+// Үнэлгээ: 👍 шууд хадгална; 👎 дээр сонголттой санал бичих талбар нээгдэнэ.
+const feedbackOpen = ref(false);
+const feedback = ref('');
+const rating = ref(false);
+
+// Үнэлгээг (саналтай нь) серверт хадгалж, хариугаар бүтээлийг шинэчилнэ.
+async function rate(value, text = null) {
+    // Аль хэдийн 👎 өгсөн бол дахин илгээхгүй (саналыг арилгахгүй), зөвхөн талбарыг нээнэ.
+    if (value === -1 && text === null && creation.value.rating === -1) {
+        feedback.value = creation.value.feedback ?? '';
+        feedbackOpen.value = true;
+        return;
+    }
+    rating.value = true;
+    try {
+        creation.value = (await api.post(`/creations/${creation.value.id}/rating`, { rating: value, feedback: text || null })).data;
+        // 👎 өгсний дараа санал бичих талбарыг нээнэ; илгээсэн эсвэл 👍 бол хаана.
+        feedbackOpen.value = value === -1 && text === null;
+        if (value === 1) feedback.value = '';
+    } catch (e) {
+        error.value = e.message;
+    } finally {
+        rating.value = false;
+    }
+}
+
 // Огноо ба цагийг "YYYY.MM.DD HH:MM" хэлбэрээр.
 const stamp = (d) => {
     if (!d) return '—';
@@ -178,6 +204,30 @@ const fileName = (o) => `poster-studio-${creation.value.id.slice(-6).toLowerCase
                             <a :href="o.url" :download="fileName(o)" class="btn btn-lime ml-auto"><Icon name="download" size="14" /> Татах</a>
                         </div>
                     </div>
+                </div>
+
+                <!-- Үнэлгээ: таалагдсан эсэх, таалагдаагүй бол юуг сайжруулах -->
+                <div class="panel mx-auto mt-6 max-w-xl p-4">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <span class="text-sm font-semibold">Танд таалагдсан уу?</span>
+                        <span class="ml-auto flex gap-2">
+                            <button class="btn btn-sm" :class="creation.rating === 1 ? 'btn-lime-soft' : 'btn-ghost'" :disabled="rating" :aria-pressed="creation.rating === 1" @click="rate(1)">👍 Тийм</button>
+                            <button class="btn btn-sm" :class="creation.rating === -1 ? 'btn-lime-soft' : 'btn-ghost'" :disabled="rating" :aria-pressed="creation.rating === -1" @click="rate(-1)">👎 Үгүй</button>
+                        </span>
+                    </div>
+                    <form v-if="feedbackOpen" class="mt-3" @submit.prevent="rate(-1, feedback.trim())">
+                        <textarea v-model="feedback" maxlength="500" rows="3" class="field resize-none py-2 text-sm" placeholder="Юуг сайжруулах вэ?" />
+                        <div class="mt-2 flex justify-end gap-2">
+                            <button type="button" class="btn btn-ghost btn-sm" @click="feedbackOpen = false">Болих</button>
+                            <button type="submit" class="btn btn-lime btn-sm" :disabled="rating || !feedback.trim()">Илгээх</button>
+                        </div>
+                    </form>
+                    <p v-else-if="creation.rating" class="mt-2 flex items-center gap-1.5 text-xs text-muted">
+                        <Icon name="check" size="12" class="text-lime" />
+                        <template v-if="creation.rating === 1">Баярлалаа! Таны сонголтыг дараагийн бүтээлд харгалзана.</template>
+                        <template v-else-if="creation.feedback">Санал хүлээн авлаа: “{{ creation.feedback }}”</template>
+                        <template v-else>Баярлалаа! <button class="underline" @click="feedbackOpen = true">Юуг сайжруулах вэ?</button></template>
+                    </p>
                 </div>
             </template>
         </template>

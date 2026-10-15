@@ -20,6 +20,12 @@ class CreationController extends Controller
         if ($status = $request->query('status')) {
             $query->where('status', $status);
         }
+        // Хэрэглэгчийн үнэлгээгээр шүүх (сонголттой): liked = 👍, disliked = 👎.
+        match ($request->query('rated')) {
+            'liked' => $query->where('rating', 1),
+            'disliked' => $query->where('rating', -1),
+            default => null,
+        };
 
         return AdminCreationResource::collection($query->paginate(30));
     }

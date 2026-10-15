@@ -13,5 +13,6 @@ const links = [
     { to: '/admin/costs', label: 'Өртөг' },
     { to: '/admin/plans', label: 'Багц, үнэ' },
     { to: '/admin/skills', label: 'Skills' },
+    { to: '/admin/references', label: 'Жишээ сан' },
 ];
 </script>

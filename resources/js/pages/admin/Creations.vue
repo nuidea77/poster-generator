@@ -7,13 +7,16 @@ import AdminNav from '../../components/AdminNav.vue';
 // Жагсаалт, төлөвийн шүүлтүүр, дэлгэсэн мөрийн id, алдаа.
 const items = ref([]);
 const status = ref('');
+// Үнэлгээгээр шүүх: 'liked' | 'disliked' | ''.
+const rated = ref('');
 const open = ref(null);
 const error = ref('');
 
 // Бүтээлүүдийг (шүүлтүүртэй бол төлөвөөр нь) ачаална.
 async function load() {
     try {
-        items.value = (await api.get(`/admin/creations${status.value ? `?status=${status.value}` : ''}`)).data;
+        const query = new URLSearchParams({ ...(status.value && { status: status.value }), ...(rated.value && { rated: rated.value }) }).toString();
+        items.value = (await api.get(`/admin/creations${query ? `?${query}` : ''}`)).data;
     } catch (e) {
         error.value = e.message;
     }
@@ -21,7 +24,7 @@ async function load() {
 
 // Нээгдэхэд болон шүүлтүүр солигдоход дахин ачаална.
 onMounted(load);
-watch(status, load);
+watch([status, rated], load);
 
 // Claude-ийн нийт токен (оролт + гаралт).
 const tokens = (c) => (c.input_tokens + c.output_tokens).toLocaleString();
@@ -40,7 +43,8 @@ const usage = (c) =>
         <div class="mb-4 flex flex-wrap items-center gap-3">
             <h1 class="display text-3xl">Бүтээлүүд</h1>
             <div class="ml-auto flex gap-1.5">
-                <button v-for="s in ['', 'running', 'done', 'failed']" :key="s" class="chip chip-sm" :class="{ 'chip-active': status === s }" @click="status = s">{{ s || 'Бүгд' }}</button>
+                <button v-for="s in ['', 'running', 'done', 'failed']" :key="s" class="chip chip-sm" :class="{ 'chip-active': status === s && !rated }" @click="(status = s), (rated = '')">{{ s || 'Бүгд' }}</button>
+                <button v-for="r in [['liked', '👍'], ['disliked', '👎']]" :key="r[0]" class="chip chip-sm" :class="{ 'chip-active': rated === r[0] }" @click="rated = rated === r[0] ? '' : r[0]">{{ r[1] }}</button>
             </div>
         </div>
         <p v-if="error" class="rounded-xl bg-red-950 p-3 text-sm text-red-200">{{ error }}</p>
@@ -51,7 +55,7 @@ const usage = (c) =>
                 <thead class="bg-surface text-xs text-muted uppercase">
                     <tr>
                         <th class="px-3 py-2">Огноо</th><th class="px-3 py-2">Хэрэглэгч</th><th class="px-3 py-2">Төрөл</th><th class="px-3 py-2">Төлөв</th>
-                        <th class="px-3 py-2">Модель хэрэглээ</th><th class="px-3 py-2">Видео сек</th><th class="px-3 py-2">Claude токен</th><th class="px-3 py-2">Зардал</th><th class="px-3 py-2">Кредит</th><th class="px-3 py-2">Ашиг</th>
+                        <th class="px-3 py-2">Модель хэрэглээ</th><th class="px-3 py-2">Видео сек</th><th class="px-3 py-2">Claude токен</th><th class="px-3 py-2">Зардал</th><th class="px-3 py-2">Кредит</th><th class="px-3 py-2">Ашиг</th><th class="px-3 py-2">Үнэлгээ</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -67,10 +71,15 @@ const usage = (c) =>
                             <td class="px-3 py-2 tabular-nums" :title="`$${c.cost.usd} (Claude $${c.cost.claude_usd}, медиа $${c.cost.media_usd} / $${c.cost.budget_usd})`">{{ money(c.cost.mnt) }}</td>
                             <td class="px-3 py-2 tabular-nums">{{ c.cost.credits }}</td>
                             <td class="px-3 py-2 tabular-nums" :class="c.cost.margin === null ? 'text-muted' : c.cost.margin < 2 ? 'text-red-300' : 'text-lime'">{{ c.cost.margin === null ? '—' : `×${c.cost.margin}` }}</td>
+                            <td class="max-w-[220px] px-3 py-2 text-xs" :title="c.feedback || ''">
+                                <span v-if="c.rating === 1">👍</span><span v-else-if="c.rating === -1">👎</span><span v-else class="text-muted">—</span>
+                                <span v-if="c.feedback" class="ml-1 line-clamp-2 inline text-muted">{{ c.feedback }}</span>
+                            </td>
                         </tr>
                         <tr v-if="open === c.id" class="border-t border-line bg-surface">
-                            <td colspan="7" class="space-y-3 px-3 py-4 text-xs">
+                            <td colspan="11" class="space-y-3 px-3 py-4 text-xs">
                                 <div><b>Бриф:</b> {{ c.prompt }}</div>
+                                <div v-if="c.rating"><b>Үнэлгээ:</b> {{ c.rating === 1 ? '👍' : '👎' }} {{ c.feedback }}</div>
                                 <div v-if="c.summary"><b>Fable:</b> {{ c.summary }}</div>
                                 <div v-if="c.error_detail" class="text-red-300"><b>Алдаа:</b> {{ c.error_detail }}</div>
                                 <div class="flex flex-wrap gap-2">

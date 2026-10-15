@@ -191,7 +191,11 @@ erDiagram
         string password
         bool is_admin
         string brand_name
-        string logo_path
+        json brand_colors "≤5 hex"
+        string brand_fonts
+        string brand_tone
+        text brand_notes
+        string brand_logo_path
     }
     plans {
         bigint id PK
@@ -262,14 +266,16 @@ erDiagram
 | POST | `/api/v1/auth/login` | зочин | 5 оролдлого/мин хязгаартай |
 | POST | `/api/v1/auth/logout` | auth | |
 | GET | `/api/v1/me` | — | хэрэглэгч + захиалга (`null` бол зочин) |
-| POST | `/api/v1/me/brand` | auth | `brand_name`, `logo`, `remove_logo` (multipart) |
+| POST/PUT | `/api/v1/me/brand` | auth | брэндийн багц: `brand_name, brand_colors[] (≤5, hex), brand_fonts, brand_tone, brand_notes (≤1000)`; илгээсэн талбар л өөрчлөгдөнө |
+| POST | `/api/v1/me/brand/logo` | auth | `logo` (multipart) — брэндийн лого; бүтээлд анхдагчаар хавсрагдана |
+| DELETE | `/api/v1/me/brand/logo` | auth | брэндийн логог устгана |
 | GET | `/api/v1/meta` | — | постерын формат, reels тохиргоо |
 | GET | `/api/v1/plans` | — | идэвхтэй багцууд |
 | POST | `/api/v1/payments` | auth | `{plan_id}` → QR, deeplinks |
 | GET | `/api/v1/payments/{id}` | эзэн | төлөв (pending бол throttled check) |
 | GET/POST | `/api/v1/payments/qpay/callback/{token}` | QPay | баталгаажуулалт `payment/check`-ээр |
 | GET | `/api/v1/creations` | auth | хуудаслалттай жагсаалт |
-| POST | `/api/v1/creations` | auth + кредит | `type, formats[], prompt, product{name,price,description}, logo, images[], use_saved_logo` |
+| POST | `/api/v1/creations` | auth + кредит | `type, formats[], prompt, product{name,price,description}, logo, images[], use_saved_logo` (анхдагч 1: лого оруулаагүй бол брэндийн логог хуулна) |
 | GET | `/api/v1/creations/{public_id}` | эзэн | `{id, type, status, stage, progress, outputs, error}` — модель, prompt-ын дотоод мэдээлэлгүй |
 | POST | `/api/v1/creations/{public_id}/retry` | эзэн + кредит | ижил брифээр шинэ бүтээл |
 | DELETE | `/api/v1/creations/{public_id}` | эзэн | |

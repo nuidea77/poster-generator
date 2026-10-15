@@ -35,6 +35,7 @@ class AdminCreationResource extends JsonResource
             'assets' => $generated->map(fn ($a) => collect($a)->except('path')->all() + ['url' => MediaStore::url($a['path'])])->values(),
             'steps' => $this->steps,
             'started_at' => $this->started_at,
+            'rated_at' => $this->rated_at,
         ];
     }
 

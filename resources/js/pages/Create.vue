@@ -170,8 +170,9 @@ async function submit() {
     if (logo.value?.file) {
         data.append('logo', logo.value.file);
         data.append('remember_logo', rememberLogo.value ? '1' : '0');
-    } else if (logo.value?.saved) {
-        data.append('use_saved_logo', '1');
+    } else {
+        // Брэндийн лого анхдагчаар хавсрагдана; хэрэглэгч хассан бол серверт мэдэгдэнэ.
+        data.append('use_saved_logo', logo.value?.saved ? '1' : '0');
     }
     images.value.forEach((i) => data.append('images[]', i.file));
     if (form.type === 'poster') refs.value.forEach((i) => data.append('references[]', i.file));

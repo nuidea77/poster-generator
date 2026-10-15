@@ -19,6 +19,7 @@ const routes = [
     { path: '/admin/costs', name: 'admin-costs', component: () => import('./pages/admin/Costs.vue'), meta: { auth: true, admin: true } },
     { path: '/admin/plans', name: 'admin-plans', component: () => import('./pages/admin/Plans.vue'), meta: { auth: true, admin: true } },
     { path: '/admin/skills', name: 'admin-skills', component: () => import('./pages/admin/Skills.vue'), meta: { auth: true, admin: true } },
+    { path: '/admin/references', name: 'admin-references', component: () => import('./pages/admin/References.vue'), meta: { auth: true, admin: true } },
     // Танигдаагүй бүх замыг нүүр хуудас руу буцаана.
     { path: '/:pathMatch(.*)*', redirect: '/' },
 ];

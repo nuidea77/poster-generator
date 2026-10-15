@@ -43,21 +43,24 @@ class CreationService
         $dir = "creations/{$creation->public_id}/inputs";
         $inputs = [];
 
-        // Лого: шинээр оруулсныг хадгална (хүсвэл хэрэглэгчийн профайлд санана), эсвэл хадгалсан логог хуулна.
+        // Лого: шинээр оруулсныг хадгална (хүсвэл брэндийн логог солино), эсвэл брэндийн хадгалсан логог хуулна.
+        // Брэндийн лого анхдагчаар хавсрагдана; хэрэглэгч энэ ажлаас хассан бол use_saved_logo=0 ирнэ.
+        $useSaved = ! array_key_exists('use_saved_logo', $data) || filter_var($data['use_saved_logo'], FILTER_VALIDATE_BOOLEAN);
+
         if ($logo) {
             $path = $logo->store($dir, 'public');
             $inputs[] = ['id' => 'logo', 'kind' => 'image', 'role' => 'logo', 'source' => 'upload', 'path' => $path];
 
             if (! empty($data['remember_logo'])) {
                 $saved = $logo->store('logos', 'public');
-                if ($user->logo_path) {
-                    Storage::disk('public')->delete($user->logo_path);
+                if ($user->brand_logo_path) {
+                    Storage::disk('public')->delete($user->brand_logo_path);
                 }
-                $user->update(['logo_path' => $saved]);
+                $user->update(['brand_logo_path' => $saved]);
             }
-        } elseif (! empty($data['use_saved_logo']) && $user->logo_path && Storage::disk('public')->exists($user->logo_path)) {
-            $path = "{$dir}/logo.".pathinfo($user->logo_path, PATHINFO_EXTENSION);
-            Storage::disk('public')->copy($user->logo_path, $path);
+        } elseif ($useSaved && $user->brand_logo_path && Storage::disk('public')->exists($user->brand_logo_path)) {
+            $path = "{$dir}/logo.".pathinfo($user->brand_logo_path, PATHINFO_EXTENSION);
+            Storage::disk('public')->copy($user->brand_logo_path, $path);
             $inputs[] = ['id' => 'logo', 'kind' => 'image', 'role' => 'logo', 'source' => 'upload', 'path' => $path];
         }
 
