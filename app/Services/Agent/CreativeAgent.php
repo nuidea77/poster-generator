@@ -590,14 +590,14 @@ class CreativeAgent
                             'end' => ['type' => 'number'],
                             'animation' => ['type' => 'string', 'enum' => ['fade', 'slide_up', 'none']],
                             'icon' => ['type' => 'string', 'enum' => ['none', ...IconSet::NAMES], 'description' => 'Small icon before a one-line fact (phone, location, clock, calendar, web, mail, delivery, gift, instagram, facebook, chat …) in the text colour; none for headlines. One fact per icon item: hours and phone are two items, not one line joined with ·'],
-                            'strike' => ['type' => 'boolean', 'description' => 'true = strike-through line: ALWAYS true on an old / before price (хуучин үнэ, "X биш Y"), false otherwise'],
+                            'strike' => ['type' => 'boolean', 'description' => 'true = strike-through line (an old price next to the new one)'],
                             'rule' => ['type' => 'boolean', 'description' => 'true = a thin hairline under the item (feature captions, spec rows, minimal editorial lists)'],
                             'effect' => ['type' => 'string', 'enum' => ['auto', 'none', 'shadow', 'outline'], 'description' => 'auto = soft shadow on light text; none = flat; shadow = soft drop shadow; outline = a solid stroke in effect_color (stickers, text on busy colour)'],
                             'effect_color' => ['type' => 'string', 'description' => 'Hex of the outline (effect outline); empty otherwise'],
                             'icon_style' => ['type' => 'string', 'enum' => ['plain', 'circle'], 'description' => 'circle = the icon inside a disc of the text colour; plain = the bare icon'],
                             'icon_color' => ['type' => 'string', 'description' => 'Hex of the glyph inside a circle icon: the band/panel colour behind it (default dark or white for contrast)'],
                         ],
-                        'required' => ['text', 'role', 'position', 'align', 'same_line', 'font', 'color', 'box', 'box_color', 'box_shape', 'start', 'end', 'animation', 'icon', 'strike'],
+                        'required' => ['text', 'role', 'position', 'align', 'same_line', 'font', 'color', 'box', 'box_color', 'box_shape', 'start', 'end', 'animation', 'icon'],
                         'additionalProperties' => false,
                     ],
                 ],
@@ -917,17 +917,6 @@ class CreativeAgent
 
         if ($creation->type === Creation::REEL && $still) {
             throw new AiException('In a reel, add_text needs a clip (use animate_still first for a card).');
-        }
-
-        // Agent заримдаа үсгийг "₮" гэх мэт escape-ээр бичдэг: жинхэнэ тэмдэгт болгоно.
-        // "·" (·) нь заримдаа "\b" + "7" болж ирдэг: backspace + 7-г цэг болгоно.
-        foreach ($in['items'] ?? [] as $k => $it) {
-            if (is_string($it['text'] ?? null) && str_contains($it['text'], "\x087")) {
-                $in['items'][$k]['text'] = $it['text'] = str_replace("\x087", '·', $it['text']);
-            }
-            if (is_string($it['text'] ?? null) && str_contains($it['text'], '\u')) {
-                $in['items'][$k]['text'] = preg_replace_callback('/\\\\u([0-9a-fA-F]{4})/', fn ($m) => mb_chr(hexdec($m[1]), 'UTF-8'), $it['text']);
-            }
         }
 
         // Кирилл заримдаа JSON control escape болж ирдэг: "Ба"-ийн оронд "\b" + "a", "Ф"-ийн оронд "\f",

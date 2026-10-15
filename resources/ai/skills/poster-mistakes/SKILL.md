@@ -11,7 +11,7 @@ Each rule below comes from a real test poster that looked wrong. Before `deliver
 1. **NEVER make a generic word the hero.** `ШИНЭ`, `ХЯМДРАЛ`, `NEW`, `SALE`, `BLACK FRIDAY`, `АЖИЛД АВНА` alone are not the message. → They are a small kicker chip or small caps; the biggest type is the product name, the offer number or the price.
 2. **NEVER let the offer be small on a sale poster.** → The discount (`40%`, `-30%`, `2 дахь нь 50%`) is the biggest element or as big as the headline.
 3. **NEVER leave a price orphaned.** A lone number floating on the picture reads as noise. → The price sits with what it prices: under/beside the product name, inside the offer block, or in a labelled pill, on the same text axis.
-4. **NEVER show an old price without the strike.** Grey colour alone does not say "was". → Every before/after price (`450,000₮ биш 315,000₮`, `хуучин үнэ 160,000₮`) gets the old one as its own item with `"strike": true`, small, right above or beside the new price — in the first full add_text call.
+4. **NEVER show an old price without the strike.** Grey colour alone does not say "was". → Every before/after price (`450,000₮ биш 315,000₮`, `хуучин үнэ 160,000₮`) gets the old one as its own item with `"strike": true`, small, right above or beside the new price — in the first full add_text call. `strike` is an optional field — nothing adds it for you; if you leave it out, the old price is printed as if it were current.
 
 ## Copy
 5. **NEVER print the brief's mood words.** The adjectives that end a brief (`Найдвартай, хурдан`, `Тансаг, эмэгтэйлэг`, `Хөгжилтэй, аюулгүй`) are direction for the look. → Use them to choose style, colour and type; print them only if the client clearly wrote them as a slogan.
@@ -30,7 +30,7 @@ Each rule below comes from a real test poster that looked wrong. Before `deliver
 
 ## Type
 14. **NEVER set 2+ words in `wide`.** Rubik Mono One is monospaced: spaces become huge gaps (`BREW   LAB`, `SPEED   GARAGE`). → `wide` for one word only; multi-word names in `bold_sans`, `heavy` or `condensed`.
-15. **NEVER type escapes.** No `₮`, `·`, `Х`. → Type `₮`, `·`, `Ө`, `Ү`, Cyrillic directly as characters.
+15. **NEVER type escapes.** No `₮`, `·`, `Х`. → Type `₮`, `·`, `Ө`, `Ү`, Cyrillic directly as characters. Nothing decodes escapes for you: `₮` is printed literally or the call is rejected.
 16. **NEVER spend calls re-sending the same line.** → Decide every item's role, size, position and `strike` in the first full call; later calls change only what the check found.
 
 ## The visual (image prompt)
