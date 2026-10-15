@@ -798,6 +798,9 @@ class CreativeAgent
         // Постерын яг хүрээн дээр бичнэ; лого зэрэг reserved хэсгээс зайлсхийнэ.
         $base = $this->exactFrame($asset);
         $tmp = $this->text->burn($base ?? MediaStore::absolute($asset['path']), $in['items'], (float) ($asset['duration'] ?? 0), $still, $asset['reserved'] ?? [], (string) ($in['scrim'] ?? 'none'), (string) ($in['scrim_color'] ?? '000000'));
+        // Хэмжилт (зөвхөн хүргэх үед нэг удаа ашиглана): цэвэр зурган дээр мөр бүрийн доорх хэсэг.
+        $clean = $base ?? MediaStore::absolute($asset['path']);
+        $checks = $still ? ['busy' => $this->text->busyLines($clean), 'faint' => $this->text->lowContrastLines($clean)] : [];
         $file = MediaStore::put("creations/{$creation->public_id}/work", file_get_contents($tmp), $still ? 'image/png' : 'video/mp4');
         @unlink($tmp);
         $base && @unlink($base);
@@ -809,7 +812,7 @@ class CreativeAgent
             'aspect' => $asset['aspect'] ?? null, 'duration' => $asset['duration'] ?? null, 'reserved' => $asset['reserved'] ?? [],
             'note' => 'typography', 'cost' => 0.0,
             // Хэсэгчилсэн засвар дараа нь үүнтэй нийлэхийн тулд бүтэн layout-ыг хадгална.
-            'from' => $asset['id'], 'layout' => $in['items'],
+            'from' => $asset['id'], 'layout' => $in['items'], 'checks' => $checks,
         ]);
 
         $content = ($patched ?? '')."`{$new}` = `{$asset['id']}` with the text set in real fonts (letters exactly as given). Deliver `{$new}` instead of `{$asset['id']}`.";
@@ -1012,6 +1015,21 @@ class CreativeAgent
 
         if ($asset['kind'] !== 'image') {
             throw new AiException('Only images can be delivered as posters.');
+        }
+
+        // Хүргэхийн өмнөх нэг удаагийн хэмжилт: мөр нь нарийн хэсэг (хүн, бүтээгдэхүүн) дээр эсвэл
+        // бүдэг байвал нэг удаа буцаана; ажил бүрт ганцхан удаа, дараагийн хүргэлт шууд явна.
+        $checks = $asset['checks'] ?? [];
+        $warned = collect($creation->steps)->contains(fn ($s) => ($s['name'] ?? '') === 'deliver_poster' && str_contains((string) json_encode($s['error'] ?? ''), 'DELIVERY CHECK'));
+        if (! $warned && (! empty($checks['busy']) || ! empty($checks['faint']))) {
+            $notes = [];
+            if (! empty($checks['busy'])) {
+                $notes[] = 'these lines sit on a detailed part of the picture — likely a person, a face or the product: "'.implode('", "', $checks['busy']).'"';
+            }
+            if (! empty($checks['faint'])) {
+                $notes[] = 'these lines are too close in brightness to the area behind them: "'.implode('", "', $checks['faint']).'"';
+            }
+            throw new AiException('DELIVERY CHECK (once per job) — measured on the clean visual, '.implode('; ', $notes).'. Look at the poster: if a line really crosses a person or the product, or is hard to read, fix it with add_text on the clean visual (move it to a calm area, shorten it, recolour it, or add a scrim) and deliver again. If it is fine as it is (busy background only, still readable), call deliver_poster again with the same image — it will go through.');
         }
 
         $format = config("creations.poster_formats.{$key}");
