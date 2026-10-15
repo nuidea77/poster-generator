@@ -70,7 +70,6 @@ async function paid() {
             <div class="mt-5 flex flex-wrap justify-center gap-2 text-sm">
                 <span class="chip"><Icon name="image" size="14" /> Постер · {{ prices.poster }} кредит <span class="text-muted">(+{{ prices.poster_extra_format }} нэмэлт хэмжээ бүрт)</span></span>
                 <span v-if="session.meta.reels_enabled" class="chip"><Icon name="video" size="14" /> Reels · {{ Math.min(...Object.values(prices.reel)) }}–{{ Math.max(...Object.values(prices.reel)) }} кредит <span class="text-muted">(15–60 сек, уртаасаа хамаарна)</span></span>
-                <span v-else class="chip cursor-default text-muted"><Icon name="video" size="14" /> Reels · Тун удахгүй</span>
             </div>
             <p class="mt-3 text-xs text-muted">Кредит бүтээл эхлэхэд хасагдана, амжилтгүй болбол буцна. Ашиглаагүй кредит багцын хугацаа (сар эсвэл жил) дуусахад дуусна.</p>
             <p v-if="session.user?.subscription" class="mt-4 inline-block rounded-xl bg-lime/10 px-4 py-2 text-sm text-lime">
