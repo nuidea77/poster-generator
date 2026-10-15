@@ -480,7 +480,6 @@ class CreativeAgent
                             'animation' => ['type' => 'string', 'enum' => ['fade', 'slide_up', 'none']],
                             'icon' => ['type' => 'string', 'enum' => ['none', ...IconSet::NAMES], 'description' => 'Small icon before a one-line fact (phone, location, clock, calendar, web, mail, delivery, gift, instagram, facebook, chat …) in the text colour; none for headlines. One fact per icon item: hours and phone are two items, not one line joined with ·'],
                             'strike' => ['type' => 'boolean', 'description' => 'true = strike-through line (an old price next to the new one)'],
-                            'y' => ['type' => 'number', 'description' => 'Optional exact top of this row as a fraction of the frame height (0.82 = 82% down), e.g. to centre contacts inside a band painted in the visual; 0 = automatic by position. Later items of the same position continue below it.'],
                             'rule' => ['type' => 'boolean', 'description' => 'true = a thin hairline under the item (feature captions, spec rows, minimal editorial lists)'],
                             'effect' => ['type' => 'string', 'enum' => ['auto', 'none', 'shadow', 'outline'], 'description' => 'auto = soft shadow on light text; none = flat; shadow = soft drop shadow; outline = a solid stroke in effect_color (stickers, text on busy colour)'],
                             'effect_color' => ['type' => 'string', 'description' => 'Hex of the outline (effect outline); empty otherwise'],

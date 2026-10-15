@@ -5,7 +5,7 @@ description: Sixteen proven poster layouts as ready add_text recipes (block orde
 
 # Poster templates — proven starting points
 
-A template fixes the **structure** (what goes where, which role, which font family) so the quality floor is high; you still choose the picture, colours, words and details. Pick one that fits the message, adapt it to the visual, and **avoid the template used in the client's recent posters** (see the Variety list in the brief). Positions: `top`, `center`, `lower_third`, `bottom`. All facts that are contacts go last, small.
+A template fixes the **structure** (what goes where, which role, which font family) so the quality floor is high; you still choose the picture, colours, words and details. Pick one that fits the message, adapt it to the visual, and **avoid the template used in the client's recent posters** (see the Variety list in the brief). Positions: `top`, `center`, `lower_third`, `bottom`.
 
 | # | Template | Visual to ask for | Text recipe (in order) |
 |---|---|---|---|
@@ -16,7 +16,7 @@ A template fixes the **structure** (what goes where, which role, which font fami
 | T5 | **Full-bleed event** | atmospheric stage/venue/symbol filling the frame, calm dark top and bottom | all centred: `top` `title` event name (`condensed` or `heavy`) · `top` small subtitle · `center` empty (the picture) · `lower_third` date `subtitle` + venue `small` · `bottom` ticket pill + contacts |
 | T6 | **Editorial luxury** | one object or model in soft raking light, huge negative space | `top` `title` in `elegant` or `display_serif`, lower-case, left · `top` one `small` line · `bottom` small contacts + a thin CTA line (no pill) — max 5 items, `effect: none` |
 | T7 | **Swiss type-only** | flat colour field + one geometric shape on a grid, no photo | `top` `display` word/number in `heavy` or `wide`, nearly edge to edge · `center` 3–4 `small` facts on one left edge · `bottom` contacts — no boxes, `effect: none` |
-| T8 | **Neo-brutal promo** | flat bright blocks, black outlines, hard offset shadow | `top` `title` in `wide`/`heavy` caps, `effect: outline` black · `center` `display` offer · `lower_third` one sticker `pill` · `bottom` contacts in a black `rect` box |
+| T8 | **Neo-brutal promo** | flat bright blocks, black outlines, hard offset shadow | `top` `title` in `wide`/`heavy` caps, `effect: outline` black · `center` `display` offer · `lower_third` one sticker `pill` · `bottom` contacts |
 | T9 | **Checklist service** | person or result on one side, clean light area on the other | `top` small kicker chip · `top` `title` two-tone · `center` 3–4 `small` lines with `icon: check` · `lower_third` CTA pill · `bottom` contacts |
 | T10 | **Stat infographic** | calm gradient or soft photo, open middle | `top` `title` insight · `center` row of 3 stats: `display`/`title` numbers with `small` labels under (mixed aligns for columns) · `lower_third` one line · `bottom` contacts |
 | T10b | **Corporate impact news** (MCS solar) | aerial photo of the site in the lower 55%, the top fading into light paper texture, a huge faint symbol (leaf, CO₂, sun) on one side | `top` partner/brand line · `top` caps `title` 2 lines left · `center` 2–3 stats: big number `title` + unit, `small` caps label under, each with `icon: leaf` (or check) — all left on one edge |
