@@ -457,6 +457,13 @@ class CreativeAgent
         }
 
         // poster-critique-ийг уншаагүй үед тодролын алдаа (шар дээр шар) шалгагдалгүй хүргэгдэж байсан.
+        // Бодит туршилтаас олдсон алдааны жагсаалт: skill-ийг уншаагүй ч энэ үргэлж очно.
+        if ($creation->type === Creation::POSTER && ($mistakes = $this->skills->get('poster-mistakes'))) {
+            $lines[] = '';
+            $lines[] = '## Skill `poster-mistakes` (already loaded — check every item before deliver_poster)';
+            $lines[] = $mistakes;
+        }
+
         if ($creation->type === Creation::POSTER && ($critique = $this->skills->get('poster-critique'))) {
             $lines[] = '';
             $lines[] = '## Skill `poster-critique` (already loaded — run it on the finished poster before deliver_poster; do not call load_skill for it)';
@@ -910,6 +917,13 @@ class CreativeAgent
 
         if ($creation->type === Creation::REEL && $still) {
             throw new AiException('In a reel, add_text needs a clip (use animate_still first for a card).');
+        }
+
+        // Agent заримдаа үсгийг "₮" гэх мэт escape-ээр бичдэг: жинхэнэ тэмдэгт болгоно.
+        foreach ($in['items'] ?? [] as $k => $it) {
+            if (is_string($it['text'] ?? null) && str_contains($it['text'], '\u')) {
+                $in['items'][$k]['text'] = preg_replace_callback('/\\\\u([0-9a-fA-F]{4})/', fn ($m) => mb_chr(hexdec($m[1]), 'UTF-8'), $it['text']);
+            }
         }
 
         // Кирилл заримдаа JSON control escape болж ирдэг: "Ба"-ийн оронд "\b" + "a", "Ф"-ийн оронд "\f",

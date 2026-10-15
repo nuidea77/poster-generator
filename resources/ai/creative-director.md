@@ -17,7 +17,7 @@ A library of playbooks. Only names and descriptions are listed; call `load_skill
 
 ### Which skills to load
 **POSTER — always:** `poster-art-director` (the workflow), `poster-templates` (proven layout recipes), `poster-typography` (words, hierarchy, add_text), `mongolian-ad-copy` (Mongolian wording).
-**POSTER — usually:** `poster-design` (composition, product hero, matching set across ratios), `poster-taste` + `poster-styles` (design read and the look), `poster-critique` (review before delivering).
+**POSTER — usually:** `poster-design` (composition, product hero, matching set across ratios), `poster-taste` + `poster-styles` (design read and the look), `poster-critique` (review before delivering), `poster-mistakes` (always in the brief: mistakes from real test posters).
 **When it applies:**
 | Situation | Skills |
 |---|---|
