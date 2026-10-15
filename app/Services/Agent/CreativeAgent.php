@@ -920,7 +920,11 @@ class CreativeAgent
         }
 
         // Agent заримдаа үсгийг "₮" гэх мэт escape-ээр бичдэг: жинхэнэ тэмдэгт болгоно.
+        // "·" (·) нь заримдаа "\b" + "7" болж ирдэг: backspace + 7-г цэг болгоно.
         foreach ($in['items'] ?? [] as $k => $it) {
+            if (is_string($it['text'] ?? null) && str_contains($it['text'], "\x087")) {
+                $in['items'][$k]['text'] = $it['text'] = str_replace("\x087", '·', $it['text']);
+            }
             if (is_string($it['text'] ?? null) && str_contains($it['text'], '\u')) {
                 $in['items'][$k]['text'] = preg_replace_callback('/\\\\u([0-9a-fA-F]{4})/', fn ($m) => mb_chr(hexdec($m[1]), 'UTF-8'), $it['text']);
             }

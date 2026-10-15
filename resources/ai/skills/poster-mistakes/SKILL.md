@@ -15,6 +15,9 @@ description: The running list of mistakes found in real test posters — wrong h
 - **Bad line breaks.** Keep a date range on one line (`11.27–11.30`) and never start a line with a dash or a unit; keep short phrases together (`хүртэл хямд` on one line, not stacked word by word). Use `\n` only where the phrase naturally splits.
 - **Text over a decoration.** A painted ribbon, swoosh or shape behind a text line makes it unreadable — place lines on calm areas only, or ask the visual to keep the decoration away from the text zone.
 - **Crammed stacks.** Between stacked blocks (pill, line, pill) leave at least one line-height of air; a plain line squeezed between two pills reads as a mistake. Two pills in a row rarely need a third line between them — merge or drop it.
+- **One phrase torn apart.** Lines that read as one phrase (`5 сая₮` + `хүртэлх зээл`, `-30%` + `хямдрал`) sit tight together — the gap inside a phrase is smaller than the gap to the next block. With free `y`, compute it: next `y` = this `y` + its line height + a small gap, not a round number.
+- **Type touching the subject.** Headline letters must clear a head, product or hand by a visible gap (≥ 2% of the frame); if the hero number reaches the hair, make it smaller or move it up.
+- **The separator dot.** Type the middle dot ` · ` directly as a character, never as an escape.
 
 ## The visual
 - **A drawn frame or mock-up.** The image must be full bleed, edge to edge. Never call it a "poster" in the image prompt (models then draw a framed print, a white border, an inner mat or a fade band); say "full-bleed image filling the whole frame, no border, no frame, no margin". If the returned image has a border, regenerate.
