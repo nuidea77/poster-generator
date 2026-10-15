@@ -69,6 +69,14 @@ class AiManager
             return true;
         }
 
+        // Google "Sorry… automated queries" хуудас: сүлжээг түр блоклосон — 10 минут зогсоож,
+        // тогтоосон (AI_IMAGE_ONLY) загварыг тайлж бусад загвар руу шилжүүлнэ.
+        if (preg_match('/automated queries|unusual traffic|<title>Sorry/i', $error)) {
+            Cache::put($this->pauseKey($name), $error, now()->addMinutes(10));
+
+            return true;
+        }
+
         // Quota / credit дууссан бол үйлчилгээ үзүүлэгчийг зогсооно; түр зуурын "try again later" rate limit бол үгүй.
         // Vertex-ийн 429 "Resource has been exhausted (e.g. check quota)" нь минутын хязгаар, billing биш.
         if (preg_match('/try again later|Resource has been exhausted/i', $error) || ! preg_match('/quota|no credits|credits are depleted|prepayment|credit balance|billing|insufficient_quota/i', $error)) {

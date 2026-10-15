@@ -136,7 +136,8 @@ class CreativeAgent
                 } catch (AiException|ConnectionException $e) {
                     // Квот/кредит дууссан зургийн загварыг түр зогсоож, agent-д өөр загвар сонгохыг хэлнэ.
                     if ($block['name'] === 'generate_image' && $this->ai->noteFailure((string) ($input['provider'] ?? ''), $e->getMessage())) {
-                        $e = new AiException($e->getMessage().' — this model is out of quota/credits and is paused; use another image model.');
+                        $others = implode(', ', array_diff($this->ai->available('image'), [(string) ($input['provider'] ?? '')]));
+                        $e = new AiException(mb_substr(strip_tags($e->getMessage()), 0, 300).' — this model is unavailable for now and paused; '.($others ? "use another image model ({$others})." : 'no other image model is available: do not deliver a poster on the raw upload — call finish without delivering (the job is refunded).'));
                     }
                     $results[] = ['type' => 'tool_result', 'tool_use_id' => $block['id'], 'is_error' => true, 'content' => $e->getMessage()];
                     $creation->addStep(['type' => 'tool', 'name' => $block['name'], 'input' => $input, 'error' => $e->getMessage()]);
@@ -1157,6 +1158,17 @@ class CreativeAgent
 
         if ($asset['kind'] !== 'image') {
             throw new AiException('Only images can be delivered as posters.');
+        }
+
+        // Харилцагчийн оруулсан түүхий зураг (бүтээгдэхүүн, лого) дээр шууд хийсэн постерыг хүргэхгүй:
+        // бараан, жижиг зураг постер болж сунгагдаад муу харагдсан. Зураг үүсгэж (бүтээгдэхүүнийг reference болгон).
+        [$base] = $creation->cleanVisual($asset['id']);
+        $root = $base ?? $asset;
+        for ($i = 0; ($root['from'] ?? null) && $i < 12; $i++) {
+            $root = $creation->asset($root['from']) ?? $root;
+        }
+        if (($root['source'] ?? null) === 'upload' || collect($creation->inputs)->contains('id', $root['id'] ?? '')) {
+            throw new AiException('This poster is built directly on the raw upload from the client. Generate a proper visual with generate_image (pass the product photo as a reference) and set the text on it. If no image model works, call finish without delivering — the job is refunded.');
         }
 
 

@@ -1252,6 +1252,29 @@ class CreationTest extends TestCase
         Queue::assertNothingPushed();
     }
 
+    public function test_a_google_block_page_pauses_the_image_model_and_raw_uploads_are_not_delivered(): void
+    {
+        $ai = app(\App\Services\AI\AiManager::class);
+        $this->assertTrue($ai->noteFailure('gemini', 'Gemini: <html><head><title>Sorry...</title></head><body>your computer or network may be sending automated queries</body></html>'));
+        $this->assertTrue($ai->paused('gemini'));
+        \Illuminate\Support\Facades\Cache::flush();
+
+        Storage::disk('public')->put('in/chair.png', 'x');
+        Http::fake(['api.anthropic.com/*' => Http::sequence()
+            ->push($this->turn([['deliver_poster', ['format' => '4:5', 'image_id' => 'product_1', 'design' => []]]]))
+            ->push($this->turn([['finish', ['summary' => 'no visual']]]))]);
+        $creation = Creation::create(['user_id' => $this->user->id, 'type' => 'poster', 'formats' => ['4:5'], 'prompt' => 'x', 'status' => 'running',
+            'inputs' => [['id' => 'product_1', 'kind' => 'image', 'role' => 'product', 'source' => 'upload', 'path' => 'in/chair.png']]]);
+        try {
+            app(CreativeAgent::class)->run($creation);
+        } catch (\Throwable) {
+            // finishing without a poster fails the job (and refunds it)
+        }
+        $step = collect($creation->fresh()->steps)->firstWhere('name', 'deliver_poster');
+        $this->assertStringContainsString('raw upload', $step['error']);
+        $this->assertSame([], $creation->fresh()->outputs);
+    }
+
     public function test_admin_sees_internal_log(): void
     {
         $creation = Creation::create([
