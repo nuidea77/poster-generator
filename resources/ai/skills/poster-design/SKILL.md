@@ -62,6 +62,22 @@ Topic colours as a starting point, never a rule: health → clean white + one co
 
 **Imagery quality and blending.** The visual is generated at full resolution; never upscale a tiny crop. The subject must belong to its background: same light direction, colour cast and shadow; edges blended, not pasted. When you combine a product photo with a new scene, ask for matching light, a contact shadow and reflections ("the product sits naturally in the scene, lit by the same warm window light, soft contact shadow").
 
+## 2c. Movement and rhythm
+Five ways to move the eye — combine two or three, never fight:
+1. **Direct guidance** — an arrow (`icon: arrow`), a gaze, a pointing hand or a diagonal band aimed at the headline or the CTA.
+2. **Hierarchy-driven flow** — no pointers: size, weight and contrast alone pull the eye from the big headline down to the details.
+3. **Sub-routes** — after the main path, small secondary items (a tag, a price sticker, a callout) make the eye circle once more and stay longer. Keep them small so they never compete with the main path.
+4. **Implied motion and disruption** — a motion blur, speed lines, a gradient sweep or one element tilted ~45° (painted by the image model) breaks the calm on purpose and stops the scroll. One disruption per poster.
+5. **Temporal rhythm** (luxury / Apple-like) — a strong beat (the hero) → calm small reading → a pause of empty space (release). Plan the empty space as the last beat, not as leftover.
+
+**Grid tactics:** the hero or the headline may **span** several columns while small text stays in one; and once everything sits on the grid, **break it once** on purpose — one element bleeding off the edge or crossing the column lines — to create the single point of tension.
+
+**LIFT check** (run it on the plan, then on the result):
+- **L — Leverage point:** one element clearly wins by scale, contrast or isolation.
+- **I — Internal rhythm:** margins and gaps follow one unit; the eye's trip has an even beat.
+- **F — Friction & flow:** one sharp, surprising decision (friction) balanced by calm, easy reading areas (flow) — not all friction, not all calm.
+- **T — Transferability:** the structure still reads when shrunk to a phone thumbnail and when re-composed for 9:16 or 1:1 — the leverage point and the hierarchy survive.
+
 ## 3. Art-direct the visual (the image model's job)
 The image carries the design — colour world, shapes, light, space for the type. Never ask for "a photo of X with space for text". Ask for a **designed poster background**:
 - **Colour world:** 1 dominant colour (brand or mood) + 1 neutral + 1 accent, named in the prompt ("deep cobalt #1E3A8A world, warm white, one coral accent"). The scene, props, wardrobe and light follow it.
@@ -172,8 +188,9 @@ Placed last with `add_logo` (the client's file, pixel-exact) — size, corner, c
 5. **Alignment and balance:** everything on one axis or a deliberate grid; the hero on a thirds point (or symmetric by intent); the two halves balance.
 6. **Colour:** one named scheme, the accent used once or twice, every line in strong contrast.
 7. **Air:** real space around the headline and the hero; no stray badges in the corners.
-8. **Does it look designed?** Would it pass as an agency post for a real brand — or as a template flyer? If a template, change the visual (§3) or the map (§4), not just the text.
-9. Nothing covers the face or the product; no dead hole in the layout.
+8. **LIFT:** leverage point, internal rhythm, friction & flow, transferability (§2c) all pass.
+9. **Does it look designed?** Would it pass as an agency post for a real brand — or as a template flyer? If a template, change the visual (§3) or the map (§4), not just the text.
+10. Nothing covers the face or the product; no dead hole in the layout.
 
 ## 9. Formats and a matching set
 Formats are aspect ratios (`4:5`, `1:1`, `9:16`, `16:9` … or `auto`); the file is centre-cropped (short side 1080 px). Keep subject and text in the middle 80% — the middle 60% vertically for 9:16. Several ratios → `format-composition`.
