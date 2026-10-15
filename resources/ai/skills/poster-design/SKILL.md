@@ -18,7 +18,7 @@ The delivered image is the whole ad: picture **and** message. A good poster is *
 | **Text ignores the picture** | headline floating over a random area | type and image interlock: headline beside the face, along the product's edge, in a colour field painted for it |
 | **Too many words** | 4 benefit lines + 3 badges + contacts | hook + offer + CTA + contacts; the rest goes to the caption |
 | **Font chaos** | 3+ fonts, a display face for facts | ≤ 2 fonts: one headline face + `sans` for the rest |
-| **Mixed alignment** | centred headline, left checklist, contacts stuck in a corner | one axis for the whole content block |
+| **Accidental alignment** | blocks floating at random offsets that line up with nothing | every block aligns to something on purpose — a column edge, the subject, the centre, a painted shape; different blocks may use different axes when the map asks for it |
 | **Crammed edges** | type and icons touching the frame, badges glued to the product | ≥ 7% margin on every side; air between the product and its labels |
 | **Low contrast** | thin white type over a busy photo, grey on dark | a scrim, a darker/lighter area, or a solid shape behind it; dark on light, light on dark |
 | **Colour noise** | neon pink + yellow + red on a clinic poster | 60-30-10, 2–3 colours, matched to the sector's mood |
@@ -141,7 +141,7 @@ E CENTRED ICON    F DIAGONAL        G GRID/TILES      H FULL-BLEED MOOD
 
 **Proportions:** split the frame by the golden ratio (≈ 62 / 38) rather than halves — image 62% / type 38%, or the headline block at 38% height. A baseline rhythm: line gaps and block gaps are multiples of one unit, so text lines line up across columns.
 
-**Grid types behind these maps:** column grid (text on 1–2 shared column edges — most posters), modular grid (equal tiles — G), hierarchical grid (blocks sized by importance — A, D), radial (I), axial (J). Name the grid you use; every block must sit on it.
+**Grid types behind these maps:** column grid (text on 1–2 shared column edges), modular grid (equal tiles — G), hierarchical grid (blocks sized by importance — A, D), radial (I), axial (J). Name the grid you use; every block must sit on it.
 
 **Feed system — consistent brand, varied layout.** Strong brand feeds (Uzum Bank, Kolowise, Nomba, Apple resellers) look like one campaign: the **system stays fixed** — the brand's colour world, the logo in the same corner, one font pair, and one **signature device** that recurs in every post (a lime ribbon swoosh, glossy 3D objects in the brand colour, a yellow circle behind people, a thin grid) — while the **layout changes** from post to post (map, crop, subject, which block leads). When the client has a brand kit or recent posters, keep their system and vary the composition; when they don't, invent a system on the first poster (state the signature device in `design.idea`) so later posts can repeat it.
 

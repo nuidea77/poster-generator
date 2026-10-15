@@ -227,6 +227,21 @@ class CreativeAgent
     /** poster-design §4-ийн composition map-ууд; харилцагчийн постеруудад ээлжилнэ. */
     public const MAPS = ['hero_type', 'split', 'frame_arch', 'bottom_heavy', 'centred_icon', 'diagonal', 'grid', 'full_bleed', 'radial', 'axial', 'product_callouts'];
 
+    /** Map бүрт текст хаана суухыг богино тайлбарлана (poster-design §4). */
+    private const MAP_HINTS = [
+        'hero_type' => 'a giant number or word is the design; the subject may overlap it',
+        'split' => 'two fields side by side (or top/bottom); the type owns one, the subject the other — choose which side',
+        'frame_arch' => 'the subject inside a painted arch/circle/shape; the type wraps around it',
+        'bottom_heavy' => 'the picture fills the top; the type is anchored low on a calm painted area',
+        'centred_icon' => 'the subject centred on a clean world; the type symmetric above and below',
+        'diagonal' => 'a diagonal band or movement; the blocks step along it',
+        'grid' => 'tiles or modules; the type sits in its own cells',
+        'full_bleed' => 'one atmospheric picture, minimal type over its calm area',
+        'radial' => 'rays/rings from one focal point; the type around the centre',
+        'axial' => 'one strong painted axis across the frame; the blocks hang off it',
+        'product_callouts' => 'the product big in the centre; short callouts left and right at its height',
+    ];
+
     /**
      * Харилцагчийн сүүлийн постерууд ямар байсныг (map, style, palette, font) болон
      * сүүлд хамгийн бага хэрэглэсэн map-ийг гаргана, ингэснээр энэ нь өөр болно.
@@ -254,18 +269,30 @@ class CreativeAgent
             return [];
         }
 
-        $used = $designs->pluck('map')->filter()->countBy();
-        // Хамгийн бага хэрэглэсэн map; тэнцвэл ажлын id-гаар ээлжилж, ашиглаагүй map-ууд ээлжээ авна.
-        $offset = $creation->id % count(self::MAPS);
-        $next = collect(self::MAPS)->keys()->sortBy(fn ($i) => [$used[self::MAPS[$i]] ?? 0, ($i - $offset + count(self::MAPS)) % count(self::MAPS)])->map(fn ($i) => self::MAPS[$i])->first();
-
         $lines = ['', '## Variety — this client\'s last posters (newest first)'];
         foreach ($designs as $d) {
             $lines[] = '- '.collect($d)->map(fn ($v, $k) => "{$k}: {$v}")->implode(' · ');
         }
-        $lines[] = "Make this one clearly different in layout: another composition map (suggested: `{$next}`), crop, subject framing and which block leads. Keep the brand system steady across posts — its colours, font pair and signature device (feed system, `poster-design`); change the style direction only if the client has no system yet.";
+        $lines[] = "Make this one clearly different in layout: crop, subject framing and which block leads. Keep the brand system steady across posts — its colours, font pair and signature device (feed system, `poster-design`); change the style direction only if the client has no system yet.";
 
         return $lines;
+    }
+
+    /**
+     * Энэ постерын найруулгын map: харилцагчийн сүүлийн постеруудад хамгийн бага хэрэглэгдсэн нь,
+     * тэнцвэл ажлын id-гаар ээлжилнэ — ингэснээр дараалсан постерууд өөр бүтэцтэй гарна.
+     */
+    private function mapFor(Creation $creation): string
+    {
+        $used = Creation::where('user_id', $creation->user_id)->where('type', Creation::POSTER)->where('status', Creation::DONE)
+            ->where('id', '!=', $creation->id)->latest('id')->limit(6)->get(['id', 'steps'])
+            ->map(fn (Creation $c) => collect($c->steps)->first(fn ($s) => ($s['name'] ?? '') === 'deliver_poster' && isset($s['input']['design']))['input']['design']['map'] ?? null)
+            ->filter()->countBy();
+        $offset = $creation->id % count(self::MAPS);
+
+        return collect(self::MAPS)->keys()
+            ->sortBy(fn ($i) => [$used[self::MAPS[$i]] ?? 0, ($i - $offset + count(self::MAPS)) % count(self::MAPS)])
+            ->map(fn ($i) => self::MAPS[$i])->first();
     }
 
     /**
@@ -336,6 +363,13 @@ class CreativeAgent
         // Постерт: харилцагчийн сүүлийн постеруудын дизайн (олон янз байдлын сануулга).
         if ($creation->type === Creation::POSTER && ! config('ai.agent.free_layout')) {
             array_push($lines, ...$this->recentDesigns($creation));
+        }
+        // Постер бүрт өөр найруулгын map оноож, бүгд нэг зүүн баганатай болохоос сэргийлнэ.
+        if ($creation->type === Creation::POSTER) {
+            $map = $this->mapFor($creation);
+            $lines[] = '';
+            $lines[] = '## Composition for this poster';
+            $lines[] = "Use composition map `{$map}` (`poster-design` §4): ".self::MAP_HINTS[$map].'. Paint the visual for it and place every block with `x`/`y`/`size` to build it — not the default left column of text. Every set of ratios uses the same map.';
         }
 
         // Медиа төсөв ба үнийн жагсаалт: agent төлөвлөгөөгөө үүнд багтаана.
