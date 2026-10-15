@@ -94,3 +94,8 @@ Logos are never typed or drawn — `add_logo` with the client's file (`logo-plac
 - After: one element clearly biggest, nothing over the product or a face, margins clear, readable at phone size, no model-drawn letters in the visual.
 - **Fit the text to the visual, not the visual to the text.** Regenerate a visual for space at most once; then adapt the type: fewer lines (≤ 6 items + contacts), shorter strings, smaller roles, a scrim, another zone.
 - Too many words → cut to hook, offer, CTA, contacts; details go to the caption. A long headline shrinks → two lines or a shorter synonym (`mongolian-ad-copy`).
+
+## 8. Mistakes seen in real posters (check each before deliver_poster)
+- **A generic word as the hero.** `ШИНЭ`, `ХЯМДРАЛ`, `NEW`, `SALE` are kickers — a small chip or small caps above the headline — never the giant `display` item. The biggest type is the product name, the offer number (`-30%`, `2 дахь нь 50%`) or the price.
+- **An orphan price.** A price must sit with what it prices: right under or beside the product name, inside the offer block, or in a labelled pill — on the same axis as the text it belongs to. Never a lone number floating on the picture.
+- **Multi-word text in `wide`.** Rubik Mono One is monospaced: spaces become huge gaps (`BREW   LAB`). Use `wide` for one word only; brand names of 2+ words go in `bold_sans`, `heavy` or `condensed`.
