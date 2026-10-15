@@ -783,6 +783,31 @@ class CreationTest extends TestCase
         $this->assertGreaterThan($address[3] - $address[1], $phoneBig[3] - $phoneBig[1]);
     }
 
+    public function test_items_with_x_and_y_are_placed_freely_at_their_size(): void
+    {
+        if (! Process::run([config('ai.ffmpeg'), '-version'])->successful()) {
+            $this->markTestSkipped('ffmpeg not installed');
+        }
+
+        $bg = imagecreatetruecolor(1080, 1350);
+        $file = sys_get_temp_dir().'/bg-'.uniqid().'.png';
+        imagepng($bg, $file);
+        $base = ['role' => 'small', 'position' => 'top', 'same_line' => false, 'font' => 'sans', 'color' => 'FFFFFF', 'box' => false, 'box_color' => '', 'icon' => 'none'];
+        $overlay = app(TextOverlay::class);
+        @unlink($overlay->burn($file, [
+            ['text' => '7000-4545', 'align' => 'right', 'x' => 0.9, 'y' => 0.5] + $base,
+            ['text' => 'ШИНЭ', 'align' => 'left', 'x' => 0.2, 'y' => 0.1, 'size' => 0.1] + $base,
+        ], 0, true));
+        @unlink($file);
+
+        [$phone, $word] = array_column($overlay->placed, 'rect');
+        $this->assertSame(675, $phone[1]);                                // y = 50% of 1350
+        $this->assertEqualsWithDelta(972, $phone[2], 15);                 // right edge at 90% of 1080
+        $this->assertSame(135, $word[1]);
+        $this->assertEqualsWithDelta(216, $word[0], 2);                   // left edge at 20%
+        $this->assertGreaterThan(80, $word[3] - $word[1]);                // size 0.1 = 108 px, not the small role
+    }
+
     public function test_row_items_sit_at_their_own_align_and_pills_are_drawn_under_the_text(): void
     {
         if (! Process::run([config('ai.ffmpeg'), '-version'])->successful()) {

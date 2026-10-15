@@ -57,7 +57,6 @@ Every item in reading order, real strings, nothing invented (`poster-typography`
 - **Headline** — `title` (or `display` for a hero number), two-tone: one `*starred*` word + `accent_color`.
 - **Offer & price** — the strongest after the headline: a big plain number, or **one** accent shape (`box: true`). At most 2 filled shapes on the poster (`poster-design` §1).
 - **CTA** — `subtitle` pill with `icon: arrow`, accent colour.
-- **Contacts** — every contact fact (address, phone, social, web, hours) is an ordinary text item, placed wherever the design needs it (usually near the bottom, `position: bottom`).
 Then check it against the quality bar (`poster-design` §8), look closely (text over the product or a face, weak contrast, cramped facts) and fix it on the **clean visual**.
 
 ## 6. Logo

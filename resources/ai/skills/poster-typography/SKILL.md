@@ -80,11 +80,10 @@ The number alone in a `display` item (about twice a title), the word under it as
 - `box: true` + `box_shape`: `pill` (accent badge, CTA), `glass` (frosted chip, labels), `card` (rounded content card for a short paragraph on a photo), `rect` (square panel). The CTA uses `icon: arrow` (it trails the text).
 - Rows: the 2nd–4th item of a row gets `same_line: true`. Each item sits where its own `align` puts it: items with the same align sit side by side as one group (on the left edge, centred, or on the right edge). Sizes are not evened out and nothing is moved for you — choose the roles, aligns and positions so the row reads as you intend.
 - Icons before one-line facts: one fact per item, never several facts joined by `·` behind one icon.
-- **Contact facts** (address, phone, social, web, hours) are ordinary text items placed wherever the design needs them (usually near the bottom, `position: bottom`).
 
 ## 6. The add_text call
 1. **Visual** — generated with no text, with calm zones matching the layout ("the top third is calm empty sky for the headline; the bottom 15% is a plain surface"). End the prompt with "No text, no letters, no numbers, no logos."
-2. **Items** in reading order: `text`, `role`, `position` (`top`, `center`, `lower_third`, `bottom`), `align`, `same_line`, `font`, `color`, `box`, `box_color`, `box_shape`, `icon`, `icon_style`; on images `start`/`end`/`animation` = 0, 0, `none`. Call-level: `scrim`, `scrim_color`.
+2. **Items** in reading order: `text`, `role`, `position` (`top`, `center`, `lower_third`, `bottom`), `align`, optional `x`/`y` (free placement anywhere, fractions of the frame — then `position` is ignored) and `size` (any font size, fraction of the short side), `same_line`, `font`, `color`, `box`, `box_color`, `box_shape`, `icon`, `icon_style`; on images `start`/`end`/`animation` = 0, 0, `none`. Call-level: `scrim`, `scrim_color`.
 3. **Read the returned poster yourself**: text over the product or a face, weak contrast, cramped facts. Fix by calling `add_text` again **on the same clean visual** (never on the texted image): to change a few lines, send only those items — they are patched onto your last full layout (same text or the closest item of the same position/role is replaced, new ones are added); to rearrange the whole poster, send the complete set.
 4. Deliver the texted image. Several ratios: each ratio's clean visual, then add_text on each, same choices.
 

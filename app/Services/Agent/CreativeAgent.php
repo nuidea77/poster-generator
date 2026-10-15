@@ -466,8 +466,11 @@ class CreativeAgent
                         'properties' => [
                             'text' => ['type' => 'string', 'description' => 'Exact words; wrap a key word in *stars* to draw it in accent_color'],
                             'role' => ['type' => 'string', 'enum' => ['display', 'title', 'price', 'subtitle', 'small'], 'description' => 'display = a huge hero number or 1–2 short words (15, -30%, 2026), about twice a title'],
-                            'position' => ['type' => 'string', 'enum' => ['top', 'center', 'lower_third', 'bottom'], 'description' => 'Vertical zone; zones stack top to bottom without overlapping. Contact facts (address, phone, hours, web, social) are ordinary items placed wherever the design needs them, usually bottom'],
+                            'position' => ['type' => 'string', 'enum' => ['top', 'center', 'lower_third', 'bottom'], 'description' => 'Vertical zone used when x/y are not given; zones stack top to bottom without overlapping'],
                             'align' => ['type' => 'string', 'enum' => ['center', 'left', 'right']],
+                            'x' => ['type' => 'number', 'description' => 'Optional free placement: horizontal anchor as a fraction of the frame width — the left edge for align left, the centre for center, the right edge for right. Give x and y together to place the item exactly anywhere (position is then ignored)'],
+                            'y' => ['type' => 'number', 'description' => 'Optional free placement: top of the item as a fraction of the frame height (0.05 = near the top). Use with x'],
+                            'size' => ['type' => 'number', 'description' => 'Optional font size as a fraction of the frame\'s short side, overriding the role size (display 0.24, title 0.105, price 0.095, subtitle 0.058, small 0.034) — any value 0.01–0.5'],
                             'same_line' => ['type' => 'boolean', 'description' => 'true = on the same row as the previous item. Each item sits where its own align puts it; items of the row with the same align sit side by side as one group (left edge / centre / right edge). Usually false'],
                             'font' => ['type' => 'string', 'enum' => array_keys(TextOverlay::FONTS)],
                             'color' => ['type' => 'string', 'description' => 'Hex, e.g. FFFFFF'],

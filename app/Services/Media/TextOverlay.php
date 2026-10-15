@@ -90,11 +90,15 @@ class TextOverlay
             // Мөрүүд: same_line-тай item өмнөх item-ийн мөрөнд нэгдэнэ. Код мөрийг өөрөө зохицуулахгүй:
             // item бүр agent-ийн өгсөн align-аар байрлана, ижил align-тай item-ууд хажуу хажуудаа бүлэг болно.
             [$rowOf, $rowSize, $r] = [[], [], -1];
-            // Role-ийн хэмжээний хувь.
-            $roleSize = fn ($it) => self::SIZES[$it['role'] ?? ''] ?? self::SIZES['subtitle'];
+            // Хэмжээний хувь: agent-ийн өгсөн size (кадрын богино талын хувь), эс бөгөөс role-ийн хэмжээ.
+            $roleSize = fn ($it) => isset($it['size']) && is_numeric($it['size']) && $it['size'] >= 0.01 && $it['size'] <= 0.5
+                ? (float) $it['size'] : (self::SIZES[$it['role'] ?? ''] ?? self::SIZES['subtitle']);
+            // Чөлөөт item: agent x, y-г (кадрын хувиар) өгсөн — бүс, мөрөөс үл хамааран яг тэнд зурагдана.
+            $free = fn ($it) => isset($it['x'], $it['y']) && is_numeric($it['x']) && is_numeric($it['y'])
+                && $it['x'] >= 0 && $it['x'] <= 1 && $it['y'] >= 0 && $it['y'] < 1;
             // Item бүрт мөрийн дугаар ба мөр доторх дарааллыг онооно.
             foreach ($list as $j => $it) {
-                $r += empty($it['same_line']) || $j === 0 ? 1 : 0;
+                $r += empty($it['same_line']) || $j === 0 || $free($it) || $free($list[$j - 1]) ? 1 : 0;
                 $rowSize[$r] = ($rowSize[$r] ?? 0) + 1;
                 $rowOf[$j] = [$r, $rowSize[$r] - 1];
             }
@@ -148,7 +152,7 @@ class TextOverlay
                 $soft = ! $still && ! $panel && in_array($item['role'] ?? '', ['subtitle', 'small'], true); // видео дээр зөөлөн бараан panel
                 $pad = (int) round($size * ($shape === 'card' ? 0.7 : ($panel ? 0.35 : ($soft ? 0.4 : 0))));
                 $lines = substr_count($text, "\n") + 1;
-                $position = in_array($item['position'] ?? '', ['top', 'center', 'lower_third', 'bottom'], true) ? $item['position'] : 'lower_third';
+                $position = $free($item) ? "free{$i}" : (in_array($item['position'] ?? '', ['top', 'center', 'lower_third', 'bottom'], true) ? $item['position'] : 'lower_third');
 
                 $display = ($item['role'] ?? '') === 'display'; // том цифр/үсэг: доош унжих хэсэггүй, дараагийн мөртэй ойр суудаг
                 // Мөр хоорондын алхам: давхарласан гарчиг (title/display/price, том үсэг эсвэл condensed)
@@ -192,8 +196,11 @@ class TextOverlay
             };
 
             // 2-р алхам: бүсүүдийг дээрээс доош байрлуулна; бүс бүр өмнөхийнхөө доор ($floor) эхэлнэ.
-            foreach (['top', 'center', 'lower_third', 'bottom'] as $position) {
-                $y = max($this->baseY($position, $w, $h, $still), $floor);
+            // Чөлөөт item-ууд бүсүүдийн дараа, тус бүр өөрийн (x, y)-д зурагдана.
+            $freeKeys = array_values(array_filter(array_keys($blocks), fn ($k) => str_starts_with((string) $k, 'free')));
+            foreach (['top', 'center', 'lower_third', 'bottom', ...$freeKeys] as $position) {
+                $loose = str_starts_with($position, 'free') ? ($blocks[$position][0]['item'] ?? null) : null;
+                $y = $loose ? (int) round($h * (float) $loose['y']) : max($this->baseY($position, $w, $h, $still), $floor);
 
                 // Доод бүс $bottomLimit-ээс хэтрэхгүйн тулд дээш татагдана.
                 if ($position === 'bottom' && isset($blocks['bottom'])) {
@@ -239,6 +246,12 @@ class TextOverlay
                     // Хажуугийн зай = өргөний 7% (LogoOverlay-ийн зайтай ижил).
                     $margin = (int) round($w * 0.07);
                     $cx = (int) round($w / 2);
+                    // Чөлөөт item: x нь align-ийн цэг — left = зүүн ирмэг, right = баруун ирмэг, center = төв.
+                    if ($loose) {
+                        $fx = (float) $loose['x'];
+                        $margin = (int) round($w * ($right ? 1 - $fx : $fx));
+                        $cx = (int) round($w * $fx);
+                    }
                     // Бүлэг: мөрийн ижил align-тай item-уудын бодит өргөнийг (icon + текст + panel) хэмжиж,
                     // тогтмол зайтайгаар зэрэгцүүлээд бүлгийг тэр align-ийн дагуу зүүн / төв / баруун тийш тавина.
                     if ($b['align'] === 'cluster') {
@@ -423,7 +436,9 @@ class TextOverlay
                 }
 
                 // Дараагийн бүс энэ бүсээс 2%-ийн зайтай доор эхэлнэ.
-                $floor = $y + (int) round(min($w, $h) * 0.02);
+                if (! $loose) {
+                    $floor = $y + (int) round(min($w, $h) * 0.02);
+                }
             }
 
             if (! $filters) {

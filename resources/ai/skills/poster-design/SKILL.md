@@ -108,6 +108,7 @@ The image carries the design — colour world, shapes, light, space for the type
 Prompt formula: **[hero + action/expression] · [crop/angle] · [colour world with hex] · [graphic structure] · [light] · [type zone: where and how calm] · [style reference: e.g. Nike campaign, Apple product shot, Kinfolk editorial, Korean beauty ad] · no text.**
 
 ## 4. Composition maps (choose one per poster; vary across a series)
+Build any map exactly: `add_text` items take `x`/`y` (free placement anywhere, fractions of the frame) and `size` (any font size) — the four zones and five roles are only shortcuts. Where every element goes, contacts included, is your decision for this poster.
 ```
 A HERO TYPE       B SPLIT           C FRAME/ARCH      D BOTTOM-HEAVY
 ┌──────────┐      ┌─────┬────┐      ┌──────────┐      ┌──────────┐
@@ -116,7 +117,6 @@ A HERO TYPE       B SPLIT           C FRAME/ARCH      D BOTTOM-HEAVY
 │  subject │      │offer│    │      │ │ hero │ │      │  image   │
 │  behind  │      │CTA  │    │      │ ╰──────╯ │      │██HEADLINE│
 │  CTA     │      │     │    │      │ HEADLINE │      │offer  CTA│
-│ contacts │      │contacts  │      │ contacts │      │ contacts │
 └──────────┘      └─────┴────┘      └──────────┘      └──────────┘
 E CENTRED ICON    F DIAGONAL        G GRID/TILES      H FULL-BLEED MOOD
 ┌──────────┐      ┌──────────┐      ┌──────────┐      ┌──────────┐
@@ -125,7 +125,6 @@ E CENTRED ICON    F DIAGONAL        G GRID/TILES      H FULL-BLEED MOOD
 │    📦    │      │    ╱     │      │ ▢  ▢  ▢  │      │  mood    │
 │  price   │      │  ╱ offer │      │ caption… │      │ HEADLINE │
 │   CTA    │      │╱   CTA   │      │   CTA    │      │ small CTA│
-│ contacts │      │ contacts │      │ contacts │      │ contacts │
 └──────────┘      └──────────┘      └──────────┘      └──────────┘
 ```
 - **A Hero type** — a giant number/word is the design (sale, countdown, anniversary); the subject may overlap it.
