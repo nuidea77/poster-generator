@@ -929,7 +929,7 @@ class CreationTest extends TestCase
         @unlink($file);
     }
 
-    public function test_a_partial_add_text_after_a_full_layout_is_refused(): void
+    public function test_a_partial_add_text_is_patched_onto_the_last_full_layout(): void
     {
         if (! Process::run([config('ai.ffmpeg'), '-version'])->successful()) {
             $this->markTestSkipped('ffmpeg not installed');
@@ -940,7 +940,7 @@ class CreationTest extends TestCase
         Http::fake([
             'api.anthropic.com/*' => Http::sequence()
                 ->push($this->turn([['add_text', ['asset_id' => 'img_1', 'items' => [$item('Нэг'), $item('Хоёр'), $item('Гурав'), $item('Дөрөв')]]]]))
-                ->push($this->turn([['add_text', ['asset_id' => 'img_1', 'items' => [$item('SAMSUNG')]]]]))
+                ->push($this->turn([['add_text', ['asset_id' => 'img_1', 'items' => [$item('Хоёр!'), $item('Тав')]]]]))
                 ->push($this->turn([['finish', ['summary' => 'ok']]])),
         ]);
         $creation = Creation::create(['user_id' => $this->user->id, 'type' => 'poster', 'formats' => ['4:5'], 'prompt' => 'x', 'status' => 'running',
@@ -950,7 +950,11 @@ class CreationTest extends TestCase
         $steps = collect($creation->fresh()->steps)->where('name', 'add_text')->values();
 
         $this->assertArrayNotHasKey('error', $steps[0]);
-        $this->assertStringContainsString('only 1 of the 4 items', $steps[1]['error']);
+        $this->assertArrayNotHasKey('error', $steps[1]);
+        // 'Хоёр!' replaces an item of the same position/role, 'Тав' is added: 5 items drawn, the rest kept.
+        $layout = collect($creation->fresh()->assets)->last()['layout'];
+        $this->assertSame(['Нэг', 'Хоёр!', 'Гурав', 'Дөрөв', 'Тав'], array_column($layout, 'text'));
+        $this->assertSame('img_1', collect($creation->fresh()->assets)->last()['from']);
     }
 
     public function test_placeholder_text_calls_are_refused(): void

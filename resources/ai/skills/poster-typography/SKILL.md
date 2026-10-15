@@ -73,7 +73,7 @@ The number alone in a `display` item (about twice a title), the word under it as
 ## 6. The add_text call
 1. **Visual** — generated with no text, with calm zones matching the layout ("the top third is calm empty sky for the headline; the bottom 15% is a plain surface"). End the prompt with "No text, no letters, no numbers, no logos."
 2. **Items** in reading order: `text`, `role`, `position` (`top`, `center`, `lower_third`, `bottom`), `align`, `same_line`, `font`, `color`, `box`, `box_color`, `box_shape`, `icon`, `icon_style`; on images `start`/`end`/`animation` = 0, 0, `none`. Call-level: `scrim`, `scrim_color`.
-3. **Read the returned poster yourself**: text over the product or a face, weak contrast, cramped facts. Fix by calling `add_text` again **on the same clean visual** (never on the texted image).
+3. **Read the returned poster yourself**: text over the product or a face, weak contrast, cramped facts. Fix by calling `add_text` again **on the same clean visual** (never on the texted image): to change a few lines, send only those items — they are patched onto your last full layout (same text or the closest item of the same position/role is replaced, new ones are added); to rearrange the whole poster, send the complete set.
 4. Deliver the texted image. Several ratios: each ratio's clean visual, then add_text on each, same choices.
 
 Logos are never typed or drawn — `add_logo` with the client's file (`logo-placement` for order and corner). Without a logo, the brand name may be a `small` line.

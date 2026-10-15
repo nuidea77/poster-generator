@@ -329,6 +329,12 @@ class CreativeAgent
             $lines[] = '## Skill `poster-design` (already loaded — follow it; do not call load_skill for it)';
             $lines[] = $design;
         }
+        // poster-critique-ийг уншаагүй үед тодролын алдаа (шар дээр шар) шалгагдалгүй хүргэгдэж байсан.
+        if ($creation->type === Creation::POSTER && ($critique = $this->skills->get('poster-critique'))) {
+            $lines[] = '';
+            $lines[] = '## Skill `poster-critique` (already loaded — run it on the finished poster before deliver_poster; do not call load_skill for it)';
+            $lines[] = $critique;
+        }
 
         $lines[] = '';
         $lines[] = '## Budget';
@@ -742,22 +748,46 @@ class CreativeAgent
             throw new AiException('The text arrived broken: '.json_encode($broken['text'], JSON_UNESCAPED_UNICODE).' contains a control character where a Cyrillic letter belongs (the JSON escapes \b \f \t \r instead of Б Ф Т Р). Nothing was drawn. Send the complete call again and type every Cyrillic letter directly (Б, Ф, Т, Р, Н), never as an escape.');
         }
 
-        // Санамсаргүй хэсэгчилсэн дуудлага (нэг зураг дээр бүтэн layout-ын дараа 1–3 item) render үрнэ;
-        // постерын add_text бүрт бүх item-ийг бүтнээр нь илгээх ёстой.
-        $layouts = collect($creation->steps)
-            ->filter(fn ($s) => ($s['name'] ?? '') === 'add_text' && ! isset($s['error']) && (($s['input']['asset_id'] ?? '') === $id));
-        $before = $layouts->map(fn ($s) => count($s['input']['items'] ?? []))->max() ?? 0;
-        $count = count($in['items'] ?? []);
-        if ($still && $before >= 4 && $count < $before / 2) {
-            // Сүүлийн бүтэн layout-ыг буцааж өгнө: засвар нь таах давталт биш, нэг хуулж-засах үйлдэл болно.
-            $last = collect($layouts->last()['input']['items'] ?? [])->map(fn ($it) => collect($it)->only(['text', 'role', 'position', 'align', 'same_line', 'font', 'color', 'box', 'box_color', 'box_shape', 'icon'])->all())->values();
-            throw new AiException("This call has only {$count} of the {$before} items you set before on `{$id}`. add_text always redraws the WHOLE poster on the clean visual — it does not patch. To change a few items, send this last layout again with your edits applied (and the same scrim settings): ".json_encode($last, JSON_UNESCAPED_UNICODE));
-        }
-
         // Model \u0437\u0430\u0440\u0438\u043c\u0434\u0430\u0430 \u043a\u0438\u0440\u0438\u043b\u043b\u0438\u0439\u0433 "\u0410" escape-\u044d\u044d\u0440 (\u044d\u0441\u0432\u044d\u043b "u0410"-\u0438\u0439\u043d \u04e9\u043c\u043d\u04e9 \u0438\u043b\u04af\u04af CR-\u0442\u0430\u0439) \u0438\u043b\u0433\u044d\u044d\u0434\u044d\u0433; \u0436\u0438\u043d\u0445\u044d\u043d\u044d \u04af\u0441\u0433\u044d\u044d\u0440 \u0441\u043e\u043b\u0438\u043d\u043e.
         $in['items'] = array_map(fn ($item) => is_array($item) && is_string($item['text'] ?? null)
             ? [...$item, 'text' => preg_replace_callback('/(?:\\\\+|\r)u([0-9a-fA-F]{4})/', fn ($m) => mb_chr(hexdec($m[1]), 'UTF-8'), $item['text'])]
             : $item, array_values($in['items'] ?? []));
+
+        // Хэсэгчилсэн засвар: нэг зураг дээр бүтэн layout-ын дараа цөөн item ирвэл (agent хэдхэн мөр
+        // засахыг хүссэн) тэдгээрийг сүүлийн бүтэн layout-тай нийлүүлнэ: ижил текст эсвэл ижил
+        // position/role/icon-той item-ийг солино, шинийг нэмнэ. Ингэснээр бүтнээр дахин илгээх давталт үгүй болно.
+        $patched = null;
+        $lastLayout = collect($creation->assets)->last(fn ($a) => ($a['from'] ?? null) === $id && ! empty($a['layout']));
+        $count = count($in['items']);
+        if ($still && $lastLayout && count($lastLayout['layout']) >= 4 && $count <= count($lastLayout['layout']) / 2) {
+            $merged = array_values($lastLayout['layout']);
+            [$used, $updated, $added] = [[], 0, 0];
+            foreach ($in['items'] as $new) {
+                $free = fn ($j) => ! in_array($j, $used, true);
+                $k = collect($merged)->search(fn ($o, $j) => $free($j) && trim((string) ($o['text'] ?? '')) === trim((string) ($new['text'] ?? '')));
+                if ($k === false) {
+                    // Текст нь засагдсан item: ижил position/role/icon-тойгоос текстээрээ хамгийн төстэйг нь сонгоно.
+                    $k = collect($merged)->filter(fn ($o, $j) => $free($j) && ($o['position'] ?? '') === ($new['position'] ?? '')
+                        && ($o['role'] ?? '') === ($new['role'] ?? '') && ($o['icon'] ?? 'none') === ($new['icon'] ?? 'none'))
+                        ->map(function ($o) use ($new) {
+                            similar_text(mb_strtolower((string) ($o['text'] ?? '')), mb_strtolower((string) ($new['text'] ?? '')), $pct);
+
+                            return $pct;
+                        })
+                        ->filter(fn ($pct) => $pct >= 65)->sortDesc()->keys()->first() ?? false;
+                }
+                if ($k === false) {
+                    $merged[] = $new;
+                    $added++;
+                } else {
+                    $merged[$k] = $new;
+                    $used[] = $k;
+                    $updated++;
+                }
+            }
+            $in['items'] = $merged;
+            $patched = "Patched onto the last full layout ({$updated} item(s) updated, {$added} added; ".count($merged).' items drawn). ';
+        }
 
         // Постерын яг хүрээн дээр бичнэ; лого зэрэг reserved хэсгээс зайлсхийнэ.
         $base = $this->exactFrame($asset);
@@ -772,9 +802,11 @@ class CreativeAgent
             'path' => $file['path'], 'prompt' => 'text on '.$asset['id'].': '.implode(' | ', $lines),
             'aspect' => $asset['aspect'] ?? null, 'duration' => $asset['duration'] ?? null, 'reserved' => $asset['reserved'] ?? [],
             'note' => 'typography', 'cost' => 0.0,
+            // Хэсэгчилсэн засвар дараа нь үүнтэй нийлэхийн тулд бүтэн layout-ыг хадгална.
+            'from' => $asset['id'], 'layout' => $in['items'],
         ]);
 
-        $content = "`{$new}` = `{$asset['id']}` with the text set in real fonts (letters exactly as given). Deliver `{$new}` instead of `{$asset['id']}`.";
+        $content = ($patched ?? '')."`{$new}` = `{$asset['id']}` with the text set in real fonts (letters exactly as given). Deliver `{$new}` instead of `{$asset['id']}`.";
         // Дизайны зөвлөмж өгөхгүй: layout-ыг agent өөрөө шийднэ (буцсан зургийг өөрөө хянана).
 
         // Өнгөлгөөний давталт өгөөжөөсөө илүү үнэтэй: нэг зураг дээрх 4 дэх layout-аас эхлэн
