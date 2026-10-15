@@ -11,7 +11,7 @@ For a finished poster (after add_text / add_logo) also run the structured `poste
 
 ## Checklist (in this order)
 1. **Product fidelity** — same shape, colours, label layout, proportions as the client's photo. A changed label or invented variant is a fail.
-2. **Logo** — the visual from a model must contain **no logo at all** (the real one goes on with `add_logo`); after `add_logo`, check the corner/size/plate look right and nothing important is covered.
+2. **Logo** — the visual from a model must contain **no logo at all** (the real one goes on with `add_logo`); after `add_logo`, check the corner/size/plate look right and nothing important is covered. This includes **third-party marks the model adds on real-world objects** — a Gibson script on a guitar headstock, an Apple on a laptop, a Nike tick on shoes, car badges. When the subject is a recognisable object, say in the prompt "unbranded, no logos or lettering on the [headstock/laptop lid/shoe]" from the first try.
 3. **Text** — every string from the brief (offer, price, date, place, CTA) is present and spelled **exactly**, character by character (Ө, Ү, ₮, %, digits); no extra invented words; no stray letters, watermarks or gibberish signage elsewhere (backgrounds, packaging, screens). Hierarchy reads in one second: one thing is clearly biggest.
 4. **People** — correct number of fingers, natural hands holding objects, symmetric eyes, no melted faces, believable skin, nobody cut off at a joint.
 5. **Physics & artefacts** — objects floating or merging, impossible reflections, duplicated items, smeared areas, seams.
@@ -22,7 +22,7 @@ For a finished poster (after add_text / add_logo) also run the structured `poste
 | Problem | Fix |
 |---|---|
 | Product changed | `gemini` + reference, "keep the product exactly unchanged", simpler scene, fewer props |
-| A model drew a logo or brand mark | regenerate the visual with "no logos"; place the real logo with `add_logo` |
+| A model drew a logo or brand mark | regenerate the visual with "unbranded, no logos or lettering on the [object]" (name the part: headstock, lid, badge); place the real logo with `add_logo` |
 | Wrong currency sign (`T` for `₮`) | retry naming "the tugrik sign ₮"; else number only or `төг` — see `poster-typography` |
 | Garbled text in the scene | add "no other text, no signage, blank labels"; remove shops/screens/papers |
 | Letters inside the generated image | regenerate the visual with "no text, no letters, no numbers"; all words go on with `add_text` |
