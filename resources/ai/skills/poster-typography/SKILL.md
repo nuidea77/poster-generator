@@ -43,6 +43,10 @@ Keep text inside the safe area (`format-composition`), never over faces, the pro
 ## 3. Type, colour and craft
 **Fonts** (`font`): `bold_sans` (Montserrat ExtraBold — default headlines, retail, prices), `sans` (Montserrat Medium — secondary lines), `condensed` (Oswald — sport, bold offers, big numbers), `rounded` (Nunito — kids, food, friendly), `serif` (Playfair Display — only for genuinely editorial / luxury / heritage / greeting work; no ₮ glyph and old-style digits, so prices and digits switch automatically). Max two fonts per poster; the same fonts in every ratio.
 
+**Display fonts (headlines and accent words only, never body):** `heavy` (Rubik Black — loud, modern sale/sport), `wide` (Rubik Mono One — wide techno/brutalist caps, short words), `display_serif` (Yeseva One — high-contrast elegant serif for beauty, fashion, premium), `elegant` (Alice — light classic serif, calm luxury), `script` (Lobster — cafés, food, retro; one or two words), `hand` (Caveat — handwritten note or accent word next to a sans headline). All carry Ө Ү ₮. Pair one display font with `sans` for everything else.
+
+**Effects (`effect`):** `auto` (default soft shadow on light text), `none` (flat — minimal, Swiss), `shadow`, `outline` with `effect_color` (a solid stroke — stickers, retro, text over busy colour). Use effects sparingly: one effect style per poster.
+
 **What each class says:** serif (`serif`) — tradition, trust, elegance, heritage; sans (`bold_sans`, `sans`) — modern, clean, digital, reads best on a phone; condensed/display (`condensed`) — loud, sporty, urgent, for headlines and numbers only; rounded (`rounded`) — friendly, soft, kids, food. Display faces are for 1–5 words, never for sentences.
 
 **Weight hierarchy:** H1 = the headline (`title`/`display`, `bold_sans` or `condensed`); H2 = the offer or subhead (`subtitle`, bold); body = facts and benefits (`small`, `sans` Medium). Weight and size change together — a bold small line next to a light big one confuses the order.

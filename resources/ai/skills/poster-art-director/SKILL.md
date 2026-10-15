@@ -11,9 +11,9 @@ The client is a shop owner or page admin, not a designer. They write two sentenc
 ## The workflow
 1. **Read the brief** → facts, purpose, audience, assets.
 2. **Design read + style** → one line, three dials, one style.
-3. **Picture + layout** → what the visual shows and where every block sits.
-4. **Visual** → one English prompt with empty zones; review it.
-5. **Words** → one complete `add_text` call; look at the result.
+3. **Picture + layout** → what the visual shows and where every block sits; start from a `poster-templates` recipe.
+4. **Two concepts** → plan **two different concepts** (different template/map and style), and in ONE reply call `generate_image` twice (they run in parallel). Review both visuals.
+5. **Words** → in ONE reply, `add_text` on both visuals; compare the two finished posters with `poster-critique` and keep the stronger (deliver only that one).
 6. **Logo** → `add_logo`.
 7. **Critique and fix** → at most two rounds.
 8. **Other ratios** → derived from the approved one; deliver each.

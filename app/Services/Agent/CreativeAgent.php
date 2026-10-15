@@ -469,6 +469,8 @@ class CreativeAgent
                             'end' => ['type' => 'number'],
                             'animation' => ['type' => 'string', 'enum' => ['fade', 'slide_up', 'none']],
                             'icon' => ['type' => 'string', 'enum' => ['none', ...IconSet::NAMES], 'description' => 'Small icon before a one-line fact (phone, location, clock, calendar, web, mail, delivery, gift, instagram, facebook, chat …) in the text colour; none for headlines. One fact per icon item: hours and phone are two items, not one line joined with ·'],
+                            'effect' => ['type' => 'string', 'enum' => ['auto', 'none', 'shadow', 'outline'], 'description' => 'auto = soft shadow on light text; none = flat; shadow = soft drop shadow; outline = a solid stroke in effect_color (stickers, text on busy colour)'],
+                            'effect_color' => ['type' => 'string', 'description' => 'Hex of the outline (effect outline); empty otherwise'],
                             'icon_style' => ['type' => 'string', 'enum' => ['plain', 'circle'], 'description' => 'circle = the icon inside a disc of the text colour; plain = the bare icon'],
                             'icon_color' => ['type' => 'string', 'description' => 'Hex of the glyph inside a circle icon: the band/panel colour behind it (default dark or white for contrast)'],
                         ],

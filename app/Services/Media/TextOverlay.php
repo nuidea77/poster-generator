@@ -22,13 +22,21 @@ class TextOverlay
         'condensed' => 'Oswald-Bold.ttf',
         'serif' => 'PlayfairDisplay-Bold.ttf',   // ₮ glyph байхгүй (bold_sans руу шилжинэ); old-style цифр (condensed руу шилжинэ)
         'rounded' => 'Nunito-ExtraBold.ttf',
+        // Монгол кирилл (Ө, Ү, ₮) бүрэн дэмждэг display фонтууд — зөвхөн гарчиг, акцентад.
+        'heavy' => 'Rubik-Black.ttf',            // маш бүдүүн, орчин үеийн
+        'wide' => 'RubikMonoOne-Regular.ttf',    // өргөн, техно / brutalist том үсэг
+        'display_serif' => 'YesevaOne-Regular.ttf', // өндөр контрасттай гоёмсог serif
+        'elegant' => 'Alice-Regular.ttf',        // нимгэн сонгодог serif (тансаг, гоо сайхан)
+        'script' => 'Lobster-Regular.ttf',       // бичгийн (кафе, хоол, ретро)
+        'hand' => 'Caveat-Bold.ttf',             // гар бичмэл (найрсаг тэмдэглэл, акцент үг)
     ];
 
     /** Фонтын хэмжээ, кадрын богино талд эзлэх хувиар (role бүрээр). */
     private const SIZES = ['display' => 0.24, 'title' => 0.105, 'price' => 0.095, 'subtitle' => 0.058, 'small' => 0.034];
 
     /** Glyph-ийн дундаж өргөн фонтын хэмжээтэй харьцуулахад — хальж гарах мөрийг багасгахад хэрэглэнэ. */
-    private const WIDTH = ['bold_sans' => 0.74, 'sans' => 0.6, 'condensed' => 0.5, 'serif' => 0.6, 'rounded' => 0.68];
+    private const WIDTH = ['bold_sans' => 0.74, 'sans' => 0.6, 'condensed' => 0.5, 'serif' => 0.6, 'rounded' => 0.68,
+        'heavy' => 0.71, 'wide' => 0.89, 'display_serif' => 0.68, 'elegant' => 0.66, 'script' => 0.59, 'hand' => 0.52];
 
     /**
      * Сүүлийн burn() текстийн блок бүрийг хаана тавьсан (px) — дуудагч доор нь юу байгааг шалгаж чадахын тулд.
@@ -374,9 +382,14 @@ class TextOverlay
                         // Жижиг мөрүүд ээдрээтэй видео дээр уншигдахуйц байхаар зөөлөн бараан panel авна.
                         $soft => ":box=1:boxcolor=black@0.38:boxborderw={$pad}:shadowcolor=black@0.4:shadowx=0:shadowy=1",
                         $pad > 0 => ":box=1:boxcolor={$this->color($item['box_color'] ?? '', '000000')}@0.82:boxborderw={$pad}",
-                        $this->light($item['color'] ?? '') => ':shadowcolor=black@0.55:shadowx=0:shadowy='.max(2, round($size * 0.05)),
+                        ($item['effect'] ?? 'auto') === 'none' => '',
+                        $this->light($item['color'] ?? '') || ($item['effect'] ?? 'auto') === 'shadow' => ':shadowcolor=black@0.55:shadowx=0:shadowy='.max(2, round($size * 0.05)),
                         default => '',
                     };
+                    // Хүрээ (outline): өнгөт зураг дээр үсгийг тодруулах эсвэл стикер маягийн эффект.
+                    if (($item['effect'] ?? 'auto') === 'outline' && $b['shape'] === 'rect' && $pad === 0) {
+                        $style .= ':borderw='.max(2, (int) round($size * 0.06)).':bordercolor='.$this->color($item['effect_color'] ?? '', '000000');
+                    }
                     // Бүх мөрт нийтлэг drawtext параметрүүд (expansion=none: % тэмдгийг шууд зурна).
                     $common = "expansion=none:fontsize={$size}:fontcolor={$this->color($item['color'] ?? '', 'FFFFFF')}:x={$x}:alpha='{$alpha}'{$style}";
 
