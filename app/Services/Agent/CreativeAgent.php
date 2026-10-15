@@ -1017,20 +1017,6 @@ class CreativeAgent
             throw new AiException('Only images can be delivered as posters.');
         }
 
-        // Хүргэхийн өмнөх нэг удаагийн хэмжилт: мөр нь нарийн хэсэг (хүн, бүтээгдэхүүн) дээр эсвэл
-        // бүдэг байвал нэг удаа буцаана; ажил бүрт ганцхан удаа, дараагийн хүргэлт шууд явна.
-        $checks = $asset['checks'] ?? [];
-        $warned = collect($creation->steps)->contains(fn ($s) => ($s['name'] ?? '') === 'deliver_poster' && str_contains((string) json_encode($s['error'] ?? ''), 'DELIVERY CHECK'));
-        if (! $warned && (! empty($checks['busy']) || ! empty($checks['faint']))) {
-            $notes = [];
-            if (! empty($checks['busy'])) {
-                $notes[] = 'these lines sit on a detailed part of the picture — likely a person, a face or the product: "'.implode('", "', $checks['busy']).'"';
-            }
-            if (! empty($checks['faint'])) {
-                $notes[] = 'these lines are too close in brightness to the area behind them: "'.implode('", "', $checks['faint']).'"';
-            }
-            throw new AiException('DELIVERY CHECK (once per job) — measured on the clean visual, '.implode('; ', $notes).'. Look at the poster: if a line really crosses a person or the product, or is hard to read, fix it with add_text on the clean visual (move it to a calm area, shorten it, recolour it, or add a scrim) and deliver again. If it is fine as it is (busy background only, still readable), call deliver_poster again with the same image — it will go through.');
-        }
 
         $format = config("creations.poster_formats.{$key}");
 
@@ -1053,7 +1039,23 @@ class CreativeAgent
 
         $this->bumpProgress($creation);
 
-        return ['summary' => "{$key} ← {$asset['id']}", 'content' => "Delivered {$key} ({$format['width']}×{$format['height']})."];
+        // Хүргэсний дараах нэг удаагийн хэмжилт: постер аль хэдийн хүргэгдсэн (юу ч алдагдахгүй);
+        // мөр нь нарийн хэсэг (хүн, бүтээгдэхүүн) дээр эсвэл бүдэг байвал ажил бүрт ганц удаа хэлнэ.
+        $note = '';
+        $checks = $asset['checks'] ?? [];
+        $noted = collect($creation->steps)->contains(fn ($s) => ($s['name'] ?? '') === 'deliver_poster' && str_contains((string) ($s['result'] ?? ''), 'checked'));
+        if (! $noted && (! empty($checks['busy']) || ! empty($checks['faint']))) {
+            $issues = [];
+            if (! empty($checks['busy'])) {
+                $issues[] = 'these lines sit on a detailed part of the picture (maybe a person, a face or the product): "'.implode('", "', $checks['busy']).'"';
+            }
+            if (! empty($checks['faint'])) {
+                $issues[] = 'these lines are low in contrast with the area behind them: "'.implode('", "', $checks['faint']).'"';
+            }
+            $note = ' CHECK (measured, once per job): '.implode('; ', $issues).'. Look at the delivered poster: if a line really crosses a person or the product, or is hard to read, fix it with add_text on the clean visual and deliver this format again (it replaces this one). If it is fine (busy background only, readable), call finish.';
+        }
+
+        return ['summary' => "{$key} ← {$asset['id']}".($note ? ' (checked)' : ''), 'content' => "Delivered {$key} ({$format['width']}×{$format['height']}).".$note];
     }
 
     /**
