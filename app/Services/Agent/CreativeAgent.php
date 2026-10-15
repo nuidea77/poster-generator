@@ -37,6 +37,9 @@ class CreativeAgent
     /** Энэ ажилд ашиглаж буй Claude загвар (энгийн ажилд хямд загвар). */
     private ?string $model = null;
 
+    /** Энэ постерт автоматаар сонгосон стилийн жишээнүүд (ref_N) — зураг үүсгэх бүрт заавал хавсарна. */
+    private array $autoRefs = [];
+
     public function __construct(
         private AiManager $ai,
         private SkillLibrary $skills,
@@ -65,6 +68,11 @@ class CreativeAgent
         $this->model = $poster && config('ai.agent.poster_model') ? config('ai.agent.poster_model') : config('ai.agent.model');
         $creation->update(['model' => $this->model]);
         $creation->setStage('planning', 5);
+
+        // Брифийн салбарт хамгийн тохирох 1–2 жишээ (засварт биш: тэнд өмнөх зураг хадгалагдана).
+        $this->autoRefs = $poster && ! $creation->revision
+            ? app(ReferenceLibrary::class)->pick($creation->prompt.' '.json_encode($creation->product, JSON_UNESCAPED_UNICODE), (int) $creation->id)
+            : [];
 
         // Бүх run-ийн турш тогтмол: Fable-ийн thinking блокууд яг тэр system prompt-той
         // холбогддог тул ажлын дундуур skill эсвэл director prompt засахад өөрчлөгдөх ёсгүй.
@@ -337,6 +345,12 @@ class CreativeAgent
     private function brief(Creation $creation): array
     {
         $content = [];
+
+        // Автомат стилийн жишээнүүд: agent харж, промптдоо юуг авахаа бичнэ; зураг үүсгэх бүрт код өөрөө хавсаргана.
+        foreach ($this->autoRefs as $ref) {
+            $content[] = ['type' => 'text', 'text' => "Style reference `{$ref['id']}` ({$ref['category']} · {$ref['style']}: {$ref['notes']}) — attached automatically to every generate_image call. In each image prompt say what to borrow from it (composition, light, colour mood, finish); never its text, logo, people or product:"];
+            $content[] = $this->imageBlock($ref['path']);
+        }
 
         // Харилцагчийн оруулсан зураг бүрийг үүргийн шошго, asset id-тай нь хавсаргана.
         foreach ($creation->inputs as $input) {
@@ -773,6 +787,19 @@ class CreativeAgent
         return array_values($ids);
     }
 
+    /**
+     * Автомат стилийн жишээг зургийн reference-д нэмнэ (agent өөрөө ref_ өгөөгүй бол); нийт 4-өөс ихгүй,
+     * харилцагчийн бүтээгдэхүүний зураг эхэнд хэвээр.
+     */
+    private function withAutoRefs(array $ids): array
+    {
+        if (! $this->autoRefs || array_filter($ids, fn ($id) => str_starts_with($id, 'ref_'))) {
+            return $ids;
+        }
+
+        return array_slice(array_values(array_unique([...$ids, ...array_column($this->autoRefs, 'id')])), 0, max(4, count($ids)));
+    }
+
     /** Зэрэг үүсгэсэн зургийн үр дүн: амжилттай бол буцаана, exception бол шиднэ. */
     private function settled(array|Throwable $result): array
     {
@@ -794,8 +821,10 @@ class CreativeAgent
             'provider' => $provider,
             'cost' => $cost,
             'aspect' => in_array($in['aspect'] ?? null, self::ASPECTS, true) ? $in['aspect'] : '1:1',
-            'references' => array_map(fn ($id) => $this->readAsset($creation, $id, 'image'), $this->withoutLogo($creation, $in['reference_image_ids'] ?? [])),
-            'prompt' => trim((string) ($in['prompt'] ?? '')).' High quality, professional, no watermark.',
+            'references' => array_map(fn ($id) => $this->readAsset($creation, $id, 'image'), $ids = $this->withAutoRefs($this->withoutLogo($creation, $in['reference_image_ids'] ?? []))),
+            'prompt' => trim((string) ($in['prompt'] ?? ''))
+                .(array_intersect($ids, array_column($this->autoRefs, 'id')) ? ' The ref_ images are STYLE references only: borrow their composition, light, colour mood and finish; do not copy their text, logos, people or products.' : '')
+                .' High quality, professional, no watermark.',
         ];
     }
 

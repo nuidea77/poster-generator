@@ -151,4 +151,18 @@ class ReferenceLibraryTest extends TestCase
         // No keyword: no category, just a spread.
         $this->assertNull(app(ReferenceLibrary::class)->forBrief('x')['category']);
     }
+
+    public function test_pick_chooses_matching_category_and_mood_and_skips_other_holidays(): void
+    {
+        StyleReference::create(['title' => 'Christmas bauble packs', 'category' => 'food', 'style' => 'Commercial', 'notes' => 'snow and santa', 'path' => 'references/a.jpg', 'enabled' => true]);
+        StyleReference::create(['title' => 'Burger on dark slate', 'category' => 'food', 'style' => 'Tactical Dark', 'notes' => 'hero burger', 'path' => 'references/b.jpg', 'enabled' => true]);
+        StyleReference::create(['title' => 'Salad flat lay', 'category' => 'food', 'style' => 'Clean light product', 'notes' => 'from above', 'path' => 'references/c.jpg', 'enabled' => true]);
+        StyleReference::create(['title' => 'Gym hero', 'category' => 'sport', 'style' => 'Commercial', 'path' => 'references/d.jpg', 'enabled' => true]);
+
+        $picked = app(ReferenceLibrary::class)->pick('Бургер ресторан: шинэ бургер. Залуу, эрч хүчтэй.', 3);
+        $this->assertCount(2, $picked);
+        $this->assertSame('Burger on dark slate', $picked[0]['title']);           // energetic mood → Tactical Dark
+        $this->assertNotContains('Christmas bauble packs', array_column($picked, 'title')); // not a holiday brief
+        $this->assertSame([], app(ReferenceLibrary::class)->pick('x'));              // unknown category → none
+    }
 }

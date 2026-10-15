@@ -52,6 +52,26 @@ class ReferenceLibrary
         'sport' => ['спорт', 'фитнесс', 'фитнес', 'марафон', 'хөлбөмбөг', 'сагсан', 'gym', 'fitness', 'sport', 'marathon'],
     ];
 
+    /** Баярын жишээ ↔ брифийн үг: [жишээнд байх үгс, брифэд байх үгс]. */
+    private const SEASONS = [
+        [['christmas', 'new year', 'santa', 'bauble', 'snow', '2025', 'winter'], ['шинэ жил', 'зул сар', 'өвөл', 'new year', 'christmas']],
+        [['halloween'], ['halloween', 'хэллоуин']],
+        [['valentine'], ['валентин', 'valentine', 'хайр']],
+        [['black friday'], ['black friday', 'хар баасан']],
+        [['tsagaan sar', 'lunar', 'horse year'], ['цагаан сар', 'сар шин']],
+        [['naadam'], ['наадам']],
+        [["women's day", 'soldier', 'army', 'independence', 'national day', "children's day", 'chinggis'], ['эмэгтэйчүүд', 'цэргийн', 'тусгаар', 'хүүхдийн баяр', 'чингис']],
+    ];
+
+    /** Брифийн өнгө аяс → [түлхүүр үгс, тохирох стилиуд]. */
+    private const MOODS = [
+        'premium' => [['тансаг', 'premium', 'luxury', 'дээд зэрэг'], ['Gold luxury', 'Minimal Editorial', 'Editorial photo']],
+        'energetic' => [['залуу', 'эрч хүч', 'шуурхай', 'хүчтэй', 'хөгжилтэй', 'energetic'], ['Commercial', 'Maximal retail', 'Tactical Dark', 'Neo-Brutalism', 'Bold Typographic / Swiss', 'Playful']],
+        'clean' => [['цэвэрхэн', 'цайвар', 'минимал', 'энгийн', 'clean'], ['Clean light product', 'Minimal Editorial']],
+        'trust' => [['найдвартай', 'мэргэжлийн', 'trust'], ['Corporate & Editorial', 'Commercial', 'Clean light product']],
+        'warm' => [['дулаан', 'уламжлалт', 'гэр бүл'], ['Editorial photo', 'Minimal Editorial', 'Gold luxury']],
+    ];
+
     /**
      * Брифэд зориулсан жагсаалт: таамагласан салбарын жишээнүүд эхэнд (≤ $same), дараа нь
      * бусад салбаруудаас тэнцүү тархсан цөөн жишээ. $seed нь ажил бүрт өөр дараалал өгнө.
@@ -79,6 +99,52 @@ class ReferenceLibrary
         }
 
         return ['category' => $category, 'refs' => $match->take($same)->concat($spread)->map(fn (StyleReference $r) => $this->present($r))->values()->all()];
+    }
+
+    /**
+     * Брифэд хамгийн тохирох $n жишээ: таамагласан салбарынхаас брифтэй хамгийн олон үг
+     * (гарчиг, тайлбар, стиль) давхцсаныг нь; тэнцвэл $seed-ээр санамсаргүй. Салбар танигдаагүй бол хоосон.
+     *
+     * @return list<array{id: string, title: string, category: string, style: ?string, notes: ?string, path: string}>
+     */
+    public function pick(string $text, int $seed = 0, int $n = 2): array
+    {
+        $category = $this->forBrief($text, $seed, 0, 0)['category'];
+        if (! $category) {
+            return [];
+        }
+
+        $words = fn (string $s) => array_unique(array_filter(preg_split('/[^\p{L}\p{N}]+/u', mb_strtolower($s)), fn ($w) => mb_strlen($w) >= 4));
+        $brief = $words($text);
+        $lower = mb_strtolower($text);
+        $has = fn (array $list, string $hay) => (bool) array_filter($list, fn ($w) => str_contains($hay, $w));
+        // Брифийн өнгө аяс → тохирох стилиуд.
+        $moods = array_keys(array_filter(self::MOODS, fn ($m) => $has($m[0], $lower)));
+        $score = function (StyleReference $r) use ($brief, $words, $lower, $has, $moods) {
+            $hay = mb_strtolower("{$r->title} {$r->notes} {$r->style}");
+            $points = count(array_intersect($brief, $words($hay)));
+            // Баярын жишээ зөвхөн тэр баярын брифэд.
+            foreach (self::SEASONS as [$ref, $brf]) {
+                if ($has($ref, $hay) && ! $has($brf, $lower)) {
+                    $points -= 5;
+                } elseif ($has($ref, $hay)) {
+                    $points += 3;
+                }
+            }
+            foreach ($moods as $mood) {
+                $points += in_array($r->style, self::MOODS[$mood][1], true) ? 2 : 0;
+            }
+
+            return $points;
+        };
+
+        return StyleReference::where('enabled', true)->where('category', $category)->get()
+            ->shuffle($seed ?: null)
+            ->sortByDesc($score)
+            ->take($n)
+            ->map(fn (StyleReference $r) => $this->present($r))
+            ->values()
+            ->all();
     }
 
     /**
