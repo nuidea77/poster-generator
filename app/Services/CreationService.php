@@ -85,6 +85,10 @@ class CreationService
      */
     public function retry(Creation $source): Creation
     {
+        // Reels хаалттай үед хуучин reel-ийг ч дахин үүсгэхгүй.
+        if ($source->type === Creation::REEL && ! config('creations.reels_enabled')) {
+            throw ValidationException::withMessages(['type' => 'Reels тун удахгүй нээгдэнэ. Одоогоор зөвхөн постер хийнэ.']);
+        }
         $this->guardFairUse($source->user, $source->type);
 
         $creation = $this->createCharged($source->user, [

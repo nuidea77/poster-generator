@@ -3,6 +3,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { api, date } from '../lib/api';
+import { session } from '../lib/session';
 import Icon from '../components/Icon.vue';
 import StageProgress from '../components/StageProgress.vue';
 
@@ -15,6 +16,8 @@ const busy = ref(false);
 let timer;
 
 // Бүтээл одоо боловсруулагдаж байгаа эсэх (дараалалд, ажиллаж, угсарч буй).
+// Reels хаалттай үед reel-ийг дахин үүсгэх товч харагдахгүй.
+const canRetry = computed(() => creation.value && (creation.value.type !== 'reel' || session.meta.reels_enabled));
 const active = computed(() => creation.value && ['queued', 'running', 'assembling'].includes(creation.value.status));
 
 // Бүтээлийг серверээс ачаална; алдаа гарсан эсвэл дууссан бол polling-ийг зогсооно.
@@ -143,7 +146,7 @@ const fileName = (o) => `poster-studio-${creation.value.id.slice(-6).toLowerCase
                 <span class="badge" :class="creation.type === 'reel' ? 'badge-top' : 'badge-new'">{{ creation.type === 'reel' ? 'Reels' + (creation.outputs[0]?.duration ? ` · ${clock(creation.outputs[0].duration)}` : '') : 'Постер' }}</span>
                 <span class="text-xs text-muted">{{ date(creation.created_at) }}</span>
                 <span class="ml-auto flex gap-2">
-                    <button v-if="!active" class="btn btn-ghost btn-sm" :disabled="busy" @click="retry"><Icon name="refresh" size="12" /> Дахин үүсгэх</button>
+                    <button v-if="!active && canRetry" class="btn btn-ghost btn-sm" :disabled="busy" @click="retry"><Icon name="refresh" size="12" /> Дахин үүсгэх</button>
                     <button v-if="!active" class="btn btn-ghost btn-sm text-red-300" @click="remove"><Icon name="trash" size="12" /></button>
                 </span>
             </div>
@@ -202,7 +205,7 @@ const fileName = (o) => `poster-studio-${creation.value.id.slice(-6).toLowerCase
             <div v-else-if="creation.status === 'failed'" class="panel mx-auto max-w-xl p-6 text-center">
                 <div class="mx-auto mb-3 grid size-12 place-items-center rounded-2xl bg-red-500/15 text-red-300"><Icon name="x" size="22" /></div>
                 <p class="font-semibold">{{ creation.error }}</p>
-                <button class="btn btn-lime mt-4" :disabled="busy" @click="retry"><Icon name="refresh" size="14" /> Дахин оролдох</button>
+                <button v-if="canRetry" class="btn btn-lime mt-4" :disabled="busy" @click="retry"><Icon name="refresh" size="14" /> Дахин оролдох</button>
             </div>
 
             <template v-else>

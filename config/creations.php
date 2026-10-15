@@ -29,6 +29,9 @@ return [
     ],
 
     // Reel (видео) тохиргоо.
+    // Reels түр хаалттай ("Тун удахгүй"); REELS_ENABLED=true болгож нээнэ.
+    'reels_enabled' => (bool) env('REELS_ENABLED', false),
+
     'reel' => [
         // Видеоны чиглэл; эхнийх нь анхдагч.
         'formats' => [

@@ -64,6 +64,9 @@ const types = [
     { id: 'poster', label: 'Постер', icon: 'image' },
     { id: 'reel', label: 'Reels', icon: 'video' },
 ];
+// Reels түр хаалттай: сонголт нь "Тун удахгүй" шошготой, дарагдахгүй.
+const reelsOn = !!meta.reels_enabled;
+const soon = (id) => id === 'reel' && !reelsOn;
 const typeLabel = computed(() => types.find((t) => t.id === form.type).label);
 const durationLabel = computed(() => `${form.duration} сек`);
 
@@ -285,10 +288,13 @@ async function submit() {
                         :key="t[0]"
                         type="button"
                         class="flex h-8 items-center gap-1.5 rounded-[10px] px-2.5 text-sm font-semibold transition"
-                        :class="form.type === t[0] ? 'bg-lime text-ink' : 'text-zinc-400 hover:text-fg'"
+                        :class="form.type === t[0] ? 'bg-lime text-ink' : soon(t[0]) ? 'cursor-not-allowed text-zinc-500' : 'text-zinc-400 hover:text-fg'"
+                        :disabled="soon(t[0])"
+                        :title="soon(t[0]) ? 'Тун удахгүй' : undefined"
                         @click="form.type = t[0]"
                     >
                         <Icon :name="t[2]" size="14" /> {{ t[1] }}
+                        <span v-if="soon(t[0])" class="rounded-md bg-white/10 px-1.5 py-0.5 text-[10px] font-medium">Тун удахгүй</span>
                     </button>
                 </div>
                 <!-- Файл хавсаргах chip-үүд: лого, бүтээгдэхүүн, жишээ (зөвхөн постерт) -->
@@ -375,7 +381,7 @@ async function submit() {
                         <span class="sheet-chevron"><Icon name="chevron" size="12" :class="{ 'rotate-180': expanded === 'type' }" /></span>
                     </button>
                     <div v-if="expanded === 'type'" class="grid grid-cols-2 gap-2 px-1 pb-3">
-                        <button v-for="t in types" :key="t.id" type="button" class="flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold" :class="form.type === t.id ? 'bg-lime text-ink' : 'bg-white/5 text-zinc-300'" @click="form.type = t.id">
+                        <button v-for="t in types" :key="t.id" type="button" class="flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold" :class="form.type === t.id ? 'bg-lime text-ink' : soon(t.id) ? 'cursor-not-allowed bg-white/5 text-zinc-500' : 'bg-white/5 text-zinc-300'" :disabled="soon(t.id)" @click="form.type = t.id">
                             <Icon :name="t.icon" size="14" /> {{ t.label }}
                         </button>
                     </div>

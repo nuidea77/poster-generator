@@ -1238,6 +1238,20 @@ class CreationTest extends TestCase
         $this->actingAs($this->user)->postJson("/api/v1/creations/{$running->public_id}/revise", ['request' => 'өөрчил'])->assertStatus(409);
     }
 
+    public function test_reels_are_closed_until_enabled(): void
+    {
+        Queue::fake();
+        config(['creations.reels_enabled' => false]);
+
+        $this->actingAs($this->user)->postJson('/api/v1/creations', ['type' => 'reel', 'formats' => ['9:16'], 'duration' => 15, 'prompt' => 'Кофе шопын reels видео'])
+            ->assertUnprocessable()->assertJsonValidationErrors('type');
+        $this->getJson('/api/v1/meta')->assertJsonPath('reels_enabled', false);
+
+        $old = Creation::create(['user_id' => $this->user->id, 'type' => 'reel', 'formats' => ['9:16'], 'duration' => 15, 'prompt' => 'x', 'status' => 'failed']);
+        $this->actingAs($this->user)->postJson("/api/v1/creations/{$old->public_id}/retry")->assertUnprocessable();
+        Queue::assertNothingPushed();
+    }
+
     public function test_admin_sees_internal_log(): void
     {
         $creation = Creation::create([

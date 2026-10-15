@@ -20,6 +20,7 @@
     <php>
         <env name="APP_ENV" value="testing"/>
         <env name="AI_IMAGE_ONLY" value=""/>
+        <env name="REELS_ENABLED" value="true"/>
         <env name="AI_AGENT_SIMPLE_MODEL" value=""/>
         <env name="GEMINI_IMAGE_MODEL" value="gemini-2.5-flash-image"/>
         <env name="AI_FREE_LAYOUT" value="false"/>

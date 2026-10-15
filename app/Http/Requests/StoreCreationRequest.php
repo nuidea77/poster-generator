@@ -22,7 +22,7 @@ class StoreCreationRequest extends FormRequest
         $reel = $this->input('type') === Creation::REEL;
 
         return [
-            'type' => ['required', Rule::in([Creation::POSTER, Creation::REEL])],
+            'type' => ['required', Rule::in(config('creations.reels_enabled') ? [Creation::POSTER, Creation::REEL] : [Creation::POSTER])],
             'formats' => ['required_if:type,poster', 'array', 'min:1', ...($reel ? ['max:1'] : [])],
             'formats.*' => ['distinct', Rule::in(array_keys(config($reel ? 'creations.reel.formats' : 'creations.poster_formats')))],
             'duration' => ['nullable', 'integer', Rule::in(array_keys(config('creations.reel.durations')))],
@@ -45,6 +45,7 @@ class StoreCreationRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'type.in' => 'Reels тун удахгүй нээгдэнэ. Одоогоор зөвхөн постер хийнэ.',
             'formats.required_if' => 'Дор хаяж нэг хэмжээ сонгоно уу.',
             'prompt.required' => 'Юу хийлгэхээ бичнэ үү.',
             'prompt.min' => 'Бриф хэт богино байна.',

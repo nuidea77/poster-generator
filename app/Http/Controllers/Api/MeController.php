@@ -124,6 +124,7 @@ class MeController extends Controller
             'poster_formats' => collect(config('creations.poster_formats'))
                 ->map(fn ($f, $key) => ['id' => $key] + collect($f)->only(['label', 'hint', 'width', 'height'])->all())
                 ->values(),
+            'reels_enabled' => (bool) config('creations.reels_enabled'),
             'reel' => [
                 'formats' => collect(config('creations.reel.formats'))->map(fn ($f, $key) => ['id' => $key] + $f)->values(),
                 'durations' => collect(config('creations.reel.durations'))->map(fn ($hint, $s) => ['id' => $s, 'label' => "{$s} сек", 'hint' => $hint])->values(),
