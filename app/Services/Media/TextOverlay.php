@@ -183,7 +183,7 @@ class TextOverlay
                 // Блокийг бүсээр нь хадгална; хэмжээсийг em-ээр (хэмжээнд үл хамаарах) тэмдэглэнэ,
                 // учир нь мөрийн хэмжээ доор дахин тэнцүүлэгдэж болно.
                 $blocks[$position][] = compact('i', 'item', 'text', 'raw', 'marked', 'font', 'size', 'pad', 'soft', 'same', 'align', 'shape', 'column', 'columns', 'rowNo', 'pitch', 'clusterAlign')
-                    + ['ems' => ['pad' => $pad / max(1, $size), 'line' => ($display ? 0.9 : 1.2) + $pitch * ($lines - 1), 'gap' => $display ? 0.12 : 0.3, 'width' => min($w * 0.9 / max(1, $size), $longest * self::WIDTH[$font] * $caps)]];
+                    + ['ems' => ['pad' => $pad / max(1, $size), 'line' => ($display ? 0.9 : 1.2) + $pitch * ($lines - 1), 'gap' => $display ? 0.12 : (empty($item['rule']) ? 0.3 : 0.9), 'width' => min($w * 0.9 / max(1, $size), $longest * self::WIDTH[$font] * $caps)]];
             }
 
             // Нэг мөрийн item-ууд нэг хэмжээтэй (хамгийн жижиг нь), дараа нь блок бүр өөрийн хайрцгийг авна.
@@ -452,6 +452,11 @@ class TextOverlay
                         $right => $w - $margin - $width,
                         default => (int) round($cx - $width / 2),
                     };
+                    // Доод нимгэн шугам (онцлогийн тайлбар, жагсаалтын мөр): текстийн өргөнөөс бага зэрэг урт.
+                    if (! empty($item['rule']) && $b['shape'] === 'rect') {
+                        $ext = (int) round($size * 0.6);
+                        $filters[] = 'drawbox=x='.max(0, $x0 - $ext).':y='.((int) round($y + $b['height'] + $size * 0.25)).':w='.($width + 2 * $ext).':h='.max(1, (int) round($size * 0.04)).':color=0x'.$this->hex(($item['strike_color'] ?? '') ?: ($item['color'] ?? 'FFFFFF')).'@0.45:t=fill';
+                    }
                     // Зураастай текст (хуучин үнэ): текстийн дундуур хөндлөн шугам.
                     if (! empty($item['strike']) && $b['shape'] === 'rect') {
                         $thick = max(2, (int) round($size * 0.07));

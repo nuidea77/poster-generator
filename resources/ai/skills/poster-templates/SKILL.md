@@ -39,4 +39,6 @@ A template fixes the **structure** (what goes where, which role, which font fami
 - **Outline buttons on photos:** a phone number or CTA in a `box_shape: outline` pill reads premium over a dark fade.
 - **Maximal retail is a choice:** loud 3D/stage/confetti scenes (electronics sales) work for mass promotions — paint the decor with the image model, keep the type flat and huge; never on clinics or finance.
 
+**Minimal luxury fashion (Gobi):** light warm-grey studio field, the product flat or on a model, a serif wordmark; price in two quiet columns (old struck, sale); feature captions with thin line icons and a hairline (`rule`) under each; colour options as a row of swatch dots painted by the image model; a short brand tagline in a corner. Lots of air, no pills, no shadows (`effect: none`).
+
 **Make it yours:** change the font family within the template's character, the palette, the picture and the effect; break the grid once (`poster-design` §2c). Report the template in `deliver_poster` `design.idea` (e.g. "T4 bottom-heavy food: …").

@@ -46,6 +46,7 @@ Keep text inside the safe area (`format-composition`), never over faces, the pro
 **Display fonts (headlines and accent words only, never body):** `heavy` (Rubik Black — loud, modern sale/sport), `wide` (Rubik Mono One — wide techno/brutalist caps, short words), `display_serif` (Yeseva One — high-contrast elegant serif for beauty, fashion, premium), `elegant` (Alice — light classic serif, calm luxury), `script` (Lobster — cafés, food, retro; one or two words), `hand` (Caveat — handwritten note or accent word next to a sans headline). All carry Ө Ү ₮. Pair one display font with `sans` for everything else.
 
 **Old price:** `strike: true` (with `strike_color`, often red or grey) on the old price, small, next to or above the new price.
+**Hairline:** `rule: true` draws a thin line under an item — feature captions around a product, spec rows, editorial lists (Gobi style).
 **Outline button:** `box_shape: outline` draws only a rounded border (in `box_color` or the text colour) — phone numbers, CTAs over photos.
 
 **Effects (`effect`):** `auto` (default soft shadow on light text), `none` (flat — minimal, Swiss), `shadow`, `outline` with `effect_color` (a solid stroke — stickers, retro, text over busy colour). Use effects sparingly: one effect style per poster.
