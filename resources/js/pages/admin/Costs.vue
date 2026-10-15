@@ -68,9 +68,9 @@ const signed = (n) => (n < 0 ? `−${money(-n)}` : money(n));
                     <div class="text-xs text-muted">Хийсэн бүтээл</div>
                     <div class="mt-1 text-sm">
                         <div><span class="text-xl font-semibold tabular-nums">{{ data.summary.posters.done }}</span> постер <span class="text-xs text-muted">· дундаж {{ money(data.summary.posters.avg_mnt) }}</span></div>
-                        <div><span class="text-xl font-semibold tabular-nums">{{ data.summary.reels.done }}</span> reel <span class="text-xs text-muted">· дундаж {{ money(data.summary.reels.avg_mnt) }}</span></div>
+                        <div v-if="data.summary.reels"><span class="text-xl font-semibold tabular-nums">{{ data.summary.reels.done }}</span> reel <span class="text-xs text-muted">· дундаж {{ money(data.summary.reels.avg_mnt) }}</span></div>
                     </div>
-                    <div class="text-[11px] text-muted">бүтэлгүйтсэн: {{ data.summary.posters.failed }} постер, {{ data.summary.reels.failed }} reel</div>
+                    <div class="text-[11px] text-muted">бүтэлгүйтсэн: {{ data.summary.posters.failed }} постер<template v-if="data.summary.reels">, {{ data.summary.reels.failed }} reel</template></div>
                 </div>
             </div>
             <!-- Бүх бүтээлийг үнийн жагсаалтаар төлсөн гэж үзсэн тооцоо -->
@@ -87,7 +87,7 @@ const signed = (n) => (n < 0 ? `−${money(-n)}` : money(n));
                         <div class="text-[11px] text-muted">{{ data.summary.as_customer.losing_jobs }} бүтээл үнээсээ их өртөгтэй</div></div>
                 </div>
             </div>
-            <!-- Зардлын задаргаа: юунд хэд зарцуулсан, постер/reel-ийн нийт -->
+            <!-- Зардлын задаргаа: юунд хэд зарцуулсан, постерын нийт -->
             <div class="mb-8 overflow-x-auto rounded-2xl border border-line">
                 <table class="w-full text-left text-sm">
                     <thead class="bg-surface text-xs text-muted uppercase">
@@ -108,7 +108,7 @@ const signed = (n) => (n < 0 ? `−${money(-n)}` : money(n));
                             <td class="px-3 py-2 font-semibold">Постер</td><td class="px-3 py-2 tabular-nums">{{ data.summary.posters.done + data.summary.posters.failed }}</td>
                             <td class="px-3 py-2 tabular-nums">{{ money(data.summary.posters.cost_mnt) }}</td><td></td><td></td>
                         </tr>
-                        <tr class="border-t border-line bg-surface/50">
+                        <tr v-if="data.summary.reels" class="border-t border-line bg-surface/50">
                             <td class="px-3 py-2 font-semibold">Reel</td><td class="px-3 py-2 tabular-nums">{{ data.summary.reels.done + data.summary.reels.failed }}</td>
                             <td class="px-3 py-2 tabular-nums">{{ money(data.summary.reels.cost_mnt) }}</td><td></td><td></td>
                         </tr>
@@ -117,7 +117,7 @@ const signed = (n) => (n < 0 ? `−${money(-n)}` : money(n));
             </div>
 
             <p class="mb-4 max-w-3xl text-sm text-muted">
-                Кредитийн үнийг CostMeter нэгж үнээс автоматаар тооцоолно: хамгийн үнэтэй зураг, видео модель (Fable + медиа),
+                Кредитийн үнийг CostMeter нэгж үнээс автоматаар тооцоолно: хамгийн үнэтэй модель (Claude + зураг),
                 ашиг муу тохиолдолд ≥ ×{{ data.margin.worst }}, ердийн үед ≥ ×{{ data.margin.typical }}. 1 кредит = {{ money(data.credit_mnt) }}, $1 = {{ money(data.usd_mnt) }}.
                 Нэгж үнийг <code>config/pricing.php</code> (эсвэл <code>COST_*</code> env)-д өөрчилбөл үнэ дагаад шинэчлэгдэнэ.
             </p>
@@ -128,7 +128,7 @@ const signed = (n) => (n < 0 ? `−${money(-n)}` : money(n));
                 <table class="w-full text-left text-sm">
                     <thead class="bg-surface text-xs text-muted uppercase">
                         <tr>
-                            <th class="px-3 py-2">Бүтээл</th><th class="px-3 py-2">Ердийн (Fable + медиа)</th><th class="px-3 py-2">Муу (Fable + медиа)</th>
+                            <th class="px-3 py-2">Бүтээл</th><th class="px-3 py-2">Ердийн (Claude + зураг)</th><th class="px-3 py-2">Муу (Claude + зураг)</th>
                             <th class="px-3 py-2">Медиа төсөв</th><th class="px-3 py-2">Кредит</th><th class="px-3 py-2">Орлого</th><th class="px-3 py-2">Ашиг ердийн</th><th class="px-3 py-2">Ашиг муу</th>
                         </tr>
                     </thead>

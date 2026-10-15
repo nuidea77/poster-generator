@@ -97,6 +97,24 @@ class BillingTest extends TestCase
             ->assertJsonPath('actuals.0.avg_media_usd', 8);
     }
 
+    public function test_cost_report_leaves_reels_out_while_they_are_closed(): void
+    {
+        config(['creations.reels_enabled' => false]);
+        $admin = User::factory()->create(['is_admin' => true]);
+        Creation::create(['user_id' => $admin->id, 'type' => 'reel', 'duration' => 30, 'credits' => 140, 'prompt' => 'x', 'status' => 'done', 'cost_usd' => 9.5,
+            'assets' => [['id' => 'vid_1', 'kind' => 'video', 'source' => 'generated', 'cost' => 8.0]]]);
+        Creation::create(['user_id' => $admin->id, 'type' => 'poster', 'formats' => ['4:5'], 'prompt' => 'x', 'status' => 'done', 'cost_usd' => 0.5]);
+
+        $this->actingAs($admin)->getJson('/api/v1/admin/costs')
+            ->assertOk()
+            ->assertJsonCount(2, 'price_book')            // poster + extra format, no reels
+            ->assertJsonPath('summary.reels', null)
+            ->assertJsonPath('summary.spent_usd', 0.5)    // the reel's $9.50 is not counted
+            ->assertJsonCount(2, 'summary.parts')         // Claude + images, no video
+            ->assertJsonCount(1, 'actuals')
+            ->assertJsonPath('actuals.0.label', 'Постер');
+    }
+
     public function test_loss_report_counts_failed_unpaid_and_below_cost_jobs(): void
     {
         config(['pricing.usd_mnt' => 3600]);

@@ -126,7 +126,8 @@ class CostMeter
     {
         $rows = [['part' => 'poster', 'label' => 'Постер (1 хэмжээ)', 'seconds' => 0], ['part' => 'poster_extra_format', 'label' => '+ нэмэлт хэмжээ', 'seconds' => 0]];
 
-        foreach (array_keys(config('creations.reel.durations')) as $s) {
+        // Reels хаалттай үед тэдний мөр тайланд гарахгүй.
+        foreach (config('creations.reels_enabled') ? array_keys(config('creations.reel.durations')) : [] as $s) {
             $rows[] = ['part' => 'reel', 'label' => "Reels {$s} сек", 'seconds' => $s];
         }
 
@@ -277,15 +278,17 @@ class CostMeter
         $cash = (int) $real->sum('amount');
         $spent = $this->mnt($total);
 
+        $reels = (bool) config('creations.reels_enabled');
+
         return [
             'posters' => $made(Creation::POSTER),
-            'reels' => $made(Creation::REEL),
+            'reels' => $reels ? $made(Creation::REEL) : null,
             'spent_usd' => round($total, 2),
             'spent_mnt' => $spent,
             'parts' => [
-                ['label' => 'Fable (token)', 'usd' => round($claudeUsd, 2), 'mnt' => $this->mnt($claudeUsd), 'count' => null],
+                ['label' => 'Claude (token)', 'usd' => round($claudeUsd, 2), 'mnt' => $this->mnt($claudeUsd), 'count' => null],
                 ['label' => 'Зураг', 'usd' => round($imageUsd, 2), 'mnt' => $this->mnt($imageUsd), 'count' => $images->count()],
-                ['label' => 'Видео', 'usd' => round($videoUsd, 2), 'mnt' => $this->mnt($videoUsd), 'count' => $videos->count()],
+                ...($reels ? [['label' => 'Видео', 'usd' => round($videoUsd, 2), 'mnt' => $this->mnt($videoUsd), 'count' => $videos->count()]] : []),
             ],
             'tokens' => [
                 'input' => (int) $jobs->sum('input_tokens'),
@@ -397,7 +400,9 @@ class CostMeter
      */
     private function since(?int $days)
     {
-        return Creation::query()->when($days, fn ($q) => $q->where('created_at', '>=', now()->subDays($days)));
+        return Creation::query()->when($days, fn ($q) => $q->where('created_at', '>=', now()->subDays($days)))
+            // Reels хаалттай үед тэдний ажил, зардал тайланд орохгүй (зөвхөн постер).
+            ->when(! config('creations.reels_enabled'), fn ($q) => $q->where('type', Creation::POSTER));
     }
 
     /**
