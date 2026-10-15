@@ -15,8 +15,9 @@ For a finished poster (after add_text / add_logo) also run the structured `poste
 3. **Text** — every string from the brief (offer, price, date, place, CTA) is present and spelled **exactly**, character by character (Ө, Ү, ₮, %, digits); no extra invented words; no stray letters, watermarks or gibberish signage elsewhere (backgrounds, packaging, screens). Hierarchy reads in one second: one thing is clearly biggest.
 4. **People** — correct number of fingers, natural hands holding objects, symmetric eyes, no melted faces, believable skin, nobody cut off at a joint.
 5. **Physics & artefacts** — objects floating or merging, impossible reflections, duplicated items, smeared areas, seams.
-6. **Crop safety** — subject and logo inside the safe area of the ordered ratio (see `format-composition`); nothing important in a Story's top/bottom bands.
-7. **Brief & brand fit** — the idea is clear in one second on a phone; palette and mood match the brand; it does not look like generic stock.
+6. **Full bleed** — the picture runs edge to edge. A white border, inner frame, mat, drop-shadowed "poster on a wall" or a fade band at one edge means the model drew a mock-up: regenerate.
+7. **Crop safety** — subject and logo inside the safe area of the ordered ratio (see `format-composition`); nothing important in a Story's top/bottom bands.
+8. **Brief & brand fit** — the idea is clear in one second on a phone; palette and mood match the brand; it does not look like generic stock.
 
 ## Fixing in the next prompt
 | Problem | Fix |
@@ -29,6 +30,7 @@ For a finished poster (after add_text / add_logo) also run the structured `poste
 | Message missing or weak | add the brief's offer/date/price per `poster-typography`; make one element clearly biggest |
 | Bad hands | hide or simplify hands (product on a surface, hand at the edge, holding from below) |
 | Face issues | wider shot, person turned away or in soft focus, fewer people |
+| Border, frame or mock-up look | do not call the image a "poster" in the prompt; say "full-bleed image filling the whole frame edge to edge, no border, no frame, no margin" |
 | Cluttered | name fewer props, state negative space ("plain surface in the lower third") |
 | Generic look | load `visual-concept`; name a specific aesthetic and light |
 
