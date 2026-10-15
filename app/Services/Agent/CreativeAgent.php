@@ -346,6 +346,16 @@ class CreativeAgent
             $lines[] = '## Skill `poster-design` (already loaded — follow it; do not call load_skill for it)';
             $lines[] = $design;
         }
+        // Жишээ сан: агент find_references-ийг ихэвчлэн алгасдаг тул жагсаалтыг брифэнд шууд өгнө.
+        if ($creation->type === Creation::POSTER && ($refs = app(ReferenceLibrary::class)->search(null, null, 40))) {
+            $lines[] = '';
+            $lines[] = '## Style reference library (curated examples)';
+            $lines[] = 'If one fits this job, pass its id in generate_image `reference_image_ids` as a STYLE reference and say in the prompt exactly what to borrow (composition, light, colour mood) — never its text, logos or subject. Use at most one; skip if none fits. `find_references` shows previews.';
+            foreach ($refs as $ref) {
+                $lines[] = "- `{$ref['id']}` [{$ref['category']}".($ref['style'] ? " · {$ref['style']}" : '')."] {$ref['title']}: {$ref['notes']}";
+            }
+        }
+
         // poster-critique-ийг уншаагүй үед тодролын алдаа (шар дээр шар) шалгагдалгүй хүргэгдэж байсан.
         if ($creation->type === Creation::POSTER && ($critique = $this->skills->get('poster-critique'))) {
             $lines[] = '';
