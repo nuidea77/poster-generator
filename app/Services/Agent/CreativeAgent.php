@@ -263,7 +263,7 @@ class CreativeAgent
         foreach ($designs as $d) {
             $lines[] = '- '.collect($d)->map(fn ($v, $k) => "{$k}: {$v}")->implode(' · ');
         }
-        $lines[] = "Make this one clearly different: another composition map (suggested: `{$next}`), another style direction, palette, and headline font/treatment — while staying on brand. A feed of look-alike posters is a failure.";
+        $lines[] = "Make this one clearly different in layout: another composition map (suggested: `{$next}`), crop, subject framing and which block leads. Keep the brand system steady across posts — its colours, font pair and signature device (feed system, `poster-design`); change the style direction only if the client has no system yet.";
 
         return $lines;
     }
