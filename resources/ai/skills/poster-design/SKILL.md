@@ -109,6 +109,27 @@ E CENTRED ICON    F DIAGONAL        G GRID/TILES      H FULL-BLEED MOOD
 
 **Variety:** the brief lists the client's last posters (map, style, palette, type). Make each new one clearly different in map, style, palette and headline treatment — a feed of look-alikes is a failure. Report your choices in `deliver_poster`'s `design` so the next poster can differ from this one.
 
+## 4a. Block order — wireframes from real food, product and campaign posters
+A poster is 4–6 blocks: **Logo · Headline · Subheadline · Visual hook · Description · Contacts** (+ sometimes a **Framing** line). The order is a design choice — change it per poster:
+| Order (top → bottom) | Example |
+|---|---|
+| Logo → Headline → Visual → Description | bowl on a white/red split, script tagline under it |
+| Visual → Headline (on a colour block) + Logo → Contacts | soup from above on white; orange lower half carries a huge headline across the split |
+| Small headline top-left → Visual on a diagonal band → contacts tucked in a corner | dumplings on a red diagonal stripe, `ORDER NOW` + phone bottom right |
+| Logo → Headline + price → Visual with a short description beside it | noodles; a checker strip along the bottom edge |
+| Headline → Subheadline → Visual │ Description column → Contacts | spicy noodles left, 3-line description right, round price sticker |
+| Description (small) → Headline → Visual → Contacts | ramen bowl; a short line above the title |
+| Visual → Framing line → Headline → Description | gadget on a colour field; one short framing sentence before the headline |
+| Headline → Subheadline → Description │ Visual │ Description → Subheadline | campaign illustration with callouts on both sides |
+
+**Techniques seen in them (ask the image model for the graphic part, set the words with add_text):**
+- **Diagonal colour band** behind the product — the product sits on the band, the band leads the eye to the CTA.
+- **Two-colour split** (white top / brand-colour bottom) with the headline crossing or sitting on the split.
+- **Round price sticker** (`box_shape: pill`, accent colour, the price `price` role) overlapping the edge of the dish.
+- **Pattern strip** along one edge (checker, ulzii, waves) painted by the image model — a frame that says "brand", not clutter.
+- **Callouts** — 2–4 short description lines beside the hero at its height, small with icons.
+- **Tone-on-tone texture** in the background (soft repeated shapes, steam, ingredients) — never letters: the image model must not write words.
+
 ## 4b. Design formulas (systems, not guesses)
 - **Type scale:** each step ≈ 1.25–1.6× the one below (small → subtitle → title → display). The tool's roles already follow a scale — don't fake a size between them by shrinking a title; pick the role.
 - **Line height:** body lines 1.4–1.6× the size (the tool sets ~1.4); stacked headlines tight (~1.0–1.1).
