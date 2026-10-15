@@ -11,7 +11,7 @@ const error = ref('');
 const saved = ref(null);
 const prices = session.meta.credit_prices;
 // Хамгийн муу тохиолдолд нэг кредитийн API зардал ≈525₮ (хамгийн үнэтэй моделиуд), тиймээс 2× ашигт нэг кредит ≥1,050₮ байх ёстой.
-const floor = 1050;
+const floor = 900; // постер Opus 5.5: хамгийн их өртөг ≈ 225₮/кредит → 900₮-д ×4 ашиг
 
 // Багцуудыг ачаалж, онцлогуудыг мөр бүрт нэгээр textarea-д засах текст болгоно.
 async function load() {
@@ -49,7 +49,7 @@ async function save(p) {
             <h1 class="display text-3xl">Багц, үнэ</h1>
             <button class="btn btn-lime ml-auto" @click="add">+ Багц</button>
         </div>
-        <p class="mb-4 text-sm text-muted">Үнэ 0 бол үнэгүй багц: шинэ хэрэглэгч бүр кредитийг нь нэг удаа авна, хугацаагүй. Төлбөртэй багцын кредит тухайн хугацаанд хүчинтэй. Бүтээлийн үнэ: постер {{ prices.poster }} (+{{ prices.poster_extra_format }}/хэмжээ), reels {{ Object.entries(prices.reel).map(([s, c]) => `${s} сек ${c}`).join(', ') }} кредит. 1 кредитийн үнэ ≥ {{ money(floor) }} байвал хамгийн үнэтэй модель (Veo, GPT high) ашигласан муу тохиолдолд ч ашиг 2 дахин байна (docs/PRICING.md).</p>
+        <p class="mb-4 text-sm text-muted">Үнэ 0 бол үнэгүй багц: шинэ хэрэглэгч бүр кредитийг нь нэг удаа авна, хугацаагүй. Төлбөртэй багцын кредит тухайн хугацаанд хүчинтэй. Бүтээлийн үнэ: постер {{ prices.poster }} (+{{ prices.poster_extra_format }}/хэмжээ), reels {{ Object.entries(prices.reel).map(([s, c]) => `${s} сек ${c}`).join(', ') }} кредит. 1 кредитийн үнэ ≥ {{ money(floor) }} байвал хамгийн өндөр өртөгтэй постер дээр ч ашиг ≈ 4 дахин байна (docs/PRICING.md).</p>
         <p v-if="error" class="mb-3 rounded-xl bg-red-950 p-3 text-sm text-red-200">{{ error }}</p>
 
         <!-- Багц бүрийн засварлах карт; 1 кредитийн үнэ доод хязгаараас бага бол улаанаар -->
