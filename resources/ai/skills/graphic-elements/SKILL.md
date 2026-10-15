@@ -28,7 +28,7 @@ Icons make **fact lines** scannable: the eye finds "where / when / how to order"
 
 - Use on **`small` / `subtitle` one-line facts only**. Never on the headline, the display number or the price.
 - **All fact lines get an icon, or none do.** Same colour as their text (the tool does this). 2–4 icon facts is the sweet spot; more reads like a form.
-- Keep icon facts compact: two short facts share a row (`same_line`: phone left, delivery right) — see `poster-typography` §3d. Never a tall centred column of icon lines.
+- Keep icon facts compact: two short facts share a row (`same_line`; aligns `left` + `right` spread them to the edges, both `center` keeps them together in the middle) — see `poster-typography` §3d. Never a tall centred column of icon lines.
 - One fact per line: `Их Дэлгүүр, 3 давхар` with `location`, then `9900-7788` with `phone` — not both on one line with "·".
 - Premium / minimal / greeting posters usually look better **without** icons; retail, services, events, clinics, restaurants, hiring benefit from them.
 - Left-aligned grids: icons line up on the 7% left edge like bullets. Centred layouts: each icon+line pair is centred.

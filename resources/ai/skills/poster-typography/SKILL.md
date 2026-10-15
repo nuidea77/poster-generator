@@ -66,7 +66,7 @@ The number alone in a `display` item (about twice a title), the word under it as
 
 ## 5. Pills, cards, rows, facts
 - `box: true` + `box_shape`: `pill` (accent badge, CTA), `glass` (frosted chip, labels), `card` (rounded content card for a short paragraph on a photo), `rect` (square panel). The CTA uses `icon: arrow` (it trails the text).
-- Rows: the 2nd–4th item of a row gets `same_line: true`. A pair sits on the two text edges; 3–4 items share equal columns with one size.
+- Rows: the 2nd–4th item of a row gets `same_line: true`. The aligns decide the row: all `center` (or all `left` / all `right`) → the items sit together as one group, centred (or on that edge); mixed aligns (`left` + `right`, or `left` / `center` / `right`) → spread to the two edges, 3–4 items in equal columns.
 - Icons before one-line facts: one fact per item, never several facts joined by `·` behind one icon.
 - **Contact facts go in the footer** (`position: footer`); its design is free per poster.
 

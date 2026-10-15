@@ -181,7 +181,14 @@ class TextOverlay
                 // 3+ мөрөнд тэнцүү багана.
                 $share = $columns === 2 ? $len($item) / $rowLen[$rowNo] : 1 / $columns;
                 $align = in_array($item['align'] ?? '', ['left', 'right', 'center'], true) ? $item['align'] : 'center';
-                if ($columns === 2 && $align === 'center') {
+                // Мөрийн бүх item ижил тэгшилгээтэй бол (бүгд center / left / right) agent тэднийг
+                // бөөнөөр нь хүссэн: ирмэгүүд рүү тараахгүй, нэг бүлэг болгож тэр тэгшилгээгээр тавина.
+                $rowAligns = array_unique(array_map(fn ($k) => in_array($list[$k]['align'] ?? '', ['left', 'right', 'center'], true) ? $list[$k]['align'] : 'center',
+                    array_keys(array_filter($rowOf, fn ($rc) => $rc[0] === $rowNo))));
+                $clusterAlign = $columns > 1 && count($rowAligns) === 1 ? $align : null;
+                if ($clusterAlign) {
+                    $align = 'cluster';
+                } elseif ($columns === 2 && $align === 'center') {
                     $align = $same ? 'right' : 'left';
                 } elseif ($columns > 2) {
                     $align = 'column'; // өөрийн баганын төвд
@@ -212,7 +219,7 @@ class TextOverlay
                 $lines = substr_count($text, "\n") + 1;
                 $position = in_array($item['position'] ?? '', ['top', 'center', 'lower_third', 'bottom', 'footer'], true) ? $item['position'] : 'lower_third';
                 // 3+ item-тэй footer мөр хоёр талдаа тэгшлэгдэнэ: эхнийх зүүн ирмэгт, сүүлийнх баруунд, бусад нь төвд.
-                if ($position === 'footer' && $columns > 2) {
+                if ($position === 'footer' && $columns > 2 && ! $clusterAlign) {
                     $align = match ($column) {
                         0 => 'left',
                         $columns - 1 => 'right',
@@ -227,7 +234,7 @@ class TextOverlay
                 $pitch = $headline ? ($caps > 1 || $font === 'condensed' ? 1.02 : 1.12) : 1.4;
                 // Блокийг бүсээр нь хадгална; хэмжээсийг em-ээр (хэмжээнд үл хамаарах) тэмдэглэнэ,
                 // учир нь мөрийн хэмжээ доор дахин тэнцүүлэгдэж болно.
-                $blocks[$position][] = compact('i', 'item', 'text', 'raw', 'marked', 'font', 'size', 'pad', 'soft', 'same', 'align', 'shape', 'column', 'columns', 'rowNo', 'pitch')
+                $blocks[$position][] = compact('i', 'item', 'text', 'raw', 'marked', 'font', 'size', 'pad', 'soft', 'same', 'align', 'shape', 'column', 'columns', 'rowNo', 'pitch', 'clusterAlign')
                     + ['ems' => ['pad' => $pad / max(1, $size), 'line' => ($display ? 0.9 : 1.2) + $pitch * ($lines - 1), 'gap' => $display ? 0.12 : (! empty($item['air_after']) ? 0.6 : 0.3), 'width' => min($w * 0.9 / max(1, $size), $longest * self::WIDTH[$font] * $caps)]];
             }
 
@@ -367,6 +374,30 @@ class TextOverlay
                     $margin = (int) round($w * 0.07);
                     // Энэ item-ийн төв: кадрын төв, эсвэл 3+ мөрөнд өөрийн баганын төв.
                     $cx = $b['align'] === 'column' ? (int) round($margin + ($w - 2 * $margin) * ($b['column'] + 0.5) / $b['columns']) : (int) round($w / 2);
+                    // Бүлэг мөр: мөрийн бүх item-ийн бодит өргөнийг (icon + текст + panel) хэмжиж, тэдгээрийг
+                    // тогтмол зайтайгаар зэрэгцүүлээд бүлгийг зүүн / төв / баруун тийш тавина.
+                    if ($b['align'] === 'cluster') {
+                        $itemWidth = function (array $o) use ($position): int {
+                            $bb = imagettfbbox($o['size'] * 0.75, 0, resource_path('fonts/'.self::FONTS[$o['font']]), $o['text']);
+                            $hasIcon = in_array($o['item']['icon'] ?? 'none', IconSet::NAMES, true) && ! str_contains($o['text'], "\n");
+                            $circle = ($o['item']['icon_style'] ?? 'plain') === 'circle';
+                            $iconPx = (int) round($o['size'] * ($circle ? ($position === 'footer' ? 1.1 : 1.3) : 0.95));
+                            $padX = $o['shape'] !== 'rect' ? (int) round($o['size'] * ($o['shape'] === 'card' ? 0.9 : 0.7)) : $o['pad'];
+
+                            return ($bb[2] - $bb[0]) + ($hasIcon ? $iconPx + (int) round($o['size'] * 0.35) : 0) + 2 * $padX;
+                        };
+                        $mates = array_values(array_filter($blocks[$position], fn ($o) => $o['rowNo'] === $b['rowNo']));
+                        $widths = array_map($itemWidth, $mates);
+                        $gapPx = (int) round($w * 0.05);
+                        $total = array_sum($widths) + $gapPx * (count($mates) - 1);
+                        $start = max($margin, match ($b['clusterAlign']) {
+                            'left' => $margin,
+                            'right' => $w - $margin - $total,
+                            default => (int) round(($w - $total) / 2),
+                        });
+                        $k = $b['column'];
+                        $cx = $start + array_sum(array_slice($widths, 0, $k)) + $gapPx * $k + intdiv($widths[$k], 2);
+                    }
                     $x = match (true) {
                         $left => (string) ($margin + $pad),
                         $right => 'w-text_w-'.($margin + $pad),

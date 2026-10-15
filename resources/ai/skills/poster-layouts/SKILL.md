@@ -14,7 +14,7 @@ Studied from professional Mongolian posters (a clinic package, a telecom promo, 
 | **CTA bar with icon** | pill + `icon` (calendar, gift, phone, arrow) — the icon sits inside the pill | `Зөвхөн 3 ХОНОГ үргэлжилнэ`, `Захиалах 7711-5566` |
 | **Glass chip** | `box_shape: glass`, dark text, small | labels above values (`СУПЕР БЭЛГИЙН ЭЗЭН`), app steps, tags |
 | **Two-column stat** | chip row: 2 `small` glass chips (`same_line`) — the **labels**; under it a value row: 2 `subtitle`/`title` bold values (`same_line`) — the **values are bigger than the labels** | prize vs winners, before vs after, two plans |
-| **Row of 3–4** | `small` bold items, the 2nd–4th with `same_line: true` → equal columns, one size | services (`ЭХО · РЕНТГЕН · ШИНЖИЛГЭЭ · ҮЗЛЭГ`), gifts, steps, features |
+| **Row of 3–4** | `small` bold items, the 2nd–4th with `same_line: true`, aligns `left` / `center` / `right` → equal columns, one size (all `center` → one centred group) | services (`ЭХО · РЕНТГЕН · ШИНЖИЛГЭЭ · ҮЗЛЭГ`), gifts, steps, features |
 | **Step flow** | 2–3 glass chips in a row, last one an accent pill with an icon | `Unitel app` → `Багц шилжих` → `Бэлэг авах` |
 | **Checklist** | 3–4 `small` lines, `icon: check`, `align: left` | benefits of a service or package |
 | **Footer info bar** | `footer_style: band` + `footer_color`: address left, phone bold right, a second row for hours/web | one option among open / band / pill |

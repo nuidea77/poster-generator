@@ -435,7 +435,7 @@ class CreativeAgent
                             'role' => ['type' => 'string', 'enum' => ['display', 'title', 'price', 'subtitle', 'small'], 'description' => 'display = a huge hero number or 1–2 short words (15, -30%, 2026), about twice a title'],
                             'position' => ['type' => 'string', 'enum' => ['top', 'center', 'lower_third', 'bottom', 'footer'], 'description' => 'footer = the contact facts at the very bottom (address, phone, hours, web, social), styled by footer_style'],
                             'align' => ['type' => 'string', 'enum' => ['center', 'left', 'right']],
-                            'same_line' => ['type' => 'boolean', 'description' => 'true = on the same row as the previous item. 2 items: left and right edge (phone | delivery, date | time); 3–4 items: equal centred columns (steps, gifts, features). Usually false'],
+                            'same_line' => ['type' => 'boolean', 'description' => 'true = on the same row as the previous item. The row follows the items\' align: all the same align (all center / all left / all right) = one tight group placed that way; mixed (left … right, or left / center / right) = spread to the edges, 3–4 items in equal columns. Usually false'],
                             'font' => ['type' => 'string', 'enum' => array_keys(TextOverlay::FONTS)],
                             'color' => ['type' => 'string', 'description' => 'Hex, e.g. FFFFFF'],
                             'box' => ['type' => 'boolean', 'description' => 'Solid panel behind the text'],

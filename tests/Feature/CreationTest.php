@@ -751,7 +751,7 @@ class CreationTest extends TestCase
         imagepng($bg, $file);
         $item = fn (string $t, string $icon, bool $same) => ['text' => $t, 'role' => 'small', 'position' => 'bottom', 'align' => 'center', 'same_line' => $same, 'font' => 'sans', 'color' => 'FFFFFF', 'box' => false, 'box_color' => '', 'start' => 0, 'end' => 0, 'animation' => 'none', 'icon' => $icon];
         $overlay = app(TextOverlay::class);
-        @unlink($overlay->burn($file, [$item('7711-5566', 'phone', false), $item('Хүргэлттэй', 'delivery', true), $item('Олимпийн гудамж 8', 'location', false)], 0, true));
+        @unlink($overlay->burn($file, [['align' => 'left'] + $item('7711-5566', 'phone', false), ['align' => 'right'] + $item('Хүргэлттэй', 'delivery', true), $item('Олимпийн гудамж 8', 'location', false)], 0, true));
         @unlink($file);
 
         [$phone, $delivery, $address] = array_column($overlay->placed, 'rect');
@@ -760,6 +760,18 @@ class CreationTest extends TestCase
         $this->assertEqualsWithDelta(1080 - 76, $delivery[2], 2);     // delivery ends on the right edge
         $this->assertGreaterThan($phone[3], $address[1]);             // the next fact starts below the row
         $this->assertLessThan(0.034 * 1080 * 1.25, $phone[3] - $phone[1]); // small facts stay small (line = 1.2 × size)
+
+        // Both centred: the pair stays together as one group in the middle, not at the edges.
+        $bg = imagecreatetruecolor(1080, 1350);
+        $file = sys_get_temp_dir().'/bg-'.uniqid().'.png';
+        imagepng($bg, $file);
+        @unlink($overlay->burn($file, [$item('7711-5566', 'phone', false), $item('Хүргэлттэй', 'delivery', true)], 0, true));
+        @unlink($file);
+        [$p, $d] = array_column($overlay->placed, 'rect');
+        $this->assertGreaterThan(200, $p[0]);
+        $this->assertLessThan(1080 - 200, $d[2]);
+        $this->assertEqualsWithDelta(540, ($p[0] + $d[2]) / 2, 30);
+        $this->assertLessThan(0.08 * 1080, $d[0] - $p[2]); // a small gap between them
 
         // A footer: long small address on the left, bold subtitle phone on the right — the phone keeps its size.
         $bg = imagecreatetruecolor(1080, 1350);
@@ -783,7 +795,7 @@ class CreationTest extends TestCase
         imagepng($bg, $file);
         $item = fn (string $t, bool $same, string $shape = 'rect', bool $box = false) => ['text' => $t, 'role' => 'small', 'position' => 'center', 'align' => 'center', 'same_line' => $same, 'font' => 'bold_sans', 'color' => '111111', 'box' => $box, 'box_color' => '22C55E', 'box_shape' => $shape, 'start' => 0, 'end' => 0, 'animation' => 'none', 'icon' => 'none'];
         $overlay = app(TextOverlay::class);
-        $out = $overlay->burn($file, [$item('ЭХО', false), $item('РЕНТГЕН ШИНЖИЛГЭЭ', true), $item('ҮЗЛЭГ', true), $item('Бэлэг авах', false, 'pill', true)], 0, true);
+        $out = $overlay->burn($file, [['align' => 'left'] + $item('ЭХО', false), $item('РЕНТГЕН ШИНЖИЛГЭЭ', true), ['align' => 'right'] + $item('ҮЗЛЭГ', true), $item('Бэлэг авах', false, 'pill', true)], 0, true);
         $img = imagecreatefrompng($out);
         @unlink($file);
         @unlink($out);
