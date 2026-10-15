@@ -336,6 +336,14 @@ class CreativeAgent
         }
 
         // Медиа төсөв ба үнийн жагсаалт: agent төлөвлөгөөгөө үүнд багтаана.
+        // poster-design нь найруулгын загвар, ялгаатай байх дүрэм, footer-ийн хувилбаруудыг агуулдаг;
+        // agent үүнийг уншихаа мартаж байсан (бүгд split + band болсон) тул брифт шууд хавсаргана.
+        if ($creation->type === Creation::POSTER && ($design = $this->skills->get('poster-design'))) {
+            $lines[] = '';
+            $lines[] = '## Skill `poster-design` (already loaded — follow it; do not call load_skill for it)';
+            $lines[] = $design;
+        }
+
         $lines[] = '';
         $lines[] = '## Budget';
         $lines[] = sprintf('Media budget for this job: $%.2f in total for images and video. %s Generation tools refuse requests beyond it, so plan within it.', $this->credits->mediaBudget($creation), $this->priceList($creation));

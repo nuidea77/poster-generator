@@ -126,6 +126,16 @@ E CENTRED ICON    F DIAGONAL        G GRID/TILES      H FULL-BLEED MOOD
 - **Benefits:** ≤ 3 short lines, or turn them into one strong line. A checklist is for services, not for every poster.
 - Exact strings and fonts: `poster-typography`; panels/chips: `poster-layouts`.
 
+## 5b. Contacts (footer) — design them for this picture
+Every contact fact goes in `position: footer`; its look is part of the design, not a fixed strip. Pick what suits the picture and change it from poster to poster:
+- **open** — small plain type straight on a calm, dark foot of the photo; plain icons; no dividers (the default for photos with a quiet bottom).
+- **open + scrim** — one quiet row over a soft dark fade (`scrim: bottom`).
+- **centred signature** — 1–2 short centred lines under the CTA (all items `align: center` → one tight group).
+- **pill** — a rounded bar inset from the edges, white or a light tint with dark text (light, colourful posters).
+- **band** — a full-width strip in the palette's deepest tone, only when the foot of the picture is busy or the brand colour should carry the contacts.
+- **edges** — facts spread to the two edges (`align: left` … `right`) for a structured, corporate feel.
+A band is not the safe default; an open footer on a calm foot usually looks more designed.
+
 ## 6. Colour
 Palette from the logo / brand / packaging, as hex. Max 2 main + 1 accent; the accent is used once or twice (offer, CTA). Type colour contrasts strongly with what is behind it. Mood: premium → dark/neutral + one jewel tone; food → warm; youth/sport → saturated, hard light; family → warm, soft; health → clean whites with one confident brand colour, not pale blue everywhere. Style recipes: `poster-styles`; avoiding generic looks: `poster-taste`.
 
