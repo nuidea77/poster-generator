@@ -5,7 +5,7 @@ description: The hard "never do" list from real test posters — forbidden hero 
 
 # NEVER — the poster is not delivered if it breaks any of these
 
-Each rule below comes from a real test poster that looked wrong. Before `deliver_poster`, go through the list on the finished image; if one is broken, fix it with `add_text` on the clean visual (or regenerate the visual) first.
+Each rule below comes from a real test poster that looked wrong. Several were broken again even after they were written down — so do not skim: after the add_text call, look at the returned image and tick every rule, one by one, out loud in your notes ("1 ok, 2 ok, … 10: address touches the pill → fix"). Before `deliver_poster`, go through the list on the finished image; if one is broken, fix it with `add_text` on the clean visual (or regenerate the visual) first.
 
 ## Hierarchy and offer
 1. **NEVER make a generic word the hero.** `ШИНЭ`, `ХЯМДРАЛ`, `NEW`, `SALE`, `BLACK FRIDAY`, `АЖИЛД АВНА` alone are not the message. → They are a small kicker chip or small caps; the biggest type is the product name, the offer number or the price.
@@ -20,8 +20,15 @@ Each rule below comes from a real test poster that looked wrong. Before `deliver
 ## Line breaks and grouping
 7. **NEVER start a line with a dash, a unit or a case ending.** No line beginning with `–11.30`, `-аас`, `-өөс`, `-д`, `₮`. → Keep `11.27–11.30` on one line; keep the suffix with its number (`2.5 сая₮-өөс эхэлнэ`).
 8. **NEVER stack a short phrase word by word.** → `хүртэл хямд`, `Цаг захиалга` stay on one line; use `\n` only where the phrase naturally splits.
-9. **NEVER tear one phrase apart.** `5 сая₮` and `хүртэлх зээл` with a big gap read as two messages. → Lines of one phrase sit tight; the gap inside a phrase is smaller than the gap to the next block (with free `y`: next `y` = this `y` + its line height + a small gap).
-10. **NEVER cram stacks.** A plain line squeezed between two pills reads as a mistake. → At least one line-height of air between stacked blocks; merge or drop the extra line.
+9. **NEVER tear one phrase apart.** `5 сая₮` and `хүртэлх зээл` with a big gap read as two messages. → Lines of one phrase sit tight: gap inside a phrase ≤ 0.012 of the frame height (see *Spacing math*).
+10. **NEVER cram stacks.** A plain line squeezed between a pill and the next pill or line (a pill, then the address touching it, then the phone) reads as a mistake. → Between separate blocks leave **≥ 0.03 of the frame height** of air, computed with *Spacing math*, not guessed. If the bottom zone has no room for that, drop or merge a line (address + phone on one row with `same_line`, or the address goes to the caption) — never shrink the gap.
+
+### Spacing math (when you set `y` yourself)
+`y` is a fraction of the frame **height**; `size` is a fraction of the frame's **short side**. On 4:5 the height is 1.25 × the width, so in `y` units:
+- one plain text line ≈ `size × 1.0` (caps headline lines ≈ `size × 0.85`); n lines ≈ n × that;
+- a pill or glass chip ≈ `size × 1.5`; a card ≈ `size × 2` per line;
+- on 9:16 a plain line ≈ `size × 0.7`, on 1:1 ≈ `size × 1.25` (pills and cards scale the same way).
+So: next `y` = this `y` + this block's height + gap, where gap = 0.008–0.012 inside a phrase and ≥ 0.03 between blocks. Write the sums down before the call; check the bottom block still ends above `y = 0.95`.
 
 ## Placement over the picture
 11. **NEVER put text over a decoration.** A ribbon, swoosh, ring, light streak or edge line behind or through a text line makes it unreadable or looks like a strike-through. → Text fully inside or fully outside such shapes, on calm areas only.
@@ -30,13 +37,14 @@ Each rule below comes from a real test poster that looked wrong. Before `deliver
 
 ## Type
 14. **NEVER set 2+ words in `wide`.** Rubik Mono One is monospaced: spaces become huge gaps (`BREW   LAB`, `SPEED   GARAGE`). → `wide` for one word only; multi-word names in `bold_sans`, `heavy` or `condensed`.
-15. **NEVER type escapes.** No `₮`, `·`, `Х`. → Type `₮`, `·`, `Ө`, `Ү`, Cyrillic directly as characters. Nothing decodes escapes for you: `₮` is printed literally or the call is rejected.
+15. **NEVER type escapes or backslashes in a `text` value.** No `₮`, `·`, `Х`, no `\t`, `\b`, `\f`. In the tool's JSON a backslash before a letter becomes a control character (`\b7`, `\the20ae`) and the call is rejected — this happened even after the rule was known. → Write `"text": "159,000₮"`, `"text": "App Store · Google Play"`, `"text": "ХХК"` — the real characters only; the only backslash allowed is `\n` for a line break. If a call comes back "text arrived broken", resend it with every escape replaced by the character itself.
 16. **NEVER spend calls re-sending the same line.** → Decide every item's role, size, position and `strike` in the first full call; later calls change only what the check found.
 
 ## The visual (image prompt)
 17. **NEVER call the image a "poster", "flyer" or "ad layout" in the prompt.** Models then draw a framed print, a white border, an inner mat or a fade band. → Always write "full-bleed image filling the whole frame edge to edge, no border, no frame, no margin". If the result has a border, regenerate.
 18. **NEVER accept third-party marks.** Models add brand marks to real objects (a Gibson script on a guitar headstock, an Apple on a laptop, a car badge, a Nike tick). → Ask for "unbranded, no logos or lettering on the [headstock / lid / badge]" in the first prompt; regenerate if one appears.
-19. **NEVER deliver a poster built on the client's raw upload.** → Generate a visual with the product photo as a reference; if no image model works, finish without delivering (the job is refunded).
+19. **NEVER accept writing the model drew on the scene.** Scribbles, signatures or pseudo-letters on food, cups, walls, paper or screens (a squiggle on a pizza, fake text on a menu board). → Say "no writing, no signatures, no lettering on any surface" and regenerate if it appears.
+20. **NEVER deliver a poster built on the client's raw upload.** → Generate a visual with the product photo as a reference; if no image model works, finish without delivering (the job is refunded).
 
 ### Negative phrases for every image prompt
-End each image prompt with: *"Full-bleed, edge to edge, no border, no frame, no margin. No text, no letters, no numbers, no logos, unbranded objects, no watermark."*
+End each image prompt with: *"Full-bleed, edge to edge, no border, no frame, no margin. No text, no letters, no numbers, no logos, unbranded objects, no writing or signatures on any surface, no watermark."*
