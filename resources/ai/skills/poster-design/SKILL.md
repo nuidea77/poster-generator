@@ -99,6 +99,12 @@ The image carries the design — colour world, shapes, light, space for the type
 - **Space for type:** name the zone and what fills it: "the left 40% is a flat cobalt field", "the top third is dark smoky stage air".
 - End with: "no text, no letters, no numbers, no logos".
 
+**Picture treatments that make a feed look designed:**
+- **Duotone / monochrome grade** — the photo graded into the brand hue (black-and-white people tinted purple, shadows in deep green): "duotone photograph in deep violet and lilac, high contrast". Unifies stock-like photos into one system.
+- **Macro crop** — beauty and skincare: extreme close-ups of lips, skin, a dropper, cream texture; the type runs large beside or across the crop.
+- **Photo in a shape** — the photo shown inside a painted blob, arch, circle or rounded panel on a flat brand-colour field; the type sits on the field.
+- **Cut-out on flat colour** — a person or product cut out with a soft shadow on a solid brand colour, a big word behind or beside it.
+
 Prompt formula: **[hero + action/expression] · [crop/angle] · [colour world with hex] · [graphic structure] · [light] · [type zone: where and how calm] · [style reference: e.g. Nike campaign, Apple product shot, Kinfolk editorial, Korean beauty ad] · no text.**
 
 ## 4. Composition maps (choose one per poster; vary across a series)

@@ -49,6 +49,8 @@ Keep text inside the safe area (`format-composition`), never over faces, the pro
 **Hairline:** `rule: true` draws a thin line under an item — feature captions around a product, spec rows, editorial lists (Gobi style).
 **Outline button:** `box_shape: outline` draws only a rounded border (in `box_color` or the text colour) — phone numbers, CTAs over photos.
 
+**Caps + script pairing:** a big `condensed`/`heavy` caps word with a `script` or `hand` word overlapping its corner in the accent colour (`COMING` + *soon*, `SKINCARE` + *essentials*) — two items, the script one `same_line` or placed right under with a small negative gap is not possible, so set it on the line below, slightly smaller, aligned to the caps' right edge.
+
 **Effects (`effect`):** `auto` (default soft shadow on light text), `none` (flat — minimal, Swiss), `shadow`, `outline` with `effect_color` (a solid stroke — stickers, retro, text over busy colour). Use effects sparingly: one effect style per poster.
 
 **What each class says:** serif (`serif`) — tradition, trust, elegance, heritage; sans (`bold_sans`, `sans`) — modern, clean, digital, reads best on a phone; condensed/display (`condensed`) — loud, sporty, urgent, for headlines and numbers only; rounded (`rounded`) — friendly, soft, kids, food. Display faces are for 1–5 words, never for sentences.
