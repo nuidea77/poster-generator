@@ -131,7 +131,8 @@ class BillingService
             // Идэвхтэй төлбөртэй захиалга байвал түүний дуусах өдрөөс, үгүй бол одооноос эхлүүлнэ.
             $plan = $payment->plan;
             $currentEnd = Subscription::where('user_id', $payment->user_id)->paid()->max('ends_at');
-            $startsAt = $currentEnd && now()->lt($currentEnd) ? Carbon::parse($currentEnd) : now();
+            // Нэмэлт кредит (pack) захиалгыг сунгахгүй: төлсөн өдрөөс period_days хоног хүчинтэй.
+            $startsAt = ! $plan->isPack() && $currentEnd && now()->lt($currentEnd) ? Carbon::parse($currentEnd) : now();
 
             $payment->update([
                 'status' => Payment::PAID,
@@ -141,7 +142,7 @@ class BillingService
 
             // Сарын багц: нэг үе. Жилийн багц: 12 сарын үе, кредит нь сар бүр тэнцүү хуваагдаж орно
             // (үлдэгдэл нь эхний сард); сар бүрийн ашиглаагүй кредит тэр сарын эцэст дуусна.
-            $months = $plan->period_days >= 360 ? 12 : 1;
+            $months = ! $plan->isPack() && $plan->period_days >= 360 ? 12 : 1;
             $each = intdiv($plan->credits, $months);
             $first = null;
             for ($i = 0; $i < $months; $i++) {

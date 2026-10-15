@@ -28,10 +28,10 @@ class Subscription extends Model
         return max(0, $this->credits - $this->credits_used);
     }
 
-    /** Мөнгөөр худалдан авсан захиалгууд (үнэгүй түвшний олголт биш). */
+    /** Мөнгөөр худалдан авсан сар/жилийн захиалгууд (үнэгүй олголт, нэмэлт кредит биш). */
     public function scopePaid($query)
     {
-        return $query->whereHas('plan', fn ($q) => $q->where('price', '>', 0));
+        return $query->whereHas('plan', fn ($q) => $q->where('price', '>', 0)->where('kind', Plan::SUBSCRIPTION));
     }
 
     // Энэ захиалгыг үүсгэсэн төлбөр (үнэгүй олголтод байхгүй).

@@ -22,7 +22,7 @@ onMounted(load);
 
 // Хадгалаагүй шинэ хоосон багц нэмнэ.
 function add() {
-    plans.value.push({ id: null, slug: '', name: '', price: 0, period_days: 30, credits: 0, is_active: true, sort: plans.value.length + 1, featuresText: '' });
+    plans.value.push({ id: null, slug: '', kind: 'subscription', name: '', price: 0, period_days: 30, credits: 0, is_active: true, sort: plans.value.length + 1, featuresText: '' });
 }
 
 // Багцыг хадгална (id байвал PUT, үгүй бол POST), дараа нь нийтийн metadata-г шинэчилнэ.
@@ -60,6 +60,7 @@ async function save(p) {
                     <div><label class="label">Slug</label><input v-model="p.slug" class="field" /></div>
                     <div><label class="label">Үнэ (₮)</label><input v-model.number="p.price" type="number" class="field" /></div>
                     <div><label class="label">Хоног</label><input v-model.number="p.period_days" type="number" class="field" /></div>
+                    <div><label class="label">Төрөл</label><select v-model="p.kind" class="field"><option value="subscription">Багц (сар/жил)</option><option value="pack">Нэмэлт кредит</option></select></div>
                     <div><label class="label">Кредит</label><input v-model.number="p.credits" type="number" min="0" class="field" /></div>
                     <div><label class="label">1 кредит</label><div class="field tabular-nums" :class="p.price && p.credits && p.price / p.credits < floor ? 'text-red-300' : 'text-muted'">{{ p.price && p.credits ? money(Math.round(p.price / p.credits)) : '—' }}</div></div>
                 </div>

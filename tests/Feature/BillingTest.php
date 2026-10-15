@@ -240,6 +240,29 @@ class BillingTest extends TestCase
         $this->assertSame(150, $credits->balance($user) - $this->freeCredits($user));
     }
 
+    public function test_credit_packs_are_sold_apart_from_plans(): void
+    {
+        $this->getJson('/api/v1/meta')->assertJsonCount(3, 'packs')->assertJsonPath('packs.0.slug', 'credits-12')->assertJsonCount(7, 'plans');
+
+        $user = User::factory()->create();
+        $standard = Plan::where('slug', 'standard')->first();
+        $pack = Plan::where('slug', 'credits-36')->first();
+        app(BillingService::class)->markPaid(Payment::create(['user_id' => $user->id, 'plan_id' => $standard->id, 'sender_invoice_no' => 'S1', 'callback_token' => 's', 'amount' => $standard->price, 'status' => 'pending']));
+        $end = $user->subscriptions()->paid()->max('ends_at');
+
+        // A pack starts today (does not extend the plan), lasts 90 days, adds its credits, and is not a subscription.
+        $sub = app(BillingService::class)->markPaid(Payment::create(['user_id' => $user->id, 'plan_id' => $pack->id, 'sender_invoice_no' => 'P1', 'callback_token' => 'p', 'amount' => $pack->price, 'status' => 'pending']));
+        $this->assertEqualsWithDelta(now()->timestamp, $sub->starts_at->timestamp, 5);
+        $this->assertEqualsWithDelta(now()->addDays(90)->timestamp, $sub->ends_at->timestamp, 5);
+        $this->assertSame($end, $user->subscriptions()->paid()->max('ends_at'));
+        $this->assertSame(60 + 36, app(\App\Services\Billing\Credits::class)->balance($user) - $this->freeCredits($user));
+
+        $packOnly = User::factory()->create();
+        app(BillingService::class)->markPaid(Payment::create(['user_id' => $packOnly->id, 'plan_id' => $pack->id, 'sender_invoice_no' => 'P2', 'callback_token' => 'q', 'amount' => $pack->price, 'status' => 'pending']));
+        $this->assertFalse($packOnly->fresh()->isSubscribed());
+        $this->assertSame(36, app(\App\Services\Billing\Credits::class)->balance($packOnly) - $this->freeCredits($packOnly));
+    }
+
     private function freeCredits(User $user): int
     {
         return (int) $user->subscriptions()->whereHas('plan', fn ($q) => $q->where('price', 0))->sum('credits');

@@ -130,7 +130,9 @@ class MeController extends Controller
                 'durations' => collect(config('creations.reel.durations'))->map(fn ($hint, $s) => ['id' => $s, 'label' => "{$s} сек", 'hint' => $hint])->values(),
             ],
             'uploads' => config('creations.uploads'),
-            'plans' => Plan::where('is_active', true)->orderBy('sort')->get(['id', 'slug', 'name', 'price', 'period_days', 'credits', 'features']),
+            'plans' => Plan::where('is_active', true)->where('kind', Plan::SUBSCRIPTION)->orderBy('sort')->get(['id', 'slug', 'name', 'price', 'period_days', 'credits', 'features']),
+            // Багцаас гадна нэмэлт кредит.
+            'packs' => Plan::where('is_active', true)->where('kind', Plan::PACK)->where('price', '>', 0)->orderBy('sort')->get(['id', 'slug', 'name', 'price', 'period_days', 'credits', 'features']),
             'credit_prices' => app(CostMeter::class)->creditPrices(),
             'usd_mnt' => config('pricing.usd_mnt'),
             'payments_fake' => (bool) config('qpay.fake'),

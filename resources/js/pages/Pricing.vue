@@ -114,6 +114,23 @@ async function paid() {
             </div>
         </div>
 
+        <!-- Багцаас гадна нэмэлт кредит: нэг удаа төлнө, захиалга сунгахгүй -->
+        <section v-if="session.meta.packs?.length" class="mt-14">
+            <h2 class="display text-3xl">Нэмэлт кредит</h2>
+            <p class="mt-2 text-sm text-zinc-400">Багцгүйгээр эсвэл багцынхаа кредит дуусахад нэг удаа худалдаж аваарай. Багцын кредитийн дараа зарцуулагдана.</p>
+            <div class="mt-5 grid gap-4 sm:grid-cols-3">
+                <div v-for="p in session.meta.packs" :key="p.id" class="feature-card flex flex-col">
+                    <span class="text-[15px] font-semibold">{{ p.name }}</span>
+                    <div class="display mt-2 text-3xl">{{ money(p.price) }}</div>
+                    <div class="mt-1 text-sm text-muted">1 кредит {{ money(perCredit(p)) }} · {{ p.period_days }} хоног</div>
+                    <ul class="mt-4 flex-1 space-y-2 text-sm text-zinc-300">
+                        <li v-for="f in p.features" :key="f" class="flex items-start gap-2"><Icon name="check" size="16" class="mt-0.5 shrink-0 text-lime" /> {{ f }}</li>
+                    </ul>
+                    <button class="btn btn-white mt-5 w-full py-2.5" :disabled="busy === p.id" @click="buy(p)"><span v-if="busy === p.id" class="spinner" /> Авах</button>
+                </div>
+            </div>
+        </section>
+
         <!-- QPay төлбөрийн цонх -->
         <PaymentDialog v-if="payment" :payment="payment" @close="payment = null" @paid="paid" />
     </div>
