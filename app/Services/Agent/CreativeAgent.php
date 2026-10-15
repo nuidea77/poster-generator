@@ -328,7 +328,7 @@ class CreativeAgent
         $lines[] = $creation->prompt;
 
         // Постерт: олон янз байдлын сануулга ба ажлын id-гаар ээлжилсэн footer санаа.
-        if ($creation->type === Creation::POSTER) {
+        if ($creation->type === Creation::POSTER && ! config('ai.agent.free_layout')) {
             array_push($lines, ...$this->recentDesigns($creation));
             $lines[] = '';
             $lines[] = '## Footer idea for this poster';

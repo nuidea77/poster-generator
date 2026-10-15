@@ -90,7 +90,8 @@ class TextOverlay
             [$rowOf, $rowSize, $rowLen, $r] = [[], [], [], -1];
             // Role-ийн хэмжээний хувь; footer дотор мэдээлэл бүр `small`-д ойр (утас дээд тал нь 1.25×),
             // зурвас жигд байна — "subtitle" утас бусад мэдээллийг дарах ёсгүй.
-            $roleSize = fn ($it) => ($it['position'] ?? '') === 'footer'
+            $free = (bool) config('ai.agent.free_layout');
+            $roleSize = fn ($it) => ($it['position'] ?? '') === 'footer' && ! $free
                 ? min(self::SIZES[$it['role'] ?? ''] ?? self::SIZES['subtitle'], self::SIZES['small'] * 1.25)
                 : (self::SIZES[$it['role'] ?? ''] ?? self::SIZES['subtitle']);
             // Item-д мөрөнд хэрэгтэй зай: тэмдэгтүүд (+ icon, + panel) × role-ийн хэмжээ.
@@ -105,7 +106,7 @@ class TextOverlay
             // зөвхөн төлөвлөгдөөгүй footer-ийг (same_line огт байхгүй) энд байрлуулна.
             // Нөхцөл: 2–6 footer item, жагсаалтад дараалан (завсаргүй) байх.
             $planned = collect($footerKeys)->contains(fn ($k) => ! empty($list[$k]['same_line']));
-            if (! $planned && count($footerKeys) >= 2 && count($footerKeys) <= 6 && end($footerKeys) - reset($footerKeys) === count($footerKeys) - 1) {
+            if (! $free && ! $planned && count($footerKeys) >= 2 && count($footerKeys) <= 6 && end($footerKeys) - reset($footerKeys) === count($footerKeys) - 1) {
                 $facts = array_map(fn ($k) => $list[$k], $footerKeys);
                 $isPhone = fn ($it) => ($it['icon'] ?? '') === 'phone';
                 usort($facts, fn ($a, $b) => $isPhone($a) <=> $isPhone($b)); // тогтвортой: зөвхөн утас сүүл рүү шилжинэ

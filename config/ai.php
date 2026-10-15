@@ -39,6 +39,9 @@ return [
         'via' => env('AI_AGENT_VIA', 'anthropic'),
         // Vertex дээрх загварын нэр өөр байвал (жишээ нь хувилбарын дагавартай); хоосон бол `model`.
         'vertex_model' => env('AI_AGENT_VERTEX_MODEL'),
+        // Чөлөөт горим: кодын дизайны шийдвэрүүдийг (footer-ийн автомат мөр, footer-ийн хэмжээний
+        // хязгаар, брифийн footer / найруулгын санал) унтрааж, бүгдийг skill-ээр шийдүүлнэ.
+        'free_layout' => (bool) env('AI_FREE_LAYOUT', false),
     ],
 
     // Гадны AI provider-ууд: `kind` нь image эсвэл video, agent аль нэгийг нь дуудлага бүрт сонгоно.
