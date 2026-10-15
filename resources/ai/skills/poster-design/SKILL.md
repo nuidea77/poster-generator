@@ -186,6 +186,14 @@ A poster is 4–6 blocks: **Logo · Headline · Subheadline · Visual hook · De
 - **Benefits:** ≤ 3 short lines, or turn them into one strong line. A checklist is for services, not for every poster.
 - Exact strings and fonts: `poster-typography`; panels/chips: `poster-layouts`.
 
+## 5b. Contacts that look finished
+Contacts are the last thing read but the first thing that looks cheap. Check them like a designer:
+- **Sit them in their space:** if the visual has a band, panel or calm strip for them, centre the group inside it vertically — measure on the returned image and set `y` on the first contact row (e.g. a band from 80% to 100% → first row at about `y: 0.85`). Never let text touch a band's edge or float with empty band below.
+- **One system:** all contact lines one size (`small`), one colour, one icon style, one alignment that matches the content above (left content → left contacts; centred → a centred group).
+- **Group logically:** place · hours on one row, phone · social · web on another — or everything in one row when it fits; don't leave one lonely item per row next to a pair.
+- **Breathing room:** a clear gap (≥ 2 units) between the offer/CTA block and the contacts; contacts never crowd the CTA.
+- **Contrast:** light text on dark bands, dark text on light; never a dark brand colour on a mid brand colour (dark green on green). An accent word inside a contact line only if it still reads at phone size.
+
 ## 6. Colour
 Palette from the logo / brand / packaging, as hex. Max 2 main + 1 accent; the accent is used once or twice (offer, CTA). Type colour contrasts strongly with what is behind it. Mood: premium → dark/neutral + one jewel tone; food → warm; youth/sport → saturated, hard light; family → warm, soft; health → clean whites with one confident brand colour, not pale blue everywhere. Style recipes: `poster-styles`; avoiding generic looks: `poster-taste`.
 
