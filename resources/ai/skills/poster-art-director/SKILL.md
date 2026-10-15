@@ -40,7 +40,7 @@ Never invent facts, prices, phone numbers, discounts or claims.
 
 ## 2. Design read and style
 Write a note: **"Reading this as: <kind> for <audience>, <mood>, leaning toward <style>."** Dials — variance (centred 1 … asymmetric 10), density (one word 1 … packed 10), energy (muted 1 … loud 10): clinic/finance 4/4/4, premium 5/2/3, café 5/3/5, retail sale 6/6/8, youth/agency 8/5/8.
-**Style** — one of Minimal Editorial, Soft Structuralism, Editorial Warmth, Ethereal Tech, Colour-field Tech, Swiss Industrial, Tactical Dark, Generative Abstract, Neo-Brutalism, Acid / Psychedelic, Retro & Y2K, 3D Surreal (`poster-styles`). The brand's colours win over any preset.
+**Style** — one of Minimal Editorial, Soft Structuralism, Editorial Warmth, Ethereal Tech, Colour-field Tech, Swiss Industrial, Tactical Dark, Generative Abstract, Neo-Brutalism, Acid / Psychedelic, Retro & Y2K, 3D Surreal, Bold Typographic / Swiss, Corporate & Editorial, Commercial / Promotional, Data & Infographic (`poster-styles`). The brand's colours win over any preset.
 **Avoid the AI defaults** (`poster-taste`): purple glow by reflex, everything centred, glass on everything, beige + brass as "premium", neon, gradient text, cliché words (`Шилдэг`, `Хамгийн`, `Дэлхийн жишигт`), emoji, model-drawn text or fake UI.
 
 ## 3. Picture and layout

@@ -1,6 +1,6 @@
 ---
 name: poster-styles
-description: Named poster style directions with exact recipes — Minimal Editorial, Soft Structuralism, Editorial Warmth, Ethereal Tech, Swiss Industrial, Tactical Dark, Colour-field Tech, Generative Abstract, Neo-Brutalism, Acid / Psychedelic, Retro & Y2K and 3D Surreal — each with when to use, palette, visual prompt wording, add_text settings (fonts, roles, shapes) and what to avoid. Load after the design read (poster-taste) when choosing the look of a poster or set.
+description: Named poster style directions with exact recipes — Minimal Editorial, Soft Structuralism, Editorial Warmth, Ethereal Tech, Swiss Industrial, Tactical Dark, Colour-field Tech, Generative Abstract, Neo-Brutalism, Acid / Psychedelic, Retro & Y2K, 3D Surreal, plus four genre playbooks (Bold Typographic / Swiss, Corporate & Editorial, Commercial / Promotional, Data & Infographic) — each with when to use, palette, visual prompt wording, add_text settings (fonts, roles, shapes) and what to avoid. Load after the design read (poster-taste) when choosing the look of a poster or set.
 origin: Adapted from "minimalist-ui", "high-end-visual-design" and "industrial-brutalist-ui" in Leonxlnx/taste-skill (MIT, see LICENSE.txt); the generative section draws on ideas from Anthropic's "algorithmic-art" skill (Apache-2.0) — web/CSS and p5.js rules translated to image prompts + add_text
 ---
 
@@ -22,6 +22,10 @@ Pick **one** style per poster set and commit to it; never mix two. The brand's o
 | Acid / Psychedelic | music festivals, parties, clubs, concerts | 9 / 4 / 10 |
 | Retro & Y2K | fashion drops, cafés, music, nostalgia campaigns | 7 / 4 / 7 |
 | 3D Surreal | tech launches, apps, beauty, futuristic products | 7 / 2 / 7 |
+| Bold Typographic / Swiss | events, talks, exhibitions, statements, brands without a photo | 8 / 3 / 7 |
+| Corporate & Editorial | B2B, banks, conferences, NGOs, reports, hiring | 4 / 5 / 3 |
+| Commercial / Promotional | retail sales, FMCG, food delivery, gadgets, launches | 7 / 6 / 9 |
+| Data & Infographic | results, reports, comparisons, "how it works", health facts | 5 / 7 / 5 |
 
 ## Minimal Editorial
 - **Palette:** off-white `F7F6F3` or white canvas, charcoal `2F3437` text (never pure black), muted grey `787774`; one washed pastel for tags (pale blue `E1F3FE` / text `1F6C9F`, pale green `EDF3EC` / `346538`).
@@ -95,6 +99,40 @@ For posters without a product photo: the visual is an original generative-art-li
 - **Visual prompt:** "surreal 3D render, the product floating among abstract glossy shapes (spheres, arches, stairs), soft studio light, dreamlike impossible scale, clean background with a calm area for the headline".
 - **add_text:** white or deep-navy `bold_sans` headline over the calm area; few items (density 2–3); one `glass` chip.
 - **Avoid:** busy shapes behind the text, more than one accent.
+
+## Bold Typographic / Swiss (the type is the picture)
+Almost no photo: the letters, the grid and one or two flat shapes carry the whole poster.
+- **Grid first.** Decide a strict grid before any word: 6 or 12 columns across the frame, margins ≈ 7%, all blocks on column edges, one dominant axis (usually a hard left edge). Nothing floats; every line starts on a column line, every gap is a multiple of one unit.
+- **Scale contrast is the drama.** One `display` element (a word, a number, a date) 8–12× the size of the body text; body facts `small`. Nothing in between except at most one `subtitle`. Big type may run nearly edge to edge — tightly stacked lines (`\n`, the tool sets caps tight).
+- **Vertical rhythm.** All small lines share one size and one line gap; blocks are separated by 2–4 equal units, so the poster has a visible beat.
+- **Visual (image model):** a flat field — off-white, signal red, cobalt, black — with at most one geometric element (a circle, a thick rule, a quarter arc, a grid of thin lines) placed on the grid; optional fine paper grain. Prompt: "flat Swiss modernist poster background, solid [colour] field, one large [red circle] in the [upper right] third, thin black grid lines, no text, no letters".
+- **Colour:** 1 field colour + black/white type + 1 signal accent used once.
+- **Optical spacing:** the tool sets letter spacing itself — choose fonts and line breaks that look even (`condensed` caps for tall stacks, `bold_sans` for wide words); avoid lines that end with one short word.
+- **What the tool cannot do:** curve, warp, rotate, put text on a path or extrude in 3D. For a kinetic feel ask the image model for motion in the shapes (a swoosh, speed lines, a warped abstract form) and keep the words straight.
+- **Avoid:** photos used as decoration, more than two fonts, centred everything, boxes.
+
+## Corporate & Editorial (trust and order)
+- **Brand compliance:** use the client's exact colours (main + secondary as hex), their logo with its clear space (`logo-placement`), one sober font pair (`bold_sans` headline + `sans` body, or `serif` headline for editorial). No off-brand accents.
+- **Photography:** real people and places, natural skin tones, neutral-to-warm white balance, no oversaturation or plastic retouching. Prompt: "editorial corporate photograph, natural daylight, true skin tones, calm neutral colour grade matching [brand colour], shallow depth of field, uncluttered office/venue background".
+- **B2B information order:** 1) what (event / service / result) → 2) who (speaker name `subtitle`, title/position `small` directly under it) → 3) when & where (date · time · venue on one line) → 4) action (register / contact) → 5) partner logos small and equal at the bottom. Never let partners compete with the host.
+- **Subtle balance:** thin divider lines, soft tinted panels (`glass` or a pale `card`), generous white space, left-aligned column; no bursts, no neon, no stickers.
+- **Avoid:** stock handshake clichés, five accent colours, centred long paragraphs.
+
+## Commercial / Promotional (drive the purchase)
+- **Hero product, isolated and real:** the product cut out cleanly on its scene, with a true contact shadow and ambient occlusion where it touches the surface; the client's product photo stays identical (pass it as reference, "keep the product exactly as in the reference"). Prompt: "product hero shot, crisp clean edges, real contact shadow and soft ambient shadow on the [surface], studio rim light, the product pops forward".
+- **Depth:** foreground elements slightly blurred (ingredients, splashes, particles, light flares, bokeh), the product sharp, the background soft — the product seems to come out of the screen.
+- **Eye path engineered:** product (largest, brightest) → discount/price (`display` or `price`, accent colour, next to the product) → CTA (`Захиалах →` / `Дэлгэрэнгүй →`, the only button). Use a diagonal band, a gaze or the product's direction to lead from one to the next.
+- **Vibrant colour:** warm, high-saturation palette (red, orange, yellow, hot pink) or the brand colour at full strength; strong value contrast so it pops on a phone screen (sRGB).
+- **Price devices:** old price small with the new price big (two items, the new one `price` in the accent), a round sticker for the percentage, "зөвхөн 11.15–11.30" urgency line `small`.
+- **Avoid:** more than one offer competing, tiny product, muddy dark backgrounds for food.
+
+## Data & Infographic (numbers made instant)
+- **Information architecture:** read the brief, pick the ONE key insight (e.g. "92% тэнцсэн"), then 2–4 supporting facts; drop the rest to the caption.
+- **Stat blocks instead of charts:** the tool draws text, not charts — show numbers as big `display`/`title` figures with a `small` label under each, in a row of 2–4 (`same_line`, equal columns via mixed aligns `left` / `center` / `right`) or a 2×2 grid. Keep the same number format and size for every stat.
+- **When a chart is essential:** ask the image model for a clean, label-free shape only (simple bars of stated relative heights, a donut with a stated share, a rising line) on a calm area, and set every number and label with add_text beside it — never trust the model's own proportions or labels; keep it to one simple chart.
+- **Chunking:** numbered steps (`1`, `2`, `3` as `title` numbers, the step text `small`), each step in its own `card` or under one consistent icon; arrows (`icon: arrow`) to show flow.
+- **Icons:** one icon set, one style (all `plain` or all `circle`), one colour; each icon means one thing.
+- **Avoid:** decorative 3D charts, more than one chart, numbers in different sizes, paragraphs.
 
 ## After choosing
 Write the chosen style in the design read note, keep it for every ratio, and check the result with `poster-critique`.
