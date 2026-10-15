@@ -26,8 +26,8 @@ return [
 
     'agent' => [
         'model' => env('AI_AGENT_MODEL', 'claude-fable-5-1'),
-        // Энгийн ажилд (нэг формат, оруулсан зураггүй постер) хямд загвар; хоосон бол үргэлж `model`.
-        'simple_model' => env('AI_AGENT_SIMPLE_MODEL'),
+        // Бүх постерт ашиглах загвар (хямд); хоосон бол `model`. Хуучин AI_AGENT_SIMPLE_MODEL-ийг ч уншина.
+        'poster_model' => env('AI_AGENT_POSTER_MODEL', env('AI_AGENT_SIMPLE_MODEL')),
         'effort' => env('AI_AGENT_EFFORT', 'medium'), // low | medium | high; medium нь хурдан, хямд, high нь хамгийн нямбай art direction
         // Нэг job-д agent-ийн хийх алхмын (tool дуудлагын эргэлт) дээд тоо.
         'max_steps' => (int) env('AI_AGENT_MAX_STEPS', 30),

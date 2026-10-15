@@ -960,9 +960,9 @@ class CreationTest extends TestCase
         $this->assertSame('img_1', collect($creation->fresh()->assets)->last()['from']);
     }
 
-    public function test_a_simple_poster_runs_on_the_cheaper_model_and_is_costed_at_its_price(): void
+    public function test_posters_run_on_the_cheaper_model_and_are_costed_at_its_price(): void
     {
-        config(['ai.agent.simple_model' => 'claude-sonnet-5-5', 'ai.agent.model' => 'claude-fable-5-1']);
+        config(['ai.agent.poster_model' => 'claude-sonnet-5-5', 'ai.agent.model' => 'claude-fable-5-1']);
         Http::fake(['api.anthropic.com/*' => Http::response(['content' => [['type' => 'tool_use', 'id' => 't1', 'name' => 'finish', 'input' => ['summary' => 'ok']]], 'stop_reason' => 'tool_use',
             'usage' => ['input_tokens' => 0, 'output_tokens' => 1000000, 'cache_read_input_tokens' => 0, 'cache_creation_input_tokens' => 0]])]);
         $simple = Creation::create(['user_id' => $this->user->id, 'type' => 'poster', 'formats' => ['4:5'], 'prompt' => 'x', 'status' => 'running', 'inputs' => []]);
@@ -977,13 +977,13 @@ class CreationTest extends TestCase
         $this->assertSame('claude-sonnet-5-5', $simple->fresh()->model);
         $this->assertEqualsWithDelta(10.0, (float) $simple->fresh()->cost_usd, 0.01); // 1M output tokens at $10, not Fable's $50
 
-        // Two formats (or uploaded images) keep the main model.
+        // Two formats use it too.
         $full = Creation::create(['user_id' => $this->user->id, 'type' => 'poster', 'formats' => ['4:5', '1:1'], 'prompt' => 'x', 'status' => 'running', 'inputs' => []]);
         try {
             app(CreativeAgent::class)->run($full);
         } catch (\Throwable) {
         }
-        $this->assertSame('claude-fable-5-1', $full->fresh()->model);
+        $this->assertSame('claude-sonnet-5-5', $full->fresh()->model);
     }
 
     public function test_placeholder_text_calls_are_refused(): void

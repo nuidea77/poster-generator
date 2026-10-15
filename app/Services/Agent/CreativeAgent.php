@@ -60,9 +60,9 @@ class CreativeAgent
             throw new AiException('No image model available (all out of quota/credits).');
         }
 
-        // Энгийн ажил (нэг формат, оруулсан зураггүй постер) хямд загвараар явна, бусад нь Fable.
-        $simple = $creation->type === Creation::POSTER && count($creation->formats ?? []) === 1 && ! $creation->inputs;
-        $this->model = $simple && config('ai.agent.simple_model') ? config('ai.agent.simple_model') : config('ai.agent.model');
+        // Бүх постер хямд загвараар (Opus 5.5: Fable-ээс ~2.6 дахин хямд, чанар ойролцоо) явна; reel нь Fable.
+        $poster = $creation->type === Creation::POSTER;
+        $this->model = $poster && config('ai.agent.poster_model') ? config('ai.agent.poster_model') : config('ai.agent.model');
         $creation->update(['model' => $this->model]);
         $creation->setStage('planning', 5);
 

@@ -88,7 +88,7 @@ async function paid() {
         </div>
 
         <!-- Багцын картууд -->
-        <div class="grid gap-4 md:grid-cols-3">
+        <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <div v-for="(p, i) in visible" :key="p.id" class="feature-card flex flex-col" :class="{ 'border-lime/60': i === 1 }">
                 <div class="mb-4 flex items-center justify-between">
                     <span class="text-[15px] font-semibold">{{ p.name }}</span>

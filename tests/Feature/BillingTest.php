@@ -53,7 +53,8 @@ class BillingTest extends TestCase
     {
         $this->getJson('/api/v1/meta')
             ->assertOk()
-            ->assertJsonCount(5, 'plans')
+            ->assertJsonCount(7, 'plans')
+            ->assertJsonPath('plans.2.slug', 'business')
             ->assertJsonCount(11, 'poster_formats')
             ->assertJsonCount(4, 'reel.durations')
             ->assertJsonPath('credit_prices.reel.30', 140)
