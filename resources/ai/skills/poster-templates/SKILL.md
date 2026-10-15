@@ -1,6 +1,6 @@
 ---
 name: poster-templates
-description: Twelve proven poster layouts as ready add_text recipes (block order, positions, roles, fonts, which visual to ask for) — hero number sale, split with person, product centre with callouts, bottom-heavy food, full-bleed event, editorial luxury, Swiss type-only, neo-brutal promo, checklist service, stat infographic, greeting, launch. Use one as a solid starting point and adapt it; pick a different one from the client's recent posters. Load for every POSTER job.
+description: Sixteen proven poster layouts as ready add_text recipes (block order, positions, roles, fonts, which visual to ask for) — hero number sale, split with person, product centre with callouts, bottom-heavy food, full-bleed event, editorial luxury, Swiss type-only, neo-brutal promo, checklist service, stat infographic, greeting, launch, clean light product, app how-to, spec & instalment, hero word with a person — plus lessons from Mongolian brand posters. Use one as a solid starting point and adapt it; pick a different one from the client's recent posters. Load for every POSTER job.
 ---
 
 # Poster templates — proven starting points
@@ -21,5 +21,20 @@ A template fixes the **structure** (what goes where, which role, which font fami
 | T10 | **Stat infographic** | calm gradient or soft photo, open middle | `top` `title` insight · `center` row of 3 stats: `display`/`title` numbers with `small` labels under (mixed aligns for columns) · `lower_third` one line · `bottom` contacts |
 | T11 | **Greeting** | symbolic still life (`mongolian-culture`), calm centre or top | centred: `top` `title` occasion (`display_serif` or `script`) · `top` `subtitle` wish · `bottom` brand line small — no CTA pill unless asked |
 | T12 | **Launch** | product hero with dramatic light on dark, top 35% dark | `top` small `ШИНЭ` chip · `top` `title` product name (`heavy`, accent word) · `top` one benefit `small` · `lower_third` price + CTA · `bottom` contacts |
+
+| T13 | **Clean light product** (Storepay, Zaya Bilgee, Dell) | product(s) as crisp cut-outs floating on a near-white or pale-tint field, soft shadow, nothing else | `top` partner/brand line small · `top` `title` centred dark grey (`bold_sans`, 2 lines) · `top` `small` subline · product in the middle · price block near the product (old price `strike` small + new price `price`) · `bottom` `small` date chip |
+| T14 | **App how-to** (Unitel, Mobicom) | person using a phone, or the product, calm area at the bottom | `top` `title` · `center` short benefit in a `glass` chip · `bottom` a row of 2–3 step chips (`glass` pills, mixed aligns, `icon: arrow` between ideas): `Unitel апп` → `Багц шилжих` → `Live` |
+| T15 | **Spec & instalment** (PC Mall, Dell) | product on a dark or white field, one side empty | `top` `title` (or `wide`) · `center` 3–4 spec rows label left / value right (`same_line`, mixed aligns) · `bottom` price trio in a row: old price `strike` · new price `price` · monthly `Сард төлөх` |
+| T16 | **Hero word behind / with a person** (Unitel DataBox, Family) | a person or product in the lower 60%, the top 35% plain gradient | `top` small kicker · `top` a giant `display` word (`heavy`/`bold_sans`, brand name or offer) spanning the width — the person sits just below/in front of it · `bottom` one `glass` or `outline` pill with the action |
+
+**Lessons from Mongolian brand posters (Storepay, Unitel, Mobicom, PC Mall, Dr.Chingun, Zaya Bilgee, M Leasing):**
+- **Light and air win for premium/fintech/beauty:** a near-white field, one product, a short dark-grey headline, everything centred — calm beats busy. Dark full photos are not the default.
+- **Partner line:** two brands shown as `Brand | Partner` small at the top centre (logos via `add_logo`; without files, as a `small` text line).
+- **Price storytelling:** old price struck (`strike: true`, small, grey/red) next to the new price (big) — and for leasing/instalments a third number `Сард төлөх` — set in one row.
+- **Steps as chips:** "how to get it" as 2–3 pill chips in a row with arrows (`Апп → Цэс → Үйлчилгээ`), not a paragraph.
+- **One accent word:** a calm serif/sans headline with a single word in the brand colour (`*дэрвийлгэ*`).
+- **Gold for aesthetics clinics:** gold/cream world, `condensed` caps headline in deep gold, a 3-tile before/during/after row painted by the image model, labels under each tile.
+- **Outline buttons on photos:** a phone number or CTA in a `box_shape: outline` pill reads premium over a dark fade.
+- **Maximal retail is a choice:** loud 3D/stage/confetti scenes (electronics sales) work for mass promotions — paint the decor with the image model, keep the type flat and huge; never on clinics or finance.
 
 **Make it yours:** change the font family within the template's character, the palette, the picture and the effect; break the grid once (`poster-design` §2c). Report the template in `deliver_poster` `design.idea` (e.g. "T4 bottom-heavy food: …").

@@ -162,12 +162,12 @@ class TextOverlay
                 $widest = max(array_map(fn ($line) => ($box = imagettfbbox(100 * 0.75, 0, $fontFile, $line)) ? $box[2] - $box[0] : 0, explode("\n", $text)));
                 // Panel-ийн хэлбэр: rect (drawtext box), pill (бөөрөнхий, box өнгөтэй), card эсвэл glass (царцсан цайвар pill).
                 // pill/card нь box-гүй бол rect болно.
-                $shape = in_array($item['box_shape'] ?? 'rect', ['pill', 'glass', 'card'], true) ? $item['box_shape'] : 'rect';
+                $shape = in_array($item['box_shape'] ?? 'rect', ['pill', 'glass', 'card', 'outline'], true) ? $item['box_shape'] : 'rect';
                 if (in_array($shape, ['pill', 'card'], true) && empty($item['box'])) {
                     $shape = 'rect';
                 }
                 // $boxed = panel-ийн хэвтээ дотор зай em-ээр (rect 0.7, бөөрөнхий 1.4).
-                $panel = ! empty($item['box']) || $shape === 'glass';
+                $panel = ! empty($item['box']) || in_array($shape, ['glass', 'outline'], true);
                 $boxed = $panel ? ($shape === 'rect' ? 0.7 : 1.4) : 0.0;
                 $size = (int) max(8, min($size, floor($w * ($paired ? 0.86 * $share - 0.03 : 0.86) / max(0.01, $widest / 100 + $boxed + ($paired && ($item['icon'] ?? 'none') !== 'none' ? 1.3 : 0)))));
                 $soft = ! $still && ! $panel && in_array($item['role'] ?? '', ['subtitle', 'small'], true); // видео дээр зөөлөн бараан panel
@@ -372,7 +372,7 @@ class TextOverlay
                             $icons[array_key_last($icons)][1] = $trail ? $panelX + $padX + $textW + (int) round($size * 0.35) : $panelX + $padX;
                             $icons[array_key_last($icons)][2] = $y + (int) round(($b['height'] - $iconPx) / 2);
                         }
-                        File::put("{$dir}/p{$i}.png", $this->panel($width, $b['height'], $b['shape'] === 'card' ? 'pill' : $b['shape'], $this->hex($item['box_color'] ?? 'FFFFFF'), $b['shape'] === 'card' ? (int) round($size * 0.5) : ($multi ? (int) round($size * 0.6) : null)));
+                        File::put("{$dir}/p{$i}.png", $this->panel($width, $b['height'], $b['shape'] === 'card' ? 'pill' : $b['shape'], $this->hex(($b['shape'] === 'outline' ? ($item['box_color'] ?? '') ?: ($item['color'] ?? '') : ($item['box_color'] ?? '')) ?: 'FFFFFF'), $b['shape'] === 'card' ? (int) round($size * 0.5) : ($multi ? (int) round($size * 0.6) : null)));
                         $panels[] = ["p{$i}.png", $panelX, $y, $still ? null : "between(t,{$start},{$end})"];
                     }
 
@@ -452,6 +452,11 @@ class TextOverlay
                         $right => $w - $margin - $width,
                         default => (int) round($cx - $width / 2),
                     };
+                    // Зураастай текст (хуучин үнэ): текстийн дундуур хөндлөн шугам.
+                    if (! empty($item['strike']) && $b['shape'] === 'rect') {
+                        $thick = max(2, (int) round($size * 0.07));
+                        $filters[] = 'drawbox=x='.($x0 + $pad).':y='.((int) round($y + $b['height'] * 0.44) - intdiv($thick, 2)).':w='.max(1, $width - 2 * $pad).":h={$thick}:color=0x".$this->hex(($item['strike_color'] ?? '') ?: ($item['color'] ?? 'FFFFFF')).':t=fill';
+                    }
                     $this->placed[] = ['text' => $b['text'], 'panel' => $pad > 0, 'rect' => [$x0, $y, $x0 + $width, $y + $b['height']], 'color' => $this->hex($item['color'] ?? ''), 'accent' => $b['marked'] ? $this->hex($item['accent_color'] ?? 'FFB703') : null, 'position' => $position, 'row' => $b['rowNo'], 'shrunk' => $size < (int) round(min($w, $h) * $roleSize($item) * 0.75)];
                     // Дараагийн мөрийн y = энэ мөрийн дээд + мөрийн өндөр + хамгийн том gap.
                     $rowGap = max($same ? $row['gap'] : 0, $b['gap']);
@@ -648,6 +653,11 @@ class TextOverlay
         if ($shape === 'glass') {
             $shapeAt(0, imagecolorallocatealpha($big, 255, 255, 255, 30));           // цайвар хүрээ
             $shapeAt(2 * $k, imagecolorallocatealpha($big, 255, 255, 255, 64));      // царцсан дүүргэлт ~50%
+        } elseif ($shape === 'outline') {
+            // Зөвхөн хүрээ: өнгөт цагираг, дотор нь тунгалаг (утасны дугаар, "Join now" зэрэг товч).
+            $stroke = max(2, (int) round($h * 0.045)) * $k;
+            $shapeAt(0, imagecolorallocatealpha($big, $r, $g, $b, 0));
+            $shapeAt($stroke, imagecolorallocatealpha($big, 0, 0, 0, 127));
         } else {
             // pill: alpha 10/127 ≈ 92% тунгалаг бус.
             $shapeAt(0, imagecolorallocatealpha($big, $r, $g, $b, 10));
