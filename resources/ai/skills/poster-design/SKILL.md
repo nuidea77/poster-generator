@@ -42,6 +42,8 @@ Pick one hero: the product, a person's emotion, a bold number (`-40%`, `25 жи�
 | Neutral + one accent | editorial, luxury, minimal | black/white/stone + one red word |
 Topic colours as a starting point, never a rule: health → clean white + one confident green/blue; rock/night → black + red/amber; kids → bright primaries; luxury → black, cream, gold; eco → greens, kraft. Brand colours win. Contrast: type against what is behind it must be strong (white/yellow on dark, near-black on light); never mid-tone on mid-tone. Digital posters are RGB (sRGB JPEG); print CMYK is not our concern.
 
+**Colour is relative (Albers).** The same colour looks different on different grounds: grey looks warm on blue and cool on orange; a mid-tone looks lighter on black and darker on white. So judge every text colour **on the actual area behind it** in the returned poster, not in the palette. Two complements of equal brightness side by side (red text on green, blue on orange) **vibrate** — unreadable edges; separate them by value (one clearly darker). Value (light/dark) carries legibility, hue carries mood: if a poster still reads in greyscale, the contrast is right.
+
 **60-30-10:** about 60% dominant colour (the background world), 30% secondary (the subject, panels), 10% accent (the offer, the CTA, the starred word). Triadic schemes (three evenly spaced hues) are lively but hard — keep one dominant and the other two small. At most 2–3 colours plus neutrals.
 
 **Reading patterns:** a poster with little text reads in a **Z** (top-left → top-right → diagonal → bottom-left → bottom-right): headline top, hero across, offer and action at the bottom right. Text-heavy layouts read in an **F** down the left edge — keep their lines left-aligned.
@@ -77,6 +79,14 @@ Five ways to move the eye — combine two or three, never fight:
 - **I — Internal rhythm:** margins and gaps follow one unit; the eye's trip has an even beat.
 - **F — Friction & flow:** one sharp, surprising decision (friction) balanced by calm, easy reading areas (flow) — not all friction, not all calm.
 - **T — Transferability:** the structure still reads when shrunk to a phone thumbnail and when re-composed for 9:16 or 1:1 — the leverage point and the hierarchy survive.
+
+## 2d. Made for a person with a thumb (UX)
+A poster is a tiny interface: the viewer must know in a second what to do and be able to do it without error.
+- **One clear action**, worded as a verb (`Залгах`, `Захиалах`, `Бүртгүүлэх`), shaped like something to press (a pill with an arrow) — not three competing calls.
+- **Facts that can't be misread:** phone as `9911-4422` (grouped), dates as `11.15–11.30`, prices with `₮` and thousands separators, the address as the shortest findable form, the handle exactly as typed in the app (`@seoulgrill.mn`). No ambiguous abbreviations.
+- **Nothing that looks clickable but isn't** — don't put plain facts in button-shaped pills.
+- **Stand out from the category:** look at what competitors' posters in this sector usually look like (`poster-taste`, the cliché list in `poster-art-director`) and choose a visual strategy that is recognisably different while still fitting the brand.
+- **Symbol over illustration:** when a simple symbol can carry the idea (a key for a new home, a sprout for growth, a shield for safety), one strong symbol beats a busy literal scene (`visual-concept`).
 
 ## 3. Art-direct the visual (the image model's job)
 The image carries the design — colour world, shapes, light, space for the type. Never ask for "a photo of X with space for text". Ask for a **designed poster background**:

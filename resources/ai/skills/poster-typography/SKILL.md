@@ -47,6 +47,8 @@ Keep text inside the safe area (`format-composition`), never over faces, the pro
 
 **Weight hierarchy:** H1 = the headline (`title`/`display`, `bold_sans` or `condensed`); H2 = the offer or subhead (`subtitle`, bold); body = facts and benefits (`small`, `sans` Medium). Weight and size change together — a bold small line next to a light big one confuses the order.
 
+**Type anatomy for legibility:** what makes a face readable at phone size is a large **x-height** (lower-case height), open **counters** (the holes in о, е, а, б) and moderate weight. So: small facts in `sans` (Montserrat Medium — big x-height, open counters), never `bold_sans` ExtraBold below `small` (counters close up, "е" and "о" blur); `condensed` only for big sizes (narrow counters fill in when small); `serif` only big (thin hairlines vanish small). Mongolian Cyrillic has many round letters (о, ө, ү, э) — give long Cyrillic words room: a larger size or fewer words, not tighter lines. Caps are for short words only; a long sentence in caps reads slowly.
+
 **Spacing:** stacked headlines are set tight (the tool uses ~1.0–1.1 line pitch for caps/condensed headlines); body lines get ~1.3–1.4. Never distort letters; letter-spacing is fixed — air comes from size, line breaks and margins.
 
 By mood: **bold retail** — heavy sans or condensed, caps, high contrast, one strong badge. **Premium / beauty** — sans or serif headline, small sizes, lots of air, one muted accent. **Fresh / food** — rounded or bold sans, warm colours. **Corporate / clinic / event** — clean sans, left-aligned grid. **Kids / playful** — rounded, bright, sticker-like pills.

@@ -134,5 +134,16 @@ Almost no photo: the letters, the grid and one or two flat shapes carry the whol
 - **Icons:** one icon set, one style (all `plain` or all `circle`), one colour; each icon means one thing.
 - **Avoid:** decorative 3D charts, more than one chart, numbers in different sizes, paragraphs.
 
+## Design movements to borrow from (inspiration, not costume)
+Use a movement's *principle*, not a pastiche, and only when it fits the brand:
+| Movement | Principle to borrow | Fits |
+|---|---|---|
+| **Bauhaus** | primary colours, circle/square/triangle, function first, asymmetric balance | education, architecture, design-minded brands |
+| **Constructivism** | strong diagonals, red/black, bold blocks, photos cut into geometry | campaigns, protests-of-the-ordinary, sport, energy |
+| **Art Deco** | symmetry, gold lines on dark, stepped geometric frames, elegance | luxury, hotels, jewellery, galas |
+| **Swiss / International** | grid, sans, objective photography, white space | events, corporate, culture |
+| **Postmodern / Memphis** | playful shapes, squiggles, clashing pastels, rule-breaking | youth, kids, cafés, pop-ups |
+| **Mongolian heritage, modernised** | ulzii / khee patterns as a thin frame or tone-on-tone texture, deep blue + gold, felt and silver textures (`mongolian-culture`) | Tsagaan Sar, Naadam, national brands, cashmere |
+
 ## After choosing
 Write the chosen style in the design read note, keep it for every ratio, and check the result with `poster-critique`.
