@@ -3,6 +3,7 @@
 namespace App\Services\Agent;
 
 use App\Models\Creation;
+use App\Models\StyleReference;
 use App\Services\AI\AiManager;
 use App\Services\AI\Exceptions\AiException;
 use App\Services\AI\Vertex;
@@ -317,6 +318,16 @@ class CreativeAgent
         if ($brand = $creation->user?->brand_name) {
             $lines[] = "- Brand: {$brand}";
         }
+        // Хэрэглэгчийн брэндийн багц (өнгө, фонт, өнгө аяс, тэмдэглэл, хадгалсан лого).
+        if ($kit = $creation->user?->brandBrief()) {
+            $lines[] = '';
+            $lines[] = '## '.$kit;
+        }
+        // Үнэлгээнээс суралцсан зүйл: энэ хэрэглэгч болон бүх хэрэглэгчдэд юу таалагдсан / таалагдаагүй.
+        if ($creation->type === Creation::POSTER && ($memory = app(DesignMemory::class)->brief($creation->user_id))) {
+            $lines[] = '';
+            $lines[] = $memory;
+        }
 
         $lines[] = '';
         $lines[] = '## Client brief';
@@ -362,6 +373,15 @@ class CreativeAgent
         $images = $this->ai->available('image');
         $videos = $this->ai->available('video');
         $tools = [];
+
+        if ($creation->type === Creation::POSTER) {
+            $tools[] = $this->tool('find_references',
+                'Search the studio\'s curated library of good example posters/visuals by category (and optionally style). Returns small previews with ids `ref_N`. Pass a chosen id in generate_image `reference_image_ids` as a STYLE reference (composition, light, colour mood) — say in the prompt what to borrow; never copy its text, logo or subject.',
+                [
+                    'category' => ['type' => 'string', 'enum' => StyleReference::CATEGORIES],
+                    'style' => ['type' => 'string', 'description' => 'Optional style tag, e.g. Swiss, Editorial Warmth; empty for any'],
+                ]);
+        }
 
         $tools[] = $this->tool('load_skill',
             'Read one skill from the library in full. Call before the work that skill covers. Some skills point to files under references/: pass `reference` (the file name) to read one of those instead.',
@@ -524,6 +544,7 @@ class CreativeAgent
     {
         return match ($name) {
             'load_skill' => $this->loadSkill($input),
+            'find_references' => $this->findReferences($input),
             'generate_image' => $this->generateImage($creation, $input),
             'generate_videos' => $this->generateVideos($creation, $input),
             'animate_still' => $this->animateStill($creation, $input),
@@ -1190,8 +1211,36 @@ class CreativeAgent
      *
      * @return array{data: string, mime: string}
      */
+    /**
+     * find_references: жишээ сангаас ангилал (ба стиль)-аар хайж, жижиг preview-тэй жагсаалт буцаана.
+     *
+     * @return array{content: string|array, summary: string}
+     */
+    private function findReferences(array $in): array
+    {
+        $found = app(ReferenceLibrary::class)->search((string) ($in['category'] ?? '') ?: null, (string) ($in['style'] ?? '') ?: null, 4);
+        if (! $found) {
+            return ['summary' => 'no references', 'content' => 'No references in this category yet — design from the skills alone.'];
+        }
+
+        $content = [['type' => 'text', 'text' => count($found).' reference(s). Use at most one or two, as style references only:']];
+        foreach ($found as $ref) {
+            $content[] = ['type' => 'text', 'text' => "`{$ref['id']}` — {$ref['title']}".($ref['style'] ? " ({$ref['style']})" : '').($ref['notes'] ? ": {$ref['notes']}" : '')];
+            $content[] = $this->imageBlock($ref['path']);
+        }
+
+        return ['summary' => implode(', ', array_column($found, 'id')), 'content' => $content];
+    }
+
     private function readAsset(Creation $creation, string $id, string $kind): array
     {
+        // Жишээ сангийн зураг (ref_N) — зөвхөн стилийн reference болж зураг үүсгэгчид очно.
+        if (str_starts_with($id, 'ref_') && $kind === 'image') {
+            $ref = app(ReferenceLibrary::class)->get($id) ?? throw new AiException("Unknown reference [{$id}].");
+
+            return MediaStore::read($ref['path']);
+        }
+
         $asset = $creation->asset($id) ?? throw new AiException("Unknown asset [{$id}].");
 
         if ($asset['kind'] !== $kind) {

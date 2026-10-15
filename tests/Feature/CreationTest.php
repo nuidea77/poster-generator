@@ -288,7 +288,7 @@ class CreationTest extends TestCase
                 && ! array_key_exists('tool_choice', $r->data())
                 && $r['fallbacks'] === 'default'
                 && $r->hasHeader('anthropic-beta', 'server-side-fallback-2026-07-01')
-                && $tools === ['load_skill', 'generate_image', 'add_text', 'add_logo', 'deliver_poster', 'finish']
+                && $tools === ['find_references', 'load_skill', 'generate_image', 'add_text', 'add_logo', 'deliver_poster', 'finish']
                 && collect($r['tools'])->firstWhere('name', 'deliver_poster')['input_schema']['properties']['format']['enum'] === ['4:5', '9:16']
                 && str_contains($r['system'][0]['text'], '`poster-design`')
                 && last(last($r['messages'])['content'])['cache_control'] === ['type' => 'ephemeral']
