@@ -20,6 +20,7 @@ Look at the returned poster the way a customer scrolling Instagram would, then l
 ## 3. Visual hierarchy
 - Reading order: hook → offer/price → CTA → facts. One clearly dominant element; no two equally loud ones.
 - Whitespace: text has room; nothing touches an edge; the product is not covered.
+- **Text over the subject:** zoom on every line next to a person or the product — a line crossing an arm, a face, hair, a hand or the product's edge is a fail: move the block to the calm side or shorten it so it ends before the subject.
 - Typography: ≤ 2 fonts, sizes in clear steps, line breaks balanced.
 
 ## 4. Consistency
@@ -28,7 +29,8 @@ Look at the returned poster the way a customer scrolling Instagram would, then l
 - Several ratios: the same choices in each.
 
 ## 5. Legibility and correctness
-- Contrast: headline strongest; no pale text on pale areas.
+- Contrast: headline strongest; no pale text on pale areas. Check **small coloured text** (kicker, accent line, price in the accent) on the area behind it: a muted or dark accent on a dark photo (dim yellow on brown), or **the same hue on the same hue** (red text on red stage light, blue on blue) disappears — switch it to white/cream, a brighter tint, or put it on a calm area.
+- **People look like the audience:** Mongolian / East Asian unless the brief says otherwise; a Western face on a Mongolian ad is a Critical issue — regenerate the visual with "a Mongolian man/woman" in the prompt.
 - Phone-size test: the smallest fact still readable (≥ `small`, not shrunk).
 - Image: no model-drawn letters/logos, faces and hands natural, product true to the reference, culture correct (`mongolian-culture`).
 
@@ -36,6 +38,7 @@ Look at the returned poster the way a customer scrolling Instagram would, then l
 | Severity | Examples | Action |
 |---|---|---|
 | **Critical** | misspelling, wrong price/date/phone, text over the product or a face, illegible headline, model-drawn fake text, wrong cultural item | fix before delivering |
+| **Critical** (also) | a person of the wrong ethnicity for the audience, text crossing a person's arm/hair or the product's edge, a small coloured line lost on a same-hue area | regenerate the visual (people) or move/recolour the text |
 | **Moderate** | weak offer, two loud elements, contacts crowded or shrunk, accent overused, pale headline | fix if one add_text call can do it |
 | **Minor** | spacing a bit uneven, a slightly long line | note it; deliver |
 

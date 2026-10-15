@@ -94,7 +94,7 @@ The image carries the design — colour world, shapes, light, space for the type
 - **Graphic structure painted in:** colour blocks, a big circle or arch behind the subject, a diagonal split, a frame, a spotlight pool, a gradient field, a textured paper band — painted by the model, text-free. These give the type a home and make it look designed.
 - **Crop with intent:** tight crops (face from the eyes down, product filling 60% of the height, hands in action), low or high angles, the subject cut by the frame edge. Avoid centred, medium, eye-level stock framing.
 - **Light:** one clear light idea — hard sun with shadows, studio rim light on black, soft window light, neon, golden hour. Light makes it premium.
-- **People:** real, specific, styled in the colour world (wardrobe in the brand colour), an expression that matches the message, looking toward the headline or the viewer. No generic smiling-at-camera stock.
+- **People:** the audience is Mongolian — **write "a Mongolian man/woman" (East Asian features) in every prompt with a person**, unless the brief names someone else; never leave ethnicity to the model (it defaults to Western faces). Real, specific, styled in the colour world (wardrobe in the brand colour), an expression that matches the message, looking toward the headline or the viewer. No generic smiling-at-camera stock.
 - **Product:** hero scale (35–60% of the height), real contact shadow, a surface and props that tell the story (ingredients, use, setting).
 - **Space for type:** name the zone and what fills it: "the left 40% is a flat cobalt field", "the top third is dark smoky stage air".
 - End with: "no text, no letters, no numbers, no logos".
