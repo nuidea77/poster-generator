@@ -37,7 +37,7 @@ So: next `y` = this `y` + this block's height + gap, where gap = 0.008–0.012 i
 
 ## Type
 14. **NEVER set 2+ words in `wide`.** Rubik Mono One is monospaced: spaces become huge gaps (`BREW   LAB`, `SPEED   GARAGE`). → `wide` for one word only; multi-word names in `bold_sans`, `heavy` or `condensed`.
-15. **NEVER type escapes or backslashes in a `text` value.** No `₮`, `·`, `Х`, no `\t`, `\b`, `\f`. In the tool's JSON a backslash before a letter becomes a control character (`\b7`, `\the20ae`) and the call is rejected — this happened even after the rule was known. → Write `"text": "159,000₮"`, `"text": "App Store · Google Play"`, `"text": "ХХК"` — the real characters only; the only backslash allowed is `\n` for a line break. If a call comes back "text arrived broken", resend it with every escape replaced by the character itself.
+15. **NEVER type escapes or backslashes in a `text` value.** No `\u20ae`, `\u00b7`, `\u0425`, no `\t`, `\b`, `\f`. In the tool's JSON a backslash before a letter becomes a control character (`\b7`, `\the20ae`) and the call is rejected — this happened even after the rule was known. → Write `"text": "159,000₮"`, `"text": "App Store · Google Play"`, `"text": "ХХК"` — the real characters only; the only backslash allowed is `\n` for a line break. If a call comes back "text arrived broken", resend it with every escape replaced by the character itself.
 16. **NEVER spend calls re-sending the same line.** → Decide every item's role, size, position and `strike` in the first full call; later calls change only what the check found.
 
 ## The visual (image prompt)
