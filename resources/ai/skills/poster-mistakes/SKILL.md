@@ -1,27 +1,42 @@
 ---
 name: poster-mistakes
-description: The running list of mistakes found in real test posters — wrong hero, orphan prices, missing strikes, bad line breaks, text over decorations, crammed stacks, model-drawn frames and third-party logos — each with the fix. Always in the brief for POSTER jobs; check every item before deliver_poster.
+description: The hard "never do" list from real test posters — forbidden hero words, orphan or unstruck prices, tiny offers, bad line breaks, torn phrases, suffix-only lines, mood words printed as copy, text over decorations or the subject, crammed stacks, escaped letters, multi-word wide type, drawn frames and third-party logos in the visual — each with what to do instead, plus the negative phrases every image prompt needs. Always in the brief for POSTER jobs; a poster that breaks any rule is not delivered.
 ---
 
-# Mistakes seen in real posters — check each before deliver_poster
+# NEVER — the poster is not delivered if it breaks any of these
 
-## Type and copy
-- **A generic word as the hero.** `ШИНЭ`, `ХЯМДРАЛ`, `NEW`, `SALE` are kickers — a small chip or small caps above the headline — never the giant `display` item. The biggest type is the product name, the offer number (`-30%`, `2 дахь нь 50%`) or the price.
-- **An orphan price.** A price must sit with what it prices: right under or beside the product name, inside the offer block, or in a labelled pill — on the same axis as the text it belongs to. Never a lone number floating on the picture.
-- **Multi-word text in `wide`.** Rubik Mono One is monospaced: spaces become huge gaps (`BREW   LAB`). Use `wide` for one word only; brand names of 2+ words go in `bold_sans`, `heavy` or `condensed`.
-- **An old price without the strike.** Whenever the brief gives a before/after price (`450,000₮ биш 315,000₮`, `хуучин үнэ …`), the old one is its own item with `"strike": true` (small, grey or red) right above or beside the new price — a grey colour alone does not read as "was". Set it in the first full add_text call; do not spend extra calls re-sending the same line.
-- **Escaped letters.** Write `₮`, `Ө`, `Ү` as plain UTF-8 characters, never `\u20ae`-style escapes.
-- **A tiny offer on a sale poster.** On a sale / Black Friday / discount poster the discount (`40%`, `-30%`) is the biggest or as big as the headline — not a side note. Campaign names (`BLACK FRIDAY`) follow the generic-word rule: big is fine only if the number is bigger.
-- **Bad line breaks.** Keep a date range on one line (`11.27–11.30`) and never start a line with a dash or a unit; keep short phrases together (`хүртэл хямд` on one line, not stacked word by word). Use `\n` only where the phrase naturally splits.
-- **Text over a decoration.** A painted ribbon, swoosh or shape behind a text line makes it unreadable — place lines on calm areas only, or ask the visual to keep the decoration away from the text zone.
-- **Crammed stacks.** Between stacked blocks (pill, line, pill) leave at least one line-height of air; a plain line squeezed between two pills reads as a mistake. Two pills in a row rarely need a third line between them — merge or drop it.
-- **One phrase torn apart.** Lines that read as one phrase (`5 сая₮` + `хүртэлх зээл`, `-30%` + `хямдрал`) sit tight together — the gap inside a phrase is smaller than the gap to the next block. With free `y`, compute it: next `y` = this `y` + its line height + a small gap, not a round number.
-- **Type touching the subject.** Headline letters must clear a head, product or hand by a visible gap (≥ 2% of the frame); if the hero number reaches the hair, make it smaller or move it up.
-- **The separator dot.** Type the middle dot ` · ` directly as a character, never as an escape.
-- **Mood words printed as copy.** The adjectives that end a brief (`Найдвартай, хурдан`, `Тансаг, эмэгтэйлэг`, `Хөгжилтэй, аюулгүй`) describe the look and tone — they are direction for you, not a line for the poster. Print them only if the client clearly wrote them as a slogan.
-- **A suffix on its own line.** A case ending belongs to its number: `2.5 сая₮-өөс эхэлнэ` or `2.5 сая₮` + `-аас эхэлнэ` on the same line — never a line that starts with `-аас`, `-өөс`, `-д`.
-- **Lines and rings cutting through text.** A painted ring, light streak or edge line that crosses a text line looks like a strike-through. Keep text fully inside or fully outside such shapes.
+Each rule below comes from a real test poster that looked wrong. Before `deliver_poster`, go through the list on the finished image; if one is broken, fix it with `add_text` on the clean visual (or regenerate the visual) first.
 
-## The visual
-- **A drawn frame or mock-up.** The image must be full bleed, edge to edge. Never call it a "poster" in the image prompt (models then draw a framed print, a white border, an inner mat or a fade band); say "full-bleed image filling the whole frame, no border, no frame, no margin". If the returned image has a border, regenerate.
-- **Third-party marks on real objects.** Models add brand marks to recognisable things (a Gibson script on a guitar headstock, an Apple on a laptop, a car badge). Ask for "unbranded, no logos or lettering on the [part]" from the first prompt.
+## Hierarchy and offer
+1. **NEVER make a generic word the hero.** `ШИНЭ`, `ХЯМДРАЛ`, `NEW`, `SALE`, `BLACK FRIDAY`, `АЖИЛД АВНА` alone are not the message. → They are a small kicker chip or small caps; the biggest type is the product name, the offer number or the price.
+2. **NEVER let the offer be small on a sale poster.** → The discount (`40%`, `-30%`, `2 дахь нь 50%`) is the biggest element or as big as the headline.
+3. **NEVER leave a price orphaned.** A lone number floating on the picture reads as noise. → The price sits with what it prices: under/beside the product name, inside the offer block, or in a labelled pill, on the same text axis.
+4. **NEVER show an old price without the strike.** Grey colour alone does not say "was". → Every before/after price (`450,000₮ биш 315,000₮`, `хуучин үнэ 160,000₮`) gets the old one as its own item with `"strike": true`, small, right above or beside the new price — in the first full add_text call.
+
+## Copy
+5. **NEVER print the brief's mood words.** The adjectives that end a brief (`Найдвартай, хурдан`, `Тансаг, эмэгтэйлэг`, `Хөгжилтэй, аюулгүй`) are direction for the look. → Use them to choose style, colour and type; print them only if the client clearly wrote them as a slogan.
+6. **NEVER invent or change facts.** → Every name, number, date, ₮, %, phone and address exactly as in the brief.
+
+## Line breaks and grouping
+7. **NEVER start a line with a dash, a unit or a case ending.** No line beginning with `–11.30`, `-аас`, `-өөс`, `-д`, `₮`. → Keep `11.27–11.30` on one line; keep the suffix with its number (`2.5 сая₮-өөс эхэлнэ`).
+8. **NEVER stack a short phrase word by word.** → `хүртэл хямд`, `Цаг захиалга` stay on one line; use `\n` only where the phrase naturally splits.
+9. **NEVER tear one phrase apart.** `5 сая₮` and `хүртэлх зээл` with a big gap read as two messages. → Lines of one phrase sit tight; the gap inside a phrase is smaller than the gap to the next block (with free `y`: next `y` = this `y` + its line height + a small gap).
+10. **NEVER cram stacks.** A plain line squeezed between two pills reads as a mistake. → At least one line-height of air between stacked blocks; merge or drop the extra line.
+
+## Placement over the picture
+11. **NEVER put text over a decoration.** A ribbon, swoosh, ring, light streak or edge line behind or through a text line makes it unreadable or looks like a strike-through. → Text fully inside or fully outside such shapes, on calm areas only.
+12. **NEVER let type touch the subject.** Headline letters reaching a head, hair, hand or product look cramped. → A visible gap (≥ 2% of the frame); make the type smaller or move it.
+13. **NEVER set contacts on a busy object** (a truck side, boxes, a patterned surface). → Contacts on a calm area or a plain panel.
+
+## Type
+14. **NEVER set 2+ words in `wide`.** Rubik Mono One is monospaced: spaces become huge gaps (`BREW   LAB`, `SPEED   GARAGE`). → `wide` for one word only; multi-word names in `bold_sans`, `heavy` or `condensed`.
+15. **NEVER type escapes.** No `₮`, `·`, `Х`. → Type `₮`, `·`, `Ө`, `Ү`, Cyrillic directly as characters.
+16. **NEVER spend calls re-sending the same line.** → Decide every item's role, size, position and `strike` in the first full call; later calls change only what the check found.
+
+## The visual (image prompt)
+17. **NEVER call the image a "poster", "flyer" or "ad layout" in the prompt.** Models then draw a framed print, a white border, an inner mat or a fade band. → Always write "full-bleed image filling the whole frame edge to edge, no border, no frame, no margin". If the result has a border, regenerate.
+18. **NEVER accept third-party marks.** Models add brand marks to real objects (a Gibson script on a guitar headstock, an Apple on a laptop, a car badge, a Nike tick). → Ask for "unbranded, no logos or lettering on the [headstock / lid / badge]" in the first prompt; regenerate if one appears.
+19. **NEVER deliver a poster built on the client's raw upload.** → Generate a visual with the product photo as a reference; if no image model works, finish without delivering (the job is refunded).
+
+### Negative phrases for every image prompt
+End each image prompt with: *"Full-bleed, edge to edge, no border, no frame, no margin. No text, no letters, no numbers, no logos, unbranded objects, no watermark."*
