@@ -1285,6 +1285,28 @@ class CreationTest extends TestCase
         $this->assertCount(6, array_unique($maps)); // each running job reserves its map
     }
 
+    public function test_the_best_library_example_is_attached_to_every_generated_visual(): void
+    {
+        Storage::disk('public')->put('references/burger.jpg', self::png(400, 500));
+        $ref = \App\Models\StyleReference::create(['title' => 'Burger on dark slate', 'category' => 'food', 'style' => 'Tactical Dark', 'notes' => 'hero burger', 'path' => 'references/burger.jpg', 'enabled' => true]);
+        Http::fake([
+            'api.anthropic.com/*' => Http::sequence()
+                ->push($this->turn([['generate_image', ['provider' => 'gemini', 'prompt' => 'A burger', 'aspect' => '4:5', 'purpose' => 'hero', 'reference_image_ids' => []]]]))
+                ->push($this->turn([['finish', ['summary' => 'ok']]])),
+            'generativelanguage.googleapis.com/*' => Http::response(['candidates' => [['content' => ['parts' => [['inlineData' => ['mimeType' => 'image/png', 'data' => base64_encode(self::png(800, 1000))]]]]]]]),
+        ]);
+        $creation = Creation::create(['user_id' => $this->user->id, 'type' => 'poster', 'formats' => ['4:5'], 'prompt' => 'Бургер ресторан: шинэ бургер', 'status' => 'running']);
+
+        try {
+            app(CreativeAgent::class)->run($creation);
+        } catch (\Throwable) {
+            // finish without a poster fails the job; only the image call matters here
+        }
+
+        $this->assertSame(["ref_{$ref->id}"], $creation->fresh()->asset('img_1')['references']);
+        Http::assertSent(fn ($r) => str_contains($r->url(), 'generativelanguage') && str_contains(json_encode($r->data()), 'STYLE references only'));
+    }
+
     public function test_admin_sees_internal_log(): void
     {
         $creation = Creation::create([

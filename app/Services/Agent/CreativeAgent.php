@@ -825,13 +825,16 @@ class CreativeAgent
         $provider = $this->ai->image((string) ($in['provider'] ?? ''));
         $cost = $this->cost->image($in['provider']);
         $this->guardBudget($creation, $cost + $reserved);
+        // Харилцагчийн reference + автомат стилийн жишээ (лого хэзээ ч биш).
+        $ids = $this->withAutoRefs($this->withoutLogo($creation, $in['reference_image_ids'] ?? []));
 
         return [
             'in' => $in,
             'provider' => $provider,
             'cost' => $cost,
             'aspect' => in_array($in['aspect'] ?? null, self::ASPECTS, true) ? $in['aspect'] : '1:1',
-            'references' => array_map(fn ($id) => $this->readAsset($creation, $id, 'image'), $ids = $this->withAutoRefs($this->withoutLogo($creation, $in['reference_image_ids'] ?? []))),
+            'reference_ids' => $ids,
+            'references' => array_map(fn ($id) => $this->readAsset($creation, $id, 'image'), $ids),
             'prompt' => trim((string) ($in['prompt'] ?? ''))
                 .(array_intersect($ids, array_column($this->autoRefs, 'id')) ? ' The ref_ images are STYLE references only: borrow their composition, light, colour mood and finish; do not copy their text, logos, people or products.' : '')
                 .' High quality, professional, no watermark.',
@@ -849,13 +852,15 @@ class CreativeAgent
         $id = $creation->addAsset([
             'kind' => 'image', 'source' => 'generated', 'provider' => $in['provider'],
             'path' => $file['path'], 'prompt' => $in['prompt'], 'aspect' => $aspect, 'note' => $in['purpose'] ?? '', 'cost' => $cost,
+            // Зургийн моделд бодитоор очсон reference-ууд (автомат стилийн жишээ орно) — админд харагдана.
+            'references' => $job['reference_ids'] ?? [],
         ]);
         $creation->increment('cost_usd', $cost);
 
         $this->bumpProgress($creation);
 
         return [
-            'summary' => "{$id} ← {$in['provider']}",
+            'summary' => "{$id} ← {$in['provider']}".(($job['reference_ids'] ?? []) ? ' [refs: '.implode(', ', $job['reference_ids']).']' : ''),
             'content' => [
                 ['type' => 'text', 'text' => "Generated image `{$id}` (aspect {$aspect}). Review it:"],
                 $this->imageBlock($file['path']),
