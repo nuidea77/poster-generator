@@ -29,6 +29,9 @@ A template fixes the **structure** (what goes where, which role, which font fami
 | T15 | **Spec & instalment** (PC Mall, Dell) | product on a dark or white field, one side empty | `top` `title` (or `wide`) · `center` 3–4 spec rows label left / value right (`same_line`, mixed aligns) · `bottom` price trio in a row: old price `strike` · new price `price` · monthly `Сард төлөх` |
 | T16 | **Hero word behind / with a person** (Unitel DataBox, Family) | a person or product in the lower 60%, the top 35% plain gradient | `top` small kicker · `top` a giant `display` word (`heavy`/`bold_sans`, brand name or offer) spanning the width — the person sits just below/in front of it · `bottom` one `glass` or `outline` pill with the action |
 
+| T17 | **3D brand objects** (Kolowise, Uzum, fintech) | one glossy 3D object or scene in the brand colour (coins, a card, a phone, a piggy bank, a safe) on a soft gradient of the same hue, studio light | `top` logo · `top` `title` short promise with one accent word · `center` the 3D hero · `bottom` app-store style chips or one CTA pill · keep everything one hue + white |
+| T18 | **Product showcase with specs** (Apple resellers) | the product (or a model holding it) big on a clean gradient or a lifestyle backdrop, the top 30% calm | `top` small brand line · `top` product name huge (`heavy`/`bold_sans`) · `bottom` a row of 3 tiny spec items with icons (mixed aligns) · `bottom` price or store line |
+
 **Lessons from Mongolian brand posters (Storepay, Unitel, Mobicom, PC Mall, Dr.Chingun, Zaya Bilgee, M Leasing):**
 - **Light and air win for premium/fintech/beauty:** a near-white field, one product, a short dark-grey headline, everything centred — calm beats busy. Dark full photos are not the default.
 - **Partner line:** two brands shown as `Brand | Partner` small at the top centre (logos via `add_logo`; without files, as a `small` text line).

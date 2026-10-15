@@ -138,6 +138,8 @@ E CENTRED ICON    F DIAGONAL        G GRID/TILES      H FULL-BLEED MOOD
 
 **Grid types behind these maps:** column grid (text on 1–2 shared column edges — most posters), modular grid (equal tiles — G), hierarchical grid (blocks sized by importance — A, D), radial (I), axial (J). Name the grid you use; every block must sit on it.
 
+**Feed system — consistent brand, varied layout.** Strong brand feeds (Uzum Bank, Kolowise, Nomba, Apple resellers) look like one campaign: the **system stays fixed** — the brand's colour world, the logo in the same corner, one font pair, and one **signature device** that recurs in every post (a lime ribbon swoosh, glossy 3D objects in the brand colour, a yellow circle behind people, a thin grid) — while the **layout changes** from post to post (map, crop, subject, which block leads). When the client has a brand kit or recent posters, keep their system and vary the composition; when they don't, invent a system on the first poster (state the signature device in `design.idea`) so later posts can repeat it.
+
 **Variety:** the brief lists the client's last posters (map, style, palette, type). Make each new one clearly different in map, style, palette and headline treatment — a feed of look-alikes is a failure. Report your choices in `deliver_poster`'s `design` so the next poster can differ from this one.
 
 ## 4a. Block order — wireframes from real food, product and campaign posters
