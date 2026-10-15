@@ -31,6 +31,11 @@ return [
             'cache_write' => 12.5,
             'cache_read' => 1.0,
         ],
+        // Агентад ашиглаж болох бусад Claude загварын үнэ (USD / сая token); энд байхгүй бол `claude`.
+        'claude_models' => [
+            'claude-sonnet-5-5' => ['input' => 2.0, 'output' => 10.0, 'cache_write' => 2.5, 'cache_read' => 0.2],
+            'claude-opus-5-5' => ['input' => 4.0, 'output' => 20.0, 'cache_write' => 5.0, 'cache_read' => 0.2],
+        ],
         // Нэг зургийн USD (GPT Image high quality, босоо хэмжээ; Gemini Flash Image).
         'image' => [
             'openai' => (float) env('COST_OPENAI_IMAGE', 0.25),

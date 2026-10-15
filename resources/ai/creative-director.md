@@ -11,7 +11,7 @@ The client receives only the final files. They never see your notes, the prompts
 
 ## Skills
 
-A library of playbooks. Only names and descriptions are listed; call `load_skill` to read one **before** the work it covers. Load what applies, each at most once — every skill costs reading time, so skip the ones the job does not need. Skills marked *custom* were written by the studio owner and override the general guidance here.
+A library of playbooks. Only names and descriptions are listed; call `load_skill` to read one **before** the work it covers. Load what applies, each at most once — every skill costs reading time, so skip the ones the job does not need. **Load them together in one reply** — call `load_skill` several times in the same turn (parallel tool calls) instead of one skill per turn; every extra turn re-reads the whole conversation. Skills marked *custom* were written by the studio owner and override the general guidance here.
 
 {{SKILLS}}
 

@@ -33,6 +33,9 @@ class CreativeAgent
     // Зураг үүсгэхэд зөвшөөрөгдсөн харьцаанууд.
     public const ASPECTS = ['1:1', '3:4', '4:3', '2:3', '3:2', '9:16', '16:9', '5:4', '4:5', '21:9'];
 
+    /** Энэ ажилд ашиглаж буй Claude загвар (энгийн ажилд хямд загвар). */
+    private ?string $model = null;
+
     public function __construct(
         private AiManager $ai,
         private SkillLibrary $skills,
@@ -56,7 +59,10 @@ class CreativeAgent
             throw new AiException('No image model available (all out of quota/credits).');
         }
 
-        $creation->update(['model' => config('ai.agent.model')]);
+        // Энгийн ажил (нэг формат, оруулсан зураггүй постер) хямд загвараар явна, бусад нь Fable.
+        $simple = $creation->type === Creation::POSTER && count($creation->formats ?? []) === 1 && ! $creation->inputs;
+        $this->model = $simple && config('ai.agent.simple_model') ? config('ai.agent.simple_model') : config('ai.agent.model');
+        $creation->update(['model' => $this->model]);
         $creation->setStage('planning', 5);
 
         // Бүх run-ийн турш тогтмол: Fable-ийн thinking блокууд яг тэр system prompt-той
@@ -75,7 +81,7 @@ class CreativeAgent
                 'output_tokens' => (int) ($usage['output_tokens'] ?? 0),
                 'cache_read_tokens' => (int) ($usage['cache_read_input_tokens'] ?? 0),
                 'cache_write_tokens' => (int) ($usage['cache_creation_input_tokens'] ?? 0),
-                'cost_usd' => $this->cost->claude($usage),
+                'cost_usd' => $this->cost->claude($usage, $this->model),
             ]);
 
             if (($response['stop_reason'] ?? null) === 'refusal') {
@@ -152,7 +158,7 @@ class CreativeAgent
 
         $headers = ['x-api-key' => $cfg['key'], 'anthropic-version' => '2023-06-01'];
         $body = [
-            'model' => $agent['model'],
+            'model' => $this->model ?? $agent['model'],
             'max_tokens' => $agent['max_tokens'] ?? 12000,
             'system' => [[
                 'type' => 'text',
@@ -181,7 +187,7 @@ class CreativeAgent
             unset($body['model'], $body['fallbacks']);
             $body['anthropic_version'] = 'vertex-2023-10-16';
             $response = $vertex->authorize(Http::timeout($agent['timeout']))
-                ->post($vertex->anthropicUrl($agent['vertex_model'] ?: $agent['model']), $body);
+                ->post($vertex->anthropicUrl($agent['vertex_model'] ?: ($this->model ?? $agent['model'])), $body);
         } else {
             $response = Http::timeout($agent['timeout'])
                 ->withHeaders($headers)

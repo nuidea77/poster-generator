@@ -18,9 +18,9 @@ class CostMeter
      *
      * @param  array{input_tokens?: int, output_tokens?: int, cache_creation_input_tokens?: int, cache_read_input_tokens?: int}  $usage
      */
-    public function claude(array $usage): float
+    public function claude(array $usage, ?string $model = null): float
     {
-        $p = config('pricing.costs.claude');
+        $p = config("pricing.costs.claude_models.{$model}") ?? config('pricing.costs.claude');
 
         return (($usage['input_tokens'] ?? 0) * $p['input']
             + ($usage['output_tokens'] ?? 0) * $p['output']

@@ -124,8 +124,15 @@ class SkillLibrary
      */
     public function prompt(): string
     {
+        // Жагсаалт system prompt-ын ихэнхийг эзэлдэг байсан (алхам бүрт дахин уншигдана): тайлбарын
+        // эхний өгүүлбэр хангалттай, бүтэн агуулгыг load_skill өгнө.
+        $short = function (string $d): string {
+            $first = preg_split('/(?<=[.!?])\s+/u', trim($d), 2)[0];
+
+            return mb_strlen($first) > 170 ? rtrim(mb_substr($first, 0, 167)).'…' : $first;
+        };
         $lines = array_map(
-            fn ($s) => "- `{$s['name']}`".($s['source'] === 'custom' ? ' *(custom)*' : '')." — {$s['description']}",
+            fn ($s) => "- `{$s['name']}`".($s['source'] === 'custom' ? ' *(custom)*' : '')." — {$short($s['description'])}",
             $this->index(enabledOnly: true),
         );
 
