@@ -1275,6 +1275,16 @@ class CreationTest extends TestCase
         $this->assertSame([], $creation->fresh()->outputs);
     }
 
+    public function test_posters_running_together_get_different_composition_maps(): void
+    {
+        $maps = [];
+        foreach (range(1, 6) as $k) {
+            $c = Creation::create(['user_id' => $this->user->id, 'type' => 'poster', 'formats' => ['4:5'], 'prompt' => 'x', 'status' => 'running']);
+            $maps[] = (fn () => $this->mapFor($c))->call(app(CreativeAgent::class));
+        }
+        $this->assertCount(6, array_unique($maps)); // each running job reserves its map
+    }
+
     public function test_admin_sees_internal_log(): void
     {
         $creation = Creation::create([

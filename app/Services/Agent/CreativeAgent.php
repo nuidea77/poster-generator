@@ -2,6 +2,7 @@
 
 namespace App\Services\Agent;
 
+use Illuminate\Support\Facades\Cache;
 use App\Models\Creation;
 use App\Models\StyleReference;
 use App\Services\AI\AiManager;
@@ -328,15 +329,23 @@ class CreativeAgent
      */
     private function mapFor(Creation $creation): string
     {
-        $used = Creation::where('user_id', $creation->user_id)->where('type', Creation::POSTER)->where('status', Creation::DONE)
-            ->where('id', '!=', $creation->id)->latest('id')->limit(6)->get(['id', 'steps'])
-            ->map(fn (Creation $c) => collect($c->steps)->first(fn ($s) => ($s['name'] ?? '') === 'deliver_poster' && isset($s['input']['design']))['input']['design']['map'] ?? null)
-            ->filter()->countBy();
-        $offset = $creation->id % count(self::MAPS);
+        // Зэрэг эхэлсэн постерууд ижил түүхийг харж нэг map сонгодог байсан: хэрэглэгчээр түгжиж,
+        // одоо ажиллаж буй ажлуудад оноосон map-ийг ч "хэрэглэсэн" гэж тоолно.
+        return Cache::lock("poster-map:user:{$creation->user_id}", 10)->block(5, function () use ($creation) {
+            $done = Creation::where('user_id', $creation->user_id)->where('type', Creation::POSTER)->where('status', Creation::DONE)
+                ->where('id', '!=', $creation->id)->latest('id')->limit(6)->get(['id', 'steps'])
+                ->map(fn (Creation $c) => collect($c->steps)->first(fn ($s) => ($s['name'] ?? '') === 'deliver_poster' && isset($s['input']['design']))['input']['design']['map'] ?? null);
+            $active = Creation::where('user_id', $creation->user_id)->where('type', Creation::POSTER)->whereIn('status', Creation::ACTIVE)
+                ->where('id', '!=', $creation->id)->pluck('id')->map(fn ($id) => Cache::get("poster-map:{$id}"));
+            $used = $done->concat($active)->filter()->countBy();
 
-        return collect(self::MAPS)->keys()
-            ->sortBy(fn ($i) => [$used[self::MAPS[$i]] ?? 0, ($i - $offset + count(self::MAPS)) % count(self::MAPS)])
-            ->map(fn ($i) => self::MAPS[$i])->first();
+            // Хамгийн бага хэрэглэсэн map-уудаас ажлын id-гаар санамсаргүй нэгийг.
+            $least = collect(self::MAPS)->groupBy(fn ($m) => $used[$m] ?? 0)->sortKeys()->first();
+            $map = $least->shuffle($creation->id)->first();
+            Cache::put("poster-map:{$creation->id}", $map, now()->addHours(2));
+
+            return $map;
+        });
     }
 
     /**
