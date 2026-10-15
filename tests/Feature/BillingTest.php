@@ -217,6 +217,34 @@ class BillingTest extends TestCase
         $this->assertEqualsWithDelta(now()->addDays(50)->timestamp, $user->subscriptions()->max('ends_at') ? strtotime($user->subscriptions()->max('ends_at')) : 0, 5);
     }
 
+    public function test_a_yearly_plan_releases_its_credits_month_by_month(): void
+    {
+        $user = User::factory()->create();
+        $plan = Plan::where('slug', 'business-yearly')->first();
+        $payment = Payment::create(['user_id' => $user->id, 'plan_id' => $plan->id, 'sender_invoice_no' => 'Y1', 'callback_token' => 'y', 'amount' => $plan->price, 'status' => 'pending']);
+
+        $first = app(BillingService::class)->markPaid($payment);
+        $this->assertSame(0, $first->installment);
+        $this->assertSame($first->id, app(BillingService::class)->markPaid($payment)->id); // idempotent
+
+        $months = $user->subscriptions()->orderBy('installment')->get();
+        $this->assertCount(12, $months);
+        $this->assertSame(1800, $months->sum('credits'));
+        $this->assertSame(150, $months[0]->credits);
+        $this->assertEqualsWithDelta(now()->addMonths(12)->timestamp, $months[11]->ends_at->timestamp, 5);
+
+        // Only this month's 150 can be spent now; next month opens on its start date.
+        $credits = app(\App\Services\Billing\Credits::class);
+        $this->assertSame(150, $credits->balance($user) - $this->freeCredits($user));
+        $this->travelTo(now()->addMonth()->addMinute());
+        $this->assertSame(150, $credits->balance($user) - $this->freeCredits($user));
+    }
+
+    private function freeCredits(User $user): int
+    {
+        return (int) $user->subscriptions()->whereHas('plan', fn ($q) => $q->where('price', 0))->sum('credits');
+    }
+
     public function test_client_polling_is_throttled_and_owner_only(): void
     {
         $this->fakeQpay();

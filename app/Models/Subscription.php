@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 // Захиалгын нэг үе: хугацаа болон түүнд хамаарах credit-ийн үлдэгдэл.
 class Subscription extends Model
 {
-    protected $fillable = ['user_id', 'plan_id', 'payment_id', 'starts_at', 'ends_at', 'credits', 'credits_used'];
+    protected $fillable = ['user_id', 'plan_id', 'payment_id', 'installment', 'starts_at', 'ends_at', 'credits', 'credits_used'];
 
     // Баганын төрөл хувиргалт.
     protected function casts(): array
@@ -18,6 +18,7 @@ class Subscription extends Model
             'ends_at' => 'datetime',
             'credits' => 'integer',
             'credits_used' => 'integer',
+            'installment' => 'integer',
         ];
     }
 

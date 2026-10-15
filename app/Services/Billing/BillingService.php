@@ -124,7 +124,7 @@ class BillingService
             $payment = Payment::whereKey($payment->id)->lockForUpdate()->firstOrFail();
 
             // Энэ төлбөрөөр захиалга аль хэдийн үүссэн бол түүнийг буцаана (idempotent).
-            if ($existing = Subscription::where('payment_id', $payment->id)->first()) {
+            if ($existing = Subscription::where('payment_id', $payment->id)->orderBy('installment')->first()) {
                 return $existing;
             }
 
@@ -139,14 +139,26 @@ class BillingService
                 'raw' => array_merge($payment->raw ?? [], $raw),
             ]);
 
-            return Subscription::create([
-                'user_id' => $payment->user_id,
-                'plan_id' => $plan->id,
-                'payment_id' => $payment->id,
-                'starts_at' => $startsAt,
-                'ends_at' => $startsAt->copy()->addDays($plan->period_days),
-                'credits' => $plan->credits,
-            ]);
+            // Сарын багц: нэг үе. Жилийн багц: 12 сарын үе, кредит нь сар бүр тэнцүү хуваагдаж орно
+            // (үлдэгдэл нь эхний сард); сар бүрийн ашиглаагүй кредит тэр сарын эцэст дуусна.
+            $months = $plan->period_days >= 360 ? 12 : 1;
+            $each = intdiv($plan->credits, $months);
+            $first = null;
+            for ($i = 0; $i < $months; $i++) {
+                $from = $months === 1 ? $startsAt->copy() : $startsAt->copy()->addMonthsNoOverflow($i);
+                $subscription = Subscription::create([
+                    'user_id' => $payment->user_id,
+                    'plan_id' => $plan->id,
+                    'payment_id' => $payment->id,
+                    'installment' => $i,
+                    'starts_at' => $from,
+                    'ends_at' => $months === 1 ? $from->copy()->addDays($plan->period_days) : $startsAt->copy()->addMonthsNoOverflow($i + 1),
+                    'credits' => $each + ($i === 0 ? $plan->credits - $each * $months : 0),
+                ]);
+                $first ??= $subscription;
+            }
+
+            return $first;
         });
     }
 

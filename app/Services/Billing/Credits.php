@@ -145,6 +145,8 @@ class Credits
     {
         $query = $user->subscriptions()
             ->where('ends_at', '>', now())
+            // Жилийн багцын дараагийн сарууд эхлэх өдрөөсөө л ашиглагдана (installment 0 нь урьдчилсан сунгалт ч шууд).
+            ->where(fn ($q) => $q->where('installment', 0)->orWhere('starts_at', '<=', now()))
             ->whereColumn('credits_used', '<', 'credits')
             ->orderBy('ends_at');
 
