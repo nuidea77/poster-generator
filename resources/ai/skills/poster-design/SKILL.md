@@ -11,14 +11,14 @@ The delivered image is the whole ad: picture **and** message. A good poster is *
 | Failure | What it looks like | Fix |
 |---|---|---|
 | **Stock photo + labels** | smiling model on a blurred office/clinic, text stacked in the empty left half | art-direct the visual (§3): a colour world, a graphic idea, a crop with intent |
-| **Box on everything** | kicker pill, headline box, offer pill, date chip, CTA pill, footer band — 6 boxes | **at most 2 filled shapes** besides the footer: usually the offer and the CTA. Everything else is plain type on a calm area |
+| **Box on everything** | kicker pill, headline box, offer pill, date chip, CTA pill, contacts strip — 6 boxes | **at most 2 filled shapes**: usually the offer and the CTA. Everything else is plain type on a calm area |
 | **Flat hierarchy** | headline, offer, checklist and CTA all medium size | one element is **3–6× larger** than the rest; at most 3 other sizes |
-| **Same template every time** | top-left stack → CTA pill → band | choose a composition map (§4) that fits *this* picture and message |
+| **Same template every time** | top-left stack → CTA pill → contacts | choose a composition map (§4) that fits *this* picture and message |
 | **Dead and crowded zones** | empty middle, everything squeezed into the top and bottom | space is intentional: either generous negative space around the hero, or a full, rich layout — never a hole |
 | **Text ignores the picture** | headline floating over a random area | type and image interlock: headline beside the face, along the product's edge, in a colour field painted for it |
-| **Too many words** | 4 benefit lines + 3 badges + footer | hook + offer + CTA + footer; the rest goes to the caption |
+| **Too many words** | 4 benefit lines + 3 badges + contacts | hook + offer + CTA + contacts; the rest goes to the caption |
 | **Font chaos** | 3+ fonts, a display face for facts | ≤ 2 fonts: one headline face + `sans` for the rest |
-| **Mixed alignment** | centred headline, left checklist, contacts stuck in a corner | one axis for the whole content block (the footer may justify its row) |
+| **Mixed alignment** | centred headline, left checklist, contacts stuck in a corner | one axis for the whole content block |
 | **Crammed edges** | type and icons touching the frame, badges glued to the product | ≥ 7% margin on every side; air between the product and its labels |
 | **Low contrast** | thin white type over a busy photo, grey on dark | a scrim, a darker/lighter area, or a solid shape behind it; dark on light, light on dark |
 | **Colour noise** | neon pink + yellow + red on a clinic poster | 60-30-10, 2–3 colours, matched to the sector's mood |
@@ -40,7 +40,7 @@ Pick one hero: the product, a person's emotion, a bold number (`-40%`, `25 жи�
 | Neutral + one accent | editorial, luxury, minimal | black/white/stone + one red word |
 Topic colours as a starting point, never a rule: health → clean white + one confident green/blue; rock/night → black + red/amber; kids → bright primaries; luxury → black, cream, gold; eco → greens, kraft. Brand colours win. Contrast: type against what is behind it must be strong (white/yellow on dark, near-black on light); never mid-tone on mid-tone. Digital posters are RGB (sRGB JPEG); print CMYK is not our concern.
 
-**60-30-10:** about 60% dominant colour (the background world), 30% secondary (the subject, panels, the footer), 10% accent (the offer, the CTA, the starred word). Triadic schemes (three evenly spaced hues) are lively but hard — keep one dominant and the other two small. At most 2–3 colours plus neutrals.
+**60-30-10:** about 60% dominant colour (the background world), 30% secondary (the subject, panels), 10% accent (the offer, the CTA, the starred word). Triadic schemes (three evenly spaced hues) are lively but hard — keep one dominant and the other two small. At most 2–3 colours plus neutrals.
 
 **Reading patterns:** a poster with little text reads in a **Z** (top-left → top-right → diagonal → bottom-left → bottom-right): headline top, hero across, offer and action at the bottom right. Text-heavy layouts read in an **F** down the left edge — keep their lines left-aligned.
 
@@ -81,7 +81,7 @@ A HERO TYPE       B SPLIT           C FRAME/ARCH      D BOTTOM-HEAVY
 │  subject │      │offer│    │      │ │ hero │ │      │  image   │
 │  behind  │      │CTA  │    │      │ ╰──────╯ │      │██HEADLINE│
 │  CTA     │      │     │    │      │ HEADLINE │      │offer  CTA│
-│ footer   │      │footer    │      │ footer   │      │ footer   │
+│ contacts │      │contacts  │      │ contacts │      │ contacts │
 └──────────┘      └─────┴────┘      └──────────┘      └──────────┘
 E CENTRED ICON    F DIAGONAL        G GRID/TILES      H FULL-BLEED MOOD
 ┌──────────┐      ┌──────────┐      ┌──────────┐      ┌──────────┐
@@ -90,7 +90,7 @@ E CENTRED ICON    F DIAGONAL        G GRID/TILES      H FULL-BLEED MOOD
 │    📦    │      │    ╱     │      │ ▢  ▢  ▢  │      │  mood    │
 │  price   │      │  ╱ offer │      │ caption… │      │ HEADLINE │
 │   CTA    │      │╱   CTA   │      │   CTA    │      │ small CTA│
-│ footer   │      │ footer   │      │ footer   │      │ footer   │
+│ contacts │      │ contacts │      │ contacts │      │ contacts │
 └──────────┘      └──────────┘      └──────────┘      └──────────┘
 ```
 - **A Hero type** — a giant number/word is the design (sale, countdown, anniversary); the subject may overlap it.
@@ -103,11 +103,11 @@ E CENTRED ICON    F DIAGONAL        G GRID/TILES      H FULL-BLEED MOOD
 - **H Full-bleed mood** — one atmospheric image, minimal type (premium, concerts, real estate).
 - **I Radial** — rays, rings or a burst painted from one focal point (the product, a face, a number); type sits between the rays or around the centre. Energy, launches, events.
 - **J Axial** — one strong diagonal (or vertical) axis painted across the frame — a band, a beam of light, a road, a ribbon; the subject and the type hang off that axis. Type stays horizontal (the tool cannot rotate it); the axis carries the movement.
-- **K Product + callouts** — the product dead centre and large; 2–4 short feature callouts (`small`, with icons) left and right of it at its height, headline above, price/offer and footer below (tech, gadgets, cosmetics). A variant: headline and description in a left column, the product big on the right.
+- **K Product + callouts** — the product dead centre and large; 2–4 short feature callouts (`small`, with icons) left and right of it at its height, headline above, price/offer and contacts below (tech, gadgets, cosmetics). A variant: headline and description in a left column, the product big on the right.
 
 **Grid types behind these maps:** column grid (text on 1–2 shared column edges — most posters), modular grid (equal tiles — G), hierarchical grid (blocks sized by importance — A, D), radial (I), axial (J). Name the grid you use; every block must sit on it.
 
-**Variety:** the brief lists the client's last posters (map, style, palette, type, footer). Make each new one clearly different in map, style, palette, headline treatment and footer — a feed of look-alikes is a failure. Report your choices in `deliver_poster`'s `design` so the next poster can differ from this one.
+**Variety:** the brief lists the client's last posters (map, style, palette, type). Make each new one clearly different in map, style, palette and headline treatment — a feed of look-alikes is a failure. Report your choices in `deliver_poster`'s `design` so the next poster can differ from this one.
 
 ## 4b. Design formulas (systems, not guesses)
 - **Type scale:** each step ≈ 1.25–1.6× the one below (small → subtitle → title → display). The tool's roles already follow a scale — don't fake a size between them by shrinking a title; pick the role.
@@ -135,7 +135,7 @@ Placed last with `add_logo` (the client's file, pixel-exact) — size, corner, c
 ## 8. Quality bar — check the result before delivering
 1. **Squint test:** blur your eyes — one shape dominates, and it is the hero; the reading path is obvious.
 2. **2-second test:** the hook and the offer are understood in 2 seconds.
-3. **Count the boxes:** ≤ 2 filled shapes besides the footer.
+3. **Count the boxes:** ≤ 2 filled shapes.
 4. **Count the sizes:** ≤ 4 text sizes; the headline clearly the largest.
 5. **Alignment and balance:** everything on one axis or a deliberate grid; the hero on a thirds point (or symmetric by intent); the two halves balance.
 6. **Colour:** one named scheme, the accent used once or twice, every line in strong contrast.

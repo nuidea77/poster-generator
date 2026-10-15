@@ -27,14 +27,14 @@ Rows of 3–4 work best when the **visual already has matching spots** (round ph
 | **Kicker chip** | small pill/glass above the headline: `Шинэ үйлчилгээ`, `Зөвлөгөө`, `Урамшуулал` | tells what kind of post it is before the headline |
 | **Header row** | `top`, `small`: brand name left, category right (`same_line`) | series of posts with one look |
 | **Content card** | `box: true`, `box_shape: card`, white (or brand) `box_color`, dark text, 1–3 lines | a short paragraph, quote or question on a photo |
-| **CTA with arrow** | pill + `icon: arrow` (the arrow trails the text): `Захиалах →`, `Бүртгүүлэх →`, `Дэлгэрэнгүй →` | the action, at the bottom of the content, above the footer |
+| **CTA with arrow** | pill + `icon: arrow` (the arrow trails the text): `Захиалах →`, `Бүртгүүлэх →`, `Дэлгэрэнгүй →` | the action, at the bottom of the content, above the contacts |
 | **Feature pills** | 3 stacked `small` pills/glass with `icon: check` (or numbers `01` `02` `03` as separate display items) | benefits, steps, what is included |
 | **Big stat** | `display` number (`76%`, `4.9★`, `10,000+`) + a `small` label under it | trust, results |
 
 ## 2. Layout recipes
 **Clinic / service package (Medica style)** — 4:5
 1. Visual: a clean medical hero (3D anatomy render, device, doctor) in the top half on a soft light-blue/white gradient; a row of 4 round photo insets in the lower third; a calm foot for the contacts.
-2. Text: pill badge `30% OFF` (accent) → huge `title` (condensed, brand teal) `ӨВДӨГНИЙ БАГЦ` → `subtitle` `ҮЗЛЭГ, ОНОШИЛГОО` → 3–4 checklist lines → captions row under the insets → footer bar (address left, phone right, bold).
+2. Text: pill badge `30% OFF` (accent) → huge `title` (condensed, brand teal) `ӨВДӨГНИЙ БАГЦ` → `subtitle` `ҮЗЛЭГ, ОНОШИЛГОО` → 3–4 checklist lines → captions row under the insets → contacts (address, phone) near the bottom.
 3. Logo: top-right on a light plate (the logo-placement skill).
 
 **Telecom / promo, minimal (WIN BIG style)** — 1:1
@@ -49,7 +49,7 @@ Rows of 3–4 work best when the **visual already has matching spots** (round ph
 
 **Tech / fintech / agency (international template style)** — 4:5
 1. Visual: brand-colour field (deep blue, violet) with a glowing 3D object or the product (phone with the app, a laptop, a card) floating, a soft light on one side; or a person holding the phone; lots of empty colour field.
-2. Text: kicker chip → two-tone headline (one accent word) → 1–2 line `small` subtitle → CTA → contacts in the footer.
+2. Text: kicker chip → two-tone headline (one accent word) → 1–2 line `small` subtitle → CTA → contacts near the bottom.
 
 **Question / problem-solution post** — 4:5
 1. Visual: the problem shown simply (an empty shop, a confused person, a cluttered desk) or a clean colour field.
@@ -58,7 +58,7 @@ Rows of 3–4 work best when the **visual already has matching spots** (round ph
 ## 3. Rules from these posters
 - **One accent colour**, used only for pills, badges, the key number and the one starred word of the headline. Text is black/dark grey on light, white on dark.
 - **A two-colour system**: one brand colour for fields and bands (blue, deep green, violet) + one contrasting accent (orange, yellow, lime) — stated in the visual prompt ("deep royal-blue background with a curved orange accent swoosh in one corner") and reused in add_text (`accent_color`, pill `box_color`).
-- **Brand thread, not a template:** keep the brand's colours and fonts recognisable across posts, but vary the layout, picture and footer from post to post (`poster-design` Variety).
+- **Brand thread, not a template:** keep the brand's colours and fonts recognisable across posts, but vary the layout and picture from post to post (`poster-design` Variety).
 - **Headline 2–3 words, huge** (title or display); everything else ≤ 1/3 of its size.
 - **Air:** at least a third of the poster is calm background. Don't fill every zone.
 - **Facts are elements, not sentences:** chips, pills, rows, a checklist — 1–5 words each.

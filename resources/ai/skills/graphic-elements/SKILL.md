@@ -61,7 +61,6 @@ Patterns add identity and texture to flat or minimal designs. They are part of t
 - Always: "no text, no letters, no logos" — every word comes from add_text.
 
 ## 4. Shapes, bands, badges
-- **Band (optional):** a solid colour band at the bottom for the facts — one choice among several; often the facts read better `open` on a calm, dark foot of the picture, or on a painted shape that belongs to the design.
 - **Badge:** one circle/pill for `-30%` / `ШИНЭ` — via `box` on the price item, or a circle shape requested in the visual. One badge per poster.
 - **Lines and dividers:** in the visual ("a thin gold line divides the headline from the facts") — sparingly.
 - Accent shapes (blobs, arcs, confetti) only in playful/kids/food archetypes.

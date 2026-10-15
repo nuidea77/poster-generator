@@ -28,7 +28,7 @@ class IconSet
     /**
      * Нэрлэсэн icon-ыг $px хэмжээтэй дөрвөлжин PNG болгон зурна.
      *
-     * @param  string|null  $circle  icon-ы ард дүүргэсэн тойргийн hex өнгө (footer-ийн "тойрог доторх icon"
+     * @param  string|null  $circle  icon-ы ард дүүргэсэн тойргийн hex өнгө ("тойрог доторх icon"
      *                               загвар); тэгвэл дүрс $hex өнгөтэй, тойрог дотор жижгээр зурагдана
      * @return string PNG өгөгдөл, $px дөрвөлжин
      */

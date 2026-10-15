@@ -9,7 +9,7 @@ origin: Adapted from Anthropic's "design-critique" skill in anthropics/knowledge
 Look at the returned poster the way a customer scrolling Instagram would, then like a senior designer. Write the critique as a short note; fix the top issues; deliver.
 
 ## 1. First impression (2 seconds)
-- What draws the eye first? It must be the hook (headline, offer or hero number) or the product — never a footer, a logo or a decoration.
+- What draws the eye first? It must be the hook (headline, offer or hero number) or the product — never the contacts, a logo or a decoration.
 - Is the purpose clear in 2 seconds (what is offered, by whom)?
 - Emotional read: does it match the design read (`poster-taste`)?
 
@@ -36,7 +36,7 @@ Look at the returned poster the way a customer scrolling Instagram would, then l
 | Severity | Examples | Action |
 |---|---|---|
 | **Critical** | misspelling, wrong price/date/phone, text over the product or a face, illegible headline, model-drawn fake text, wrong cultural item | fix before delivering |
-| **Moderate** | weak offer, two loud elements, footer crowded or shrunk, accent overused, pale headline | fix if one add_text call can do it |
+| **Moderate** | weak offer, two loud elements, contacts crowded or shrunk, accent overused, pale headline | fix if one add_text call can do it |
 | **Minor** | spacing a bit uneven, a slightly long line | note it; deliver |
 
 Write the note as: **Overall** (one line: what works, the biggest opportunity) → **Fixes** (≤ 3, most impactful first, each with the concrete add_text change) → **Works well** (one line). Then make the critical/moderate fixes — on the clean visual, in one add_text call — and deliver. Do not loop more than twice on the same poster; budget and time matter more than perfection.

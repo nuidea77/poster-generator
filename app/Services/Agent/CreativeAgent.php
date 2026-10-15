@@ -230,7 +230,7 @@ class CreativeAgent
     {
         $recent = Creation::where('user_id', $creation->user_id)->where('type', Creation::POSTER)->where('status', Creation::DONE)
             ->where('id', '!=', $creation->id)->latest('id')->limit(6)->get(['id', 'steps']);
-        // Алхмуудаас deliver_poster-ийн design, сүүлчийн амжилттай add_text-ийн гарчиг/footer/box-ыг сэргээнэ.
+        // Алхмуудаас deliver_poster-ийн design, сүүлчийн амжилттай add_text-ийн гарчиг/box-ыг сэргээнэ.
         $designs = $recent->map(function (Creation $c) {
             $steps = collect($c->steps);
             $design = $steps->first(fn ($s) => ($s['name'] ?? '') === 'deliver_poster' && isset($s['input']['design']))['input']['design'] ?? [];
@@ -239,8 +239,7 @@ class CreativeAgent
 
             return array_filter($design + [
                 'type' => $head ? ($head['font'] ?? '').' '.($head['position'] ?? '').'/'.($head['align'] ?? '') : null,
-                'footer' => isset($text['footer_style']) ? $text['footer_style'].' '.($text['footer_color'] ?? '') : null,
-                'boxes' => collect($text['items'] ?? [])->filter(fn ($it) => ! empty($it['box']) && ($it['position'] ?? '') !== 'footer')->count() ?: null,
+                'boxes' => collect($text['items'] ?? [])->filter(fn ($it) => ! empty($it['box']))->count() ?: null,
             ]);
         })->filter()->values();
 
@@ -257,14 +256,14 @@ class CreativeAgent
         foreach ($designs as $d) {
             $lines[] = '- '.collect($d)->map(fn ($v, $k) => "{$k}: {$v}")->implode(' · ');
         }
-        $lines[] = "Make this one clearly different: another composition map (suggested: `{$next}`), another style direction, palette, headline font/treatment and footer look — while staying on brand. A feed of look-alike posters is a failure.";
+        $lines[] = "Make this one clearly different: another composition map (suggested: `{$next}`), another style direction, palette, and headline font/treatment — while staying on brand. A feed of look-alike posters is a failure.";
 
         return $lines;
     }
 
     /**
      * Agent-ийн анхны user мессеж: оролтын зургууд (лого, reference, бүтээгдэхүүн)
-     * болон ажлын тодорхойлолт (формат, урт, бүтээгдэхүүн, брийф, footer санаа).
+     * болон ажлын тодорхойлолт (формат, урт, бүтээгдэхүүн, брийф).
      */
     private function brief(Creation $creation): array
     {
@@ -323,8 +322,8 @@ class CreativeAgent
         }
 
         // Медиа төсөв ба үнийн жагсаалт: agent төлөвлөгөөгөө үүнд багтаана.
-        // poster-design нь найруулгын загвар, ялгаатай байх дүрэм, footer-ийн хувилбаруудыг агуулдаг;
-        // agent үүнийг уншихаа мартаж байсан (бүгд split + band болсон) тул брифт шууд хавсаргана.
+        // poster-design нь найруулгын загвар, ялгаатай байх дүрмийг агуулдаг;
+        // agent үүнийг уншихаа мартаж байсан (бүгд ижил найруулгатай болсон) тул брифт шууд хавсаргана.
         if ($creation->type === Creation::POSTER && ($design = $this->skills->get('poster-design'))) {
             $lines[] = '';
             $lines[] = '## Skill `poster-design` (already loaded — follow it; do not call load_skill for it)';
@@ -418,9 +417,6 @@ class CreativeAgent
                 'asset_id' => ['type' => 'string', 'description' => $creation->type === Creation::REEL ? 'Clip id' : 'Image id'],
                 'scrim' => ['type' => 'string', 'enum' => TextOverlay::SCRIMS, 'description' => 'Soft gradient from the frame edge behind the text zones, when the photo is too busy or bright for the text; none if the zone is already calm'],
                 'scrim_color' => ['type' => 'string', 'description' => 'Hex of the scrim: 000000 (dark, for white text) or a light/brand tone for dark text'],
-                'footer_color' => ['type' => 'string', 'description' => 'Hex of the footer strip (band/pill); ignored for open'],
-                'footer_style' => ['type' => 'string', 'enum' => ['open', 'band', 'pill'], 'description' => 'How the contact facts sit — your design choice per poster, vary it: open = no strip, plain type on a calm foot of the picture (scrim bottom if needed); band = full-width strip; pill = rounded bar inset from the edges'],
-                'footer_dividers' => ['type' => 'boolean', 'description' => 'thin lines between facts on one row'],
                 'items' => [
                     'type' => 'array',
                     'items' => [
@@ -428,7 +424,7 @@ class CreativeAgent
                         'properties' => [
                             'text' => ['type' => 'string', 'description' => 'Exact words; wrap a key word in *stars* to draw it in accent_color'],
                             'role' => ['type' => 'string', 'enum' => ['display', 'title', 'price', 'subtitle', 'small'], 'description' => 'display = a huge hero number or 1–2 short words (15, -30%, 2026), about twice a title'],
-                            'position' => ['type' => 'string', 'enum' => ['top', 'center', 'lower_third', 'bottom', 'footer'], 'description' => 'footer = the contact facts at the very bottom (address, phone, hours, web, social), styled by footer_style'],
+                            'position' => ['type' => 'string', 'enum' => ['top', 'center', 'lower_third', 'bottom'], 'description' => 'Vertical zone; zones stack top to bottom without overlapping. Contact facts (address, phone, hours, web, social) are ordinary items placed wherever the design needs them, usually bottom'],
                             'align' => ['type' => 'string', 'enum' => ['center', 'left', 'right']],
                             'same_line' => ['type' => 'boolean', 'description' => 'true = on the same row as the previous item. The row follows the items\' align: all the same align (all center / all left / all right) = one tight group placed that way; mixed (left … right, or left / center / right) = spread to the edges, 3–4 items in equal columns. Usually false'],
                             'font' => ['type' => 'string', 'enum' => array_keys(TextOverlay::FONTS)],
@@ -755,7 +751,7 @@ class CreativeAgent
         if ($still && $before >= 4 && $count < $before / 2) {
             // Сүүлийн бүтэн layout-ыг буцааж өгнө: засвар нь таах давталт биш, нэг хуулж-засах үйлдэл болно.
             $last = collect($layouts->last()['input']['items'] ?? [])->map(fn ($it) => collect($it)->only(['text', 'role', 'position', 'align', 'same_line', 'font', 'color', 'box', 'box_color', 'box_shape', 'icon'])->all())->values();
-            throw new AiException("This call has only {$count} of the {$before} items you set before on `{$id}`. add_text always redraws the WHOLE poster on the clean visual — it does not patch. To change a few items, send this last layout again with your edits applied (and the same scrim/footer settings): ".json_encode($last, JSON_UNESCAPED_UNICODE));
+            throw new AiException("This call has only {$count} of the {$before} items you set before on `{$id}`. add_text always redraws the WHOLE poster on the clean visual — it does not patch. To change a few items, send this last layout again with your edits applied (and the same scrim settings): ".json_encode($last, JSON_UNESCAPED_UNICODE));
         }
 
         // Model \u0437\u0430\u0440\u0438\u043c\u0434\u0430\u0430 \u043a\u0438\u0440\u0438\u043b\u043b\u0438\u0439\u0433 "\u0410" escape-\u044d\u044d\u0440 (\u044d\u0441\u0432\u044d\u043b "u0410"-\u0438\u0439\u043d \u04e9\u043c\u043d\u04e9 \u0438\u043b\u04af\u04af CR-\u0442\u0430\u0439) \u0438\u043b\u0433\u044d\u044d\u0434\u044d\u0433; \u0436\u0438\u043d\u0445\u044d\u043d\u044d \u04af\u0441\u0433\u044d\u044d\u0440 \u0441\u043e\u043b\u0438\u043d\u043e.
@@ -765,7 +761,7 @@ class CreativeAgent
 
         // Постерын яг хүрээн дээр бичнэ; лого зэрэг reserved хэсгээс зайлсхийнэ.
         $base = $this->exactFrame($asset);
-        $tmp = $this->text->burn($base ?? MediaStore::absolute($asset['path']), $in['items'], (float) ($asset['duration'] ?? 0), $still, $asset['reserved'] ?? [], (string) ($in['scrim'] ?? 'none'), (string) ($in['scrim_color'] ?? '000000'), (string) ($in['footer_color'] ?? ''), (string) ($in['footer_style'] ?? 'open'), (bool) ($in['footer_dividers'] ?? false));
+        $tmp = $this->text->burn($base ?? MediaStore::absolute($asset['path']), $in['items'], (float) ($asset['duration'] ?? 0), $still, $asset['reserved'] ?? [], (string) ($in['scrim'] ?? 'none'), (string) ($in['scrim_color'] ?? '000000'));
         $file = MediaStore::put("creations/{$creation->public_id}/work", file_get_contents($tmp), $still ? 'image/png' : 'video/mp4');
         @unlink($tmp);
         $base && @unlink($base);

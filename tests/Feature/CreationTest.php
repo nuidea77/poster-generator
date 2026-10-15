@@ -773,7 +773,7 @@ class CreationTest extends TestCase
         $this->assertEqualsWithDelta(540, ($p[0] + $d[2]) / 2, 30);
         $this->assertLessThan(0.08 * 1080, $d[0] - $p[2]); // a small gap between them
 
-        // A footer: long small address on the left, bold subtitle phone on the right — the phone keeps its size.
+        // Contacts: long small address on the left, bold subtitle phone on the right — the phone keeps its size.
         $bg = imagecreatetruecolor(1080, 1350);
         $file = sys_get_temp_dir().'/bg-'.uniqid().'.png';
         imagepng($bg, $file);
@@ -845,35 +845,10 @@ class CreationTest extends TestCase
         $this->assertEqualsWithDelta(min($rows) - $y0, $y1 - max($rows), 4);
     }
 
-    public function test_footer_items_sit_on_a_band_at_the_foot(): void
-    {
-        if (! Process::run([config('ai.ffmpeg'), '-version'])->successful()) {
-            $this->markTestSkipped('ffmpeg not installed');
-        }
-
-        $bg = imagecreatetruecolor(1080, 1350);
-        imagefill($bg, 0, 0, imagecolorallocate($bg, 240, 240, 240));
-        $file = sys_get_temp_dir().'/bg-'.uniqid().'.png';
-        imagepng($bg, $file);
-        $item = fn (string $t, string $role, bool $same) => ['text' => $t, 'role' => $role, 'position' => 'footer', 'align' => 'center', 'same_line' => $same, 'font' => 'sans', 'color' => 'FFFFFF', 'box' => false, 'box_color' => '', 'box_shape' => 'rect', 'icon' => 'none'];
-        $overlay = app(TextOverlay::class);
-        $out = $overlay->burn($file, [$item('Их тойруу 15', 'small', false), $item('8800-3344', 'subtitle', true)], 0, true, [], 'none', '000000', '0F4C5C');
-        $img = imagecreatefrompng($out);
-        @unlink($file);
-        @unlink($out);
-
-        [$address, $phone] = array_column($overlay->placed, 'rect');
-        $this->assertEqualsWithDelta(($address[1] + $address[3]) / 2, ($phone[1] + $phone[3]) / 2, 1); // one row, centred on each other
-        $this->assertGreaterThan(1150, $address[1]);           // at the foot
-        $c = imagecolorat($img, 540, 1345);                    // the band reaches the bottom edge in the brand colour
-        $this->assertEqualsWithDelta([15, 76, 92], [$c >> 16 & 0xFF, $c >> 8 & 0xFF, $c & 0xFF], 40);
-        $this->assertSame([], $overlay->lowContrastLines(sys_get_temp_dir()));  // band = panel; nothing to judge
-    }
-
     public function test_the_brief_lists_the_clients_last_designs_and_suggests_another_map(): void
     {
         Creation::create(['user_id' => $this->user->id, 'type' => 'poster', 'formats' => ['4:5'], 'prompt' => 'old', 'status' => 'done', 'steps' => [
-            ['name' => 'add_text', 'input' => ['footer_style' => 'band', 'footer_color' => '111111', 'items' => [['text' => 'X', 'role' => 'title', 'font' => 'condensed', 'position' => 'top', 'align' => 'left']]]],
+            ['name' => 'add_text', 'input' => ['items' => [['text' => 'X', 'role' => 'title', 'font' => 'condensed', 'position' => 'top', 'align' => 'left']]]],
             ['name' => 'deliver_poster', 'input' => ['format' => '4:5', 'image_id' => 'img_1', 'design' => ['map' => 'split', 'style' => 'Swiss Industrial', 'palette' => '111111, FFD400', 'type' => 'condensed caps', 'idea' => 'hero number']]],
         ]]);
         $creation = Creation::create(['user_id' => $this->user->id, 'type' => 'poster', 'formats' => ['4:5'], 'prompt' => 'new', 'status' => 'running']);
@@ -881,33 +856,7 @@ class CreationTest extends TestCase
         $brief = collect((new \ReflectionMethod(CreativeAgent::class, 'brief'))->invoke(app(CreativeAgent::class), $creation))->last()['text'];
 
         $this->assertStringContainsString('map: split · style: Swiss Industrial', $brief);
-        $this->assertStringContainsString('footer: band 111111', $brief);
         $this->assertDoesNotMatchRegularExpression('/suggested: `split`/', $brief); // the map just used is not suggested again
-    }
-
-    public function test_the_agent_designs_the_footer_rows_freely(): void
-    {
-        if (! Process::run([config('ai.ffmpeg'), '-version'])->successful()) {
-            $this->markTestSkipped('ffmpeg not installed');
-        }
-
-        Storage::disk('public')->put('in/visual.png', self::png(1080, 1350));
-        $fact = fn (string $t, bool $same) => ['text' => $t, 'role' => 'small', 'position' => 'footer', 'align' => 'center', 'same_line' => $same, 'font' => 'sans', 'color' => 'FFFFFF', 'box' => false, 'box_color' => '', 'box_shape' => 'rect', 'start' => 0, 'end' => 0, 'animation' => 'none', 'icon' => 'none'];
-        Http::fake([
-            'api.anthropic.com/*' => Http::sequence()
-                ->push($this->turn([['add_text', ['asset_id' => 'img_1', 'footer_color' => '3B1F0E', 'items' => [
-                    $fact('10.20–11.20', false), $fact('07:30–22:00', true), $fact('Их тойруу 15', false), $fact('Хүргэлттэй', true), $fact('8800-3344', false),
-                    $fact('cafe.mn', true), $fact('@aglag', false), // 7 facts in 4 rows: the agent's choice
-                ]]]]))
-                ->push($this->turn([['finish', ['summary' => 'ok']]])),
-        ]);
-        $creation = Creation::create(['user_id' => $this->user->id, 'type' => 'poster', 'formats' => ['4:5'], 'prompt' => 'x', 'status' => 'running',
-            'assets' => [['id' => 'img_1', 'kind' => 'image', 'source' => 'generated', 'provider' => 'gemini', 'path' => 'in/visual.png', 'aspect' => '4:5', 'cost' => 0.039]]]);
-
-        app(CreativeAgent::class)->run($creation);
-
-        // No layout rule is pushed back on its rows.
-        Http::assertSent(fn ($r) => isset($r['messages'][2]) && ! str_contains(collect($r['messages'][2]['content'][0]['content'] ?? [])->firstWhere('type', 'text')['text'] ?? '', 'footer holds'));
     }
 
     public function test_starred_words_are_drawn_in_the_accent_colour_in_place(): void

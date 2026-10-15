@@ -37,9 +37,6 @@ class TextOverlay
      */
     public array $placed = [];
 
-    /** Сүүлийн burn()-ийн footer зурвас [x0, y0, x1, y1] px-ээр, эсвэл null. */
-    public ?array $footerArea = null;
-
     /** Сүүлийн burn()-ийн scrim [хаана, hex] — үзэгчийн харах байдлаар contrast-ыг үнэлэхэд. */
     private array $lastScrim = ['none', '000000'];
 
@@ -47,20 +44,17 @@ class TextOverlay
     public const SCRIMS = ['none', 'top', 'bottom', 'top_bottom'];
 
     /**
-     * Текстийн item-уудыг зураг/клип дээр байрлуулж зурна: мөр, бүс, footer-ийг тооцоолж,
+     * Текстийн item-уудыг зураг/клип дээр байрлуулж зурна: мөр, бүсийг тооцоолж,
      * scrim / panel / icon-уудтай нэг ffmpeg filter graph үүсгэнэ.
      *
      * @param  list<array{text: string, role: string, position: string, align?: string, font: string, color: string, box: bool, box_color: string, start: float, end: float, animation: string, icon?: string}>  $items
      * @param  bool  $still  зураг (постер): хөдөлгөөнгүй текст, PNG гаралт; үгүй бол клип: цагтай текст, MP4 гаралт
      * @param  string  $scrim  текстийн бүсийн ард зөөлөн градиент: none | top | bottom | top_bottom
-     * @param  string  $footerColor  `footer` item-уудын ард байх band-ийн hex (анхдагч нь бараг хар)
-     * @param  string  $footerStyle  band (доод хэсэгт бүтэн өргөнөөр) | pill (ирмэгээс зайтай бөөрөнхий зурвас) | open (зурвасгүй, зураг дээр шууд)
      * @return string Шинэ файлын бүтэн зам (дуудагч нь зөөнө).
      */
-    public function burn(string $video, array $items, float $duration, bool $still = false, array $reserved = [], string $scrim = 'none', string $scrimColor = '000000', string $footerColor = '', string $footerStyle = 'band', bool $footerDividers = true): string
+    public function burn(string $video, array $items, float $duration, bool $still = false, array $reserved = [], string $scrim = 'none', string $scrimColor = '000000'): string
     {
         $this->placed = [];
-        $this->footerArea = null;
         $this->lastScrim = [$scrim, $this->hex($scrimColor)];
 
         if (! $items) {
@@ -88,58 +82,11 @@ class TextOverlay
             // Мөрүүд: same_line-тай item өмнөх item-ийн мөрөнд нэгдэнэ. 2 item текстийн хоёр
             // ирмэгт; 3+ item өргөнийг тэнцүү баганаар хуваана (алхам, бэлэг, онцлог).
             [$rowOf, $rowSize, $rowLen, $r] = [[], [], [], -1];
-            // Role-ийн хэмжээний хувь; footer дотор мэдээлэл бүр `small`-д ойр (утас дээд тал нь 1.25×),
-            // зурвас жигд байна — "subtitle" утас бусад мэдээллийг дарах ёсгүй.
-            $free = (bool) config('ai.agent.free_layout');
-            $roleSize = fn ($it) => ($it['position'] ?? '') === 'footer' && ! $free
-                ? min(self::SIZES[$it['role'] ?? ''] ?? self::SIZES['subtitle'], self::SIZES['small'] * 1.25)
-                : (self::SIZES[$it['role'] ?? ''] ?? self::SIZES['subtitle']);
+            // Role-ийн хэмжээний хувь.
+            $roleSize = fn ($it) => self::SIZES[$it['role'] ?? ''] ?? self::SIZES['subtitle'];
             // Item-д мөрөнд хэрэгтэй зай: тэмдэгтүүд (+ icon, + panel) × role-ийн хэмжээ.
             $len = fn ($it) => (max(4, mb_strlen((string) ($it['text'] ?? ''))) + (($it['icon'] ?? 'none') !== 'none' ? 2 : 0)
                 + (! empty($it['box']) || ($it['box_shape'] ?? '') === 'glass' ? 2.5 : 0)) * $roleSize($it);
-
-            // Холбоо барих зурвасыг agent-ийн мөрийн тугаар биш, энд байрлуулна: бүх мэдээлэл бүтэн
-            // хэмжээгээр багтвал нэг мөр; үгүй бол тэнцвэртэй хоёр мөр (утас сүүлд). Мэдээллүүд
-            // дарааллаа хадгална; зөвхөн утсыг төгсгөл рүү зөөхөөр дахин эрэмбэлнэ.
-            $footerKeys = array_keys(array_filter($list, fn ($it) => ($it['position'] ?? '') === 'footer' && trim((string) ($it['text'] ?? '')) !== ''));
-            // Зурвасыг agent зохиодог (мөрийг same_line-аар);
-            // зөвхөн төлөвлөгдөөгүй footer-ийг (same_line огт байхгүй) энд байрлуулна.
-            // Нөхцөл: 2–6 footer item, жагсаалтад дараалан (завсаргүй) байх.
-            $planned = collect($footerKeys)->contains(fn ($k) => ! empty($list[$k]['same_line']));
-            if (! $free && ! $planned && count($footerKeys) >= 2 && count($footerKeys) <= 6 && end($footerKeys) - reset($footerKeys) === count($footerKeys) - 1) {
-                $facts = array_map(fn ($k) => $list[$k], $footerKeys);
-                $isPhone = fn ($it) => ($it['icon'] ?? '') === 'phone';
-                usort($facts, fn ($a, $b) => $isPhone($a) <=> $isPhone($b)); // тогтвортой: зөвхөн утас сүүл рүү шилжинэ
-                // Item-ийн тооцоолсон өргөн px-ээр (фонтын дундаж өргөн + icon).
-                $widthOf = function (array $it) use ($roleSize, $w, $h): float {
-                    $font = array_key_exists($it['font'] ?? '', self::FONTS) ? $it['font'] : 'bold_sans';
-
-                    return (mb_strlen((string) $it['text']) * self::WIDTH[$font] + (($it['icon'] ?? 'none') !== 'none' ? 1.8 : 0)) * $roleSize($it) * min($w, $h);
-                };
-                // Мөр (масштаблагдсан өргөн + item хоорондын 5% зай) өргөний 84%-д багтах эсэх.
-                $fits = fn (array $row, float $scale = 1.0) => array_sum(array_map($widthOf, $row)) * $scale + (count($row) - 1) * $w * 0.05 <= $w * 0.84;
-                $n = count($facts);
-                $phone = $isPhone(end($facts)) ? end($facts) : null;
-                $others = $phone ? array_slice($facts, 0, -1) : $facts;
-                $rows = match (true) {
-                    // 1. бүгд нэг зурвасад
-                    $n <= 3 && $fits($facts, 0.64) || $n === 4 && $fits($facts, 0.78) => [$facts],
-                    // 2. мэдээллүүд нэг мөрөнд (~62% хүртэл багасч болно), утас доор нь ганцаараа, төвд, тод
-                    $phone && count($others) <= 3 && $fits($others, 0.62) => [$others, [['solo' => true, 'align' => 'center'] + $phone]],
-                    // 3. тэнцвэртэй хоёр мөр
-                    default => [array_slice($facts, 0, intdiv($n, 2)), array_slice($facts, intdiv($n, 2))],
-                };
-                // Сонгосон мөрүүдийг same_line / air_after тугтай item болгон жагсаалтад буцааж оруулна.
-                $laid = [];
-                foreach ($rows as $r2 => $row) {
-                    // мэдээллийн мөр ганц утасны мөрөөс нэлээд дээр (агаартай, утас үйлдэл мэт уншигдана)
-                    $airAbove = isset($rows[$r2 + 1][0]['solo']);
-                    foreach (array_values($row) as $c => $it) {
-                        $laid[] = ['same_line' => $c > 0, 'air_after' => $airAbove] + $it;
-                    }
-                }
-                array_splice($list, reset($footerKeys), $n, $laid);
-            }
 
             $badge = fn ($it) => ! empty($it['box']); // дүүргэсэн pill (үнэ, санал); glass chip урт шошготой хослож болно
             // Item бүрт мөрийн дугаар ба мөр доторх баганыг онооно.
@@ -218,15 +165,7 @@ class TextOverlay
                 $soft = ! $still && ! $panel && in_array($item['role'] ?? '', ['subtitle', 'small'], true); // видео дээр зөөлөн бараан panel
                 $pad = (int) round($size * ($shape === 'card' ? 0.7 : ($panel ? 0.35 : ($soft ? 0.4 : 0))));
                 $lines = substr_count($text, "\n") + 1;
-                $position = in_array($item['position'] ?? '', ['top', 'center', 'lower_third', 'bottom', 'footer'], true) ? $item['position'] : 'lower_third';
-                // 3+ item-тэй footer мөр хоёр талдаа тэгшлэгдэнэ: эхнийх зүүн ирмэгт, сүүлийнх баруунд, бусад нь төвд.
-                if ($position === 'footer' && $columns > 2 && ! $clusterAlign) {
-                    $align = match ($column) {
-                        0 => 'left',
-                        $columns - 1 => 'right',
-                        default => 'column',
-                    };
-                }
+                $position = in_array($item['position'] ?? '', ['top', 'center', 'lower_third', 'bottom'], true) ? $item['position'] : 'lower_third';
 
                 $display = ($item['role'] ?? '') === 'display'; // том цифр/үсэг: доош унжих хэсэггүй, дараагийн мөртэй ойр суудаг
                 // Мөр хоорондын алхам: давхарласан гарчиг (title/display/price, том үсэг эсвэл condensed)
@@ -236,7 +175,7 @@ class TextOverlay
                 // Блокийг бүсээр нь хадгална; хэмжээсийг em-ээр (хэмжээнд үл хамаарах) тэмдэглэнэ,
                 // учир нь мөрийн хэмжээ доор дахин тэнцүүлэгдэж болно.
                 $blocks[$position][] = compact('i', 'item', 'text', 'raw', 'marked', 'font', 'size', 'pad', 'soft', 'same', 'align', 'shape', 'column', 'columns', 'rowNo', 'pitch', 'clusterAlign')
-                    + ['ems' => ['pad' => $pad / max(1, $size), 'line' => ($display ? 0.9 : 1.2) + $pitch * ($lines - 1), 'gap' => $display ? 0.12 : (! empty($item['air_after']) ? 0.6 : 0.3), 'width' => min($w * 0.9 / max(1, $size), $longest * self::WIDTH[$font] * $caps)]];
+                    + ['ems' => ['pad' => $pad / max(1, $size), 'line' => ($display ? 0.9 : 1.2) + $pitch * ($lines - 1), 'gap' => $display ? 0.12 : 0.3, 'width' => min($w * 0.9 / max(1, $size), $longest * self::WIDTH[$font] * $caps)]];
             }
 
             // Нэг мөрийн item-ууд нэг хэмжээтэй (хамгийн жижиг нь), дараа нь блок бүр өөрийн хайрцгийг авна.
@@ -265,8 +204,7 @@ class TextOverlay
             $panels = []; // текстийн доор зурагдах бөөрөнхий panel-ууд: [файл, x, y, enable]
             $floor = 0;
 
-            // Footer: кадрын доод хэсэгт бүтэн өргөнтэй band (Stories ба reels дээр аппын UI-аас
-            // дээр), холбоо барих мэдээллийг мөрөөр агуулна — хаяг зүүн, утас баруун.
+            // Доод бүсийн хамгийн доод хил (Stories ба reels дээр аппын UI-аас дээр).
             $bottomLimit = (int) round($h * ($still ? 0.95 : 0.8));
             // Бүсийн өндөр: мөр бүр нэг удаа, хамгийн өндөр item-ийнхээ өндрөөр тоологдоно.
             $zoneHeight = function (array $set): int {
@@ -277,40 +215,9 @@ class TextOverlay
 
                 return array_sum($rows);
             };
-            $footerTop = null;
-            // Footer band-ийн босоо хүрээг тооцоолно: постер (Story биш) дээр яг доод ирмэгт,
-            // Story/reel дээр аппын UI-аас дээр (87% / 80%).
-            if (isset($blocks['footer'])) {
-                $group = $zoneHeight($blocks['footer']) - end($blocks['footer'])['gap'];
-                $padY = (int) round(min($w, $h) * 0.028);
-                $bandBottom = $still && $h <= $w * 1.5 ? $h : (int) round($h * ($still ? 0.87 : 0.8));
-                $bandTop = $bandBottom - $group - 2 * $padY;
-                $footerTop = $bandTop + $padY;
-                $bottomLimit = min($bottomLimit, $bandTop - (int) round(min($w, $h) * 0.045)); // CTA ба зурвасын хоорондох зай
-                // open: зурвас зурахгүй, зөвхөн талбайг тэмдэглэнэ.
-                if ($footerStyle === 'open') {
-                    $this->footerArea = [0, $bandTop, $w, $bandBottom];
-                } elseif ($footerStyle === 'pill') {
-                    // Доод хэсгээс дээш хөвөх, ирмэгээс 4% зайтай бөөрөнхий зурвас (холбоо барих зурвас);
-                    // постер дээр 3%-иар өргөж, бүх хамаарах хил хязгаарыг хамт шилжүүлнэ.
-                    $inset = (int) round($w * 0.04);
-                    $lift = $still && $h <= $w * 1.5 ? (int) round($h * 0.03) : 0;
-                    $bandTop -= $lift;
-                    $footerTop -= $lift;
-                    $bottomLimit -= $lift;
-                    File::put("{$dir}/band.png", $this->panel($w - 2 * $inset, $bandBottom - $lift - $bandTop, 'pill', $this->hex($footerColor ?: 'FFFFFF'), (int) round(($bandBottom - $bandTop) * 0.3)));
-                    $panels[] = ['band.png', $inset, $bandTop, null];
-                    $this->footerArea = [$inset, $bandTop, $w - $inset, $bandBottom - $lift];
-                } else {
-                    // band: бүтэн өргөнтэй цул зурвас.
-                    File::put("{$dir}/band.png", $this->band($w, $bandBottom - $bandTop, $this->hex($footerColor ?: '141414')));
-                    $panels[] = ['band.png', 0, $bandTop, null];
-                    $this->footerArea = [0, $bandTop, $w, $bandBottom];
-                }
-            }
 
             // 2-р алхам: бүсүүдийг дээрээс доош байрлуулна; бүс бүр өмнөхийнхөө доор ($floor) эхэлнэ.
-            foreach (['top', 'center', 'lower_third', 'bottom', 'footer'] as $position) {
+            foreach (['top', 'center', 'lower_third', 'bottom'] as $position) {
                 $y = max($this->baseY($position, $w, $h, $still), $floor);
 
                 // Доод бүс $bottomLimit-ээс хэтрэхгүйн тулд дээш татагдана.
@@ -318,14 +225,10 @@ class TextOverlay
                     $group = $zoneHeight($blocks['bottom']);
                     $y = max($floor, min($y, $bottomLimit - $group));
                 }
-                // Lower third нь доод бүс болон footer-ээс дээр дуусах ёстой: open footer-тэй үед
-                // өөр юу ч CTA pill-ийг холбоо барих мөр дээр буухаас сэргийлэхгүй.
+                // Lower third нь доод бүсээс дээр дуусах ёстой.
                 if ($position === 'lower_third' && isset($blocks['lower_third'])) {
                     $below = isset($blocks['bottom']) ? $zoneHeight($blocks['bottom']) : 0;
                     $y = max($floor, min($y, $bottomLimit - $below - $zoneHeight($blocks['lower_third'])));
-                }
-                if ($position === 'footer' && $footerTop !== null) {
-                    $y = $footerTop;
                 }
 
                 $row = null; // сүүлийн блок эхэлсэн мөр: ['y' => дээд, 'gap' => …, 'end' => дараагийн чөлөөт y]
@@ -378,11 +281,11 @@ class TextOverlay
                     // Бүлэг мөр: мөрийн бүх item-ийн бодит өргөнийг (icon + текст + panel) хэмжиж, тэдгээрийг
                     // тогтмол зайтайгаар зэрэгцүүлээд бүлгийг зүүн / төв / баруун тийш тавина.
                     if ($b['align'] === 'cluster') {
-                        $itemWidth = function (array $o) use ($position): int {
+                        $itemWidth = function (array $o): int {
                             $bb = imagettfbbox($o['size'] * 0.75, 0, resource_path('fonts/'.self::FONTS[$o['font']]), $o['text']);
                             $hasIcon = in_array($o['item']['icon'] ?? 'none', IconSet::NAMES, true) && ! str_contains($o['text'], "\n");
                             $circle = ($o['item']['icon_style'] ?? 'plain') === 'circle';
-                            $iconPx = (int) round($o['size'] * ($circle ? ($position === 'footer' ? 1.1 : 1.3) : 0.95));
+                            $iconPx = (int) round($o['size'] * ($circle ? 1.3 : 0.95));
                             $padX = $o['shape'] !== 'rect' ? (int) round($o['size'] * ($o['shape'] === 'card' ? 0.9 : 0.7)) : $o['pad'];
 
                             return ($bb[2] - $bb[0]) + ($hasIcon ? $iconPx + (int) round($o['size'] * 0.35) : 0) + 2 * $padX;
@@ -411,7 +314,7 @@ class TextOverlay
                     if ($icon) {
                         $box = imagettfbbox($size * 0.75, 0, resource_path('fonts/'.self::FONTS[$b['font']]), $b['text']);
                         $textW = $box[2] - $box[0];
-                        $iconPx = (int) round($size * (($item['icon_style'] ?? 'plain') === 'circle' ? ($position === 'footer' ? 1.1 : 1.3) : 0.95));
+                        $iconPx = (int) round($size * (($item['icon_style'] ?? 'plain') === 'circle' ? 1.3 : 0.95));
                         $lead = $iconPx + (int) round($size * 0.35);
                         $iconX = match (true) {
                             $left => $margin,
@@ -425,9 +328,9 @@ class TextOverlay
                         }
                         $width = $lead + $textW + 2 * $pad;
                         // icon_style circle: icon нь текстийн өнгөтэй тойрог дотор, дүрс нь ардах өнгөтэй
-                        // (panel / band, эс бөгөөс contrast-д зориулж бараан эсвэл цагаан).
+                        // (эс бөгөөс contrast-д зориулж бараан эсвэл цагаан).
                         $disc = ($item['icon_style'] ?? 'plain') === 'circle';
-                        $glyph = $disc ? $this->hex($item['icon_color'] ?? ($position === 'footer' ? ($footerColor ?: ($footerStyle === 'pill' ? 'FFFFFF' : '141414')) : ($this->light($item['color'] ?? '') ? '1F2937' : 'FFFFFF'))) : $this->hex($item['color'] ?? '');
+                        $glyph = $disc ? $this->hex($item['icon_color'] ?? ($this->light($item['color'] ?? '') ? '1F2937' : 'FFFFFF')) : $this->hex($item['color'] ?? '');
                         File::put("{$dir}/i{$i}.png", app(IconSet::class)->png($icon, $iconPx, $glyph, $disc ? $this->hex($item['color'] ?? '') : null));
                         $icons[] = ["i{$i}.png", $iconX, $top + (int) round($size * 0.37 - $iconPx / 2), $still ? null : "between(t,{$start},{$end})"];
                     }
@@ -467,7 +370,7 @@ class TextOverlay
 
                     // drawtext-ийн нэмэлт загвар: box (rect panel), сүүдэр эсвэл юу ч үгүй.
                     $style = match (true) {
-                        $b['shape'] !== 'rect', $position === 'footer' => '', // өөрийн panel эсвэл band дээр: сүүдэргүй
+                        $b['shape'] !== 'rect' => '', // өөрийн panel дээр: сүүдэргүй
                         // Жижиг мөрүүд ээдрээтэй видео дээр уншигдахуйц байхаар зөөлөн бараан panel авна.
                         $soft => ":box=1:boxcolor=black@0.38:boxborderw={$pad}:shadowcolor=black@0.4:shadowx=0:shadowy=1",
                         $pad > 0 => ":box=1:boxcolor={$this->color($item['box_color'] ?? '', '000000')}@0.82:boxborderw={$pad}",
@@ -536,7 +439,7 @@ class TextOverlay
                         $right => $w - $margin - $width,
                         default => (int) round($cx - $width / 2),
                     };
-                    $this->placed[] = ['text' => $b['text'], 'panel' => $pad > 0 || $position === 'footer', 'rect' => [$x0, $y, $x0 + $width, $y + $b['height']], 'color' => $this->hex($item['color'] ?? ''), 'accent' => $b['marked'] ? $this->hex($item['accent_color'] ?? 'FFB703') : null, 'position' => $position, 'row' => $b['rowNo'], 'shrunk' => $size < (int) round(min($w, $h) * $roleSize($item) * ($position === 'footer' ? 0.58 : 0.75))];
+                    $this->placed[] = ['text' => $b['text'], 'panel' => $pad > 0, 'rect' => [$x0, $y, $x0 + $width, $y + $b['height']], 'color' => $this->hex($item['color'] ?? ''), 'accent' => $b['marked'] ? $this->hex($item['accent_color'] ?? 'FFB703') : null, 'position' => $position, 'row' => $b['rowNo'], 'shrunk' => $size < (int) round(min($w, $h) * $roleSize($item) * 0.75)];
                     // Дараагийн мөрийн y = энэ мөрийн дээд + мөрийн өндөр + хамгийн том gap.
                     $rowGap = max($same ? $row['gap'] : 0, $b['gap']);
                     $row = ['y' => $rowStart, 'gap' => $rowGap, 'end' => $rowStart + $rowH[$b['rowNo']] + $rowGap];
@@ -545,27 +448,6 @@ class TextOverlay
 
                 // Дараагийн бүс энэ бүсээс 2%-ийн зайтай доор эхэлнэ.
                 $floor = $y + (int) round(min($w, $h) * 0.02);
-            }
-
-            // Footer мөрүүд нэг зурвас мэт уншигдана: хөрш мэдээллүүдийн хооронд нимгэн хуваагч
-            // (2px, текстийн өнгө 35%), зай нь 28px-ээс бага бол зурахгүй.
-            $footerRows = [];
-            foreach ($this->placed as $p) {
-                if ($p['position'] === 'footer') {
-                    $footerRows[$p['row']][] = $p;
-                }
-            }
-            foreach ($footerDividers ? $footerRows : [] as $facts) {
-                usort($facts, fn ($a, $b) => $a['rect'][0] <=> $b['rect'][0]);
-                for ($k = 1; $k < count($facts); $k++) {
-                    [$left, $right] = [$facts[$k - 1]['rect'], $facts[$k]['rect']];
-                    if ($right[0] - $left[2] < 28) {
-                        continue;
-                    }
-                    $line = (int) round(min($left[3] - $left[1], $right[3] - $right[1]) * 0.75);
-                    $mid = (int) round(($left[1] + $left[3] + $right[1] + $right[3]) / 4);
-                    $filters[] = 'drawbox=x='.intdiv($left[2] + $right[0], 2).':y='.($mid - intdiv($line, 2)).":w=2:h={$line}:color=0x{$facts[$k]['color']}@0.35:t=fill";
-                }
             }
 
             if (! $filters) {
@@ -592,7 +474,7 @@ class TextOverlay
                 [$label, $n] = ['[s]', $n + 1];
             }
 
-            // Panel/band бүрийг дараалан overlay хийнэ (клип дээр enable-ээр цаг хязгаарлана).
+            // Panel бүрийг дараалан overlay хийнэ (клип дээр enable-ээр цаг хязгаарлана).
             foreach ($panels as $k => [$file, $px, $py, $enable]) {
                 $inputs = [...$inputs, ...$image($file)];
                 $graph[] = "{$label}[{$n}:v]overlay={$px}:{$py}".($enable ? ":enable='{$enable}'" : '')."{$end}[p{$k}]";
@@ -684,38 +566,6 @@ class TextOverlay
         return $busy;
     }
 
-    /**
-     * Footer зурвасын талбайн цэвэр зургийн нарийн хэсэг дээр байрлах хувь (0–1) —
-     * энгийн гадаргуу биш, бүтээгдэхүүн эсвэл гол объект зурвас руу орж ирсэн эсэх.
-     */
-    public function footerOverDetail(string $cleanImage): float
-    {
-        $img = $this->footerArea ? @imagecreatefromstring((string) file_get_contents($cleanImage)) : null;
-        if (! $img) {
-            return 0.0;
-        }
-        [$x0, $y0, $x1, $y1] = [max(0, $this->footerArea[0]), max(0, $this->footerArea[1]), min(imagesx($img) - 3, $this->footerArea[2]), min(imagesy($img) - 3, $this->footerArea[3])];
-        $grey = fn (int $x, int $y) => (($c = imagecolorat($img, $x, $y)) >> 16 & 255) * 0.3 + ($c >> 8 & 255) * 0.59 + ($c & 255) * 0.11;
-        // 32px хавтанцар бүрт 3px алхмаар гэрэлтлийн зөрүүг хэмжиж, дундаж > 8 бол ээдрээтэй гэж тоолно.
-        [$busy, $all] = [0, 0];
-        for ($ty = $y0; $ty < $y1; $ty += 32) {
-            for ($tx = $x0; $tx < $x1; $tx += 32) {
-                [$sum, $n] = [0.0, 0];
-                for ($y = $ty; $y < min($y1, $ty + 32); $y += 3) {
-                    for ($x = $tx; $x < min($x1, $tx + 32); $x += 3) {
-                        $v = $grey($x, $y);
-                        $sum += abs($grey($x + 2, $y) - $v) + abs($grey($x, $y + 2) - $v);
-                        $n++;
-                    }
-                }
-                $all++;
-                $busy += $n && $sum / $n > 8 ? 1 : 0;
-            }
-        }
-
-        return $all ? round($busy / $all, 2) : 0.0;
-    }
-
     /** Текстийн блокийн дээд y; reels ба Stories (9:16) дээр аппын UI-аас зай авна. */
     private function baseY(string $position, int $w, int $h, bool $still = false): int
     {
@@ -798,20 +648,6 @@ class TextOverlay
         imagecopyresampled($out, $big, 0, 0, 0, 0, $w, $h, $w * $k, $h * $k);
         ob_start();
         imagepng($out);
-
-        return (string) ob_get_clean();
-    }
-
-    /** Footer band: бүтэн өргөнтэй цул зурвас, зураг бага зэрэг харагдахаар үл ялиг тунгалаг. */
-    private function band(int $w, int $h, string $hex): string
-    {
-        $img = imagecreatetruecolor($w, max(1, $h));
-        imagesavealpha($img, true);
-        imagealphablending($img, false);
-        [$r, $g, $b] = sscanf($hex, '%02x%02x%02x');
-        imagefill($img, 0, 0, imagecolorallocatealpha($img, $r, $g, $b, 18)); // ~86% тунгалаг бус
-        ob_start();
-        imagepng($img);
 
         return (string) ob_get_clean();
     }

@@ -1,6 +1,6 @@
 ---
 name: poster-styles
-description: Named poster style directions with exact recipes — Minimal Editorial, Soft Structuralism, Editorial Warmth, Ethereal Tech, Swiss Industrial, Tactical Dark, Colour-field Tech and Generative Abstract — each with when to use, palette, visual prompt wording, add_text settings (fonts, roles, shapes, footer) and what to avoid. Load after the design read (poster-taste) when choosing the look of a poster or set.
+description: Named poster style directions with exact recipes — Minimal Editorial, Soft Structuralism, Editorial Warmth, Ethereal Tech, Swiss Industrial, Tactical Dark, Colour-field Tech and Generative Abstract — each with when to use, palette, visual prompt wording, add_text settings (fonts, roles, shapes) and what to avoid. Load after the design read (poster-taste) when choosing the look of a poster or set.
 origin: Adapted from "minimalist-ui", "high-end-visual-design" and "industrial-brutalist-ui" in Leonxlnx/taste-skill (MIT, see LICENSE.txt); the generative section draws on ideas from Anthropic's "algorithmic-art" skill (Apache-2.0) — web/CSS and p5.js rules translated to image prompts + add_text
 ---
 
@@ -47,12 +47,12 @@ Pick **one** style per poster set and commit to it; never mix two. The brand's o
 - **Palette:** a saturated brand field (royal blue, violet, green) + a contrasting accent (orange, lime, yellow) — the international social-template look.
 - **Visual prompt:** "solid {brand colour} background with a soft gradient, the product / phone / smiling person cut out on one side, one curved accent swoosh in {accent} crossing a corner, the other side empty".
 - **add_text:** white two-tone headline (accent word), feature pills, CTA accent `pill` with `arrow`.
-- **Avoid:** footer and CTA in the same colour; three accents.
+- **Avoid:** contacts and CTA in the same colour; three accents.
 
 ## Swiss Industrial
 - **Palette:** newsprint off-white `F4F4F0`, carbon ink `111111`, **one** hazard red `E61919`.
 - **Visual prompt:** "flat off-white paper background with a strict grid of thin black rules, one bold black-and-white photo cropped hard into a rectangle, halftone texture, no gradients".
-- **add_text:** huge uppercase `condensed` or `bold_sans` headline left-aligned, tight lines; numbers as `display`; small uppercase facts; red only for one element (a box, the key number); square `rect` boxes only — no pills, no rounded cards; footer `band` in black with white text.
+- **add_text:** huge uppercase `condensed` or `bold_sans` headline left-aligned, tight lines; numbers as `display`; small uppercase facts; red only for one element (a box, the key number); square `rect` boxes only — no pills, no rounded cards.
 - **Avoid:** rounded shapes, soft shadows, more than one accent, mixing light and dark modes.
 
 ## Tactical Dark

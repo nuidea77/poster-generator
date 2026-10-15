@@ -1,6 +1,6 @@
 ---
 name: poster-art-director
-description: The poster workflow from brief to delivery — read the brief and extract the facts, write the design read and pick a style, choose what the picture shows, plan the zones (header, hook, offer, CTA, footer), prompt a text-free visual, set every word in one add_text call (two-tone headline, offer pills, CTA, contacts), place the logo, critique and fix, derive the other ratios; plus templates per poster type and what not to do. Load first for every POSTER job.
+description: The poster workflow from brief to delivery — read the brief and extract the facts, write the design read and pick a style, choose what the picture shows, plan the zones (header, hook, offer, CTA, contacts), prompt a text-free visual, set every word in one add_text call (two-tone headline, offer pills, CTA, contacts), place the logo, critique and fix, derive the other ratios; plus templates per poster type and what not to do. Load first for every POSTER job.
 origin: Claude skill "poster-art-director" (adapted for this studio)
 ---
 
@@ -52,9 +52,9 @@ English prompt, art-directed per `poster-design` §3 (colour world in hex, paint
 Every item in reading order, real strings, nothing invented (`poster-typography` for roles and parameters, `poster-layouts` for blocks):
 - **Kicker / brand** — one small plain line (a chip only if it carries meaning), or none.
 - **Headline** — `title` (or `display` for a hero number), two-tone: one `*starred*` word + `accent_color`.
-- **Offer & price** — the strongest after the headline: a big plain number, or **one** accent shape (`box: true`). At most 2 filled shapes on the poster besides the footer (`poster-design` §1).
+- **Offer & price** — the strongest after the headline: a big plain number, or **one** accent shape (`box: true`). At most 2 filled shapes on the poster (`poster-design` §1).
 - **CTA** — `subtitle` pill with `icon: arrow`, accent colour.
-- **Contacts** — every contact fact (address, phone, social, web, hours) with `position: footer`; its look is yours to design for this poster.
+- **Contacts** — every contact fact (address, phone, social, web, hours) is an ordinary text item, placed wherever the design needs it (usually near the bottom, `position: bottom`).
 Then check it against the quality bar (`poster-design` §8), look closely (text over the product or a face, weak contrast, cramped facts) and fix it on the **clean visual**.
 
 ## 6. Logo
@@ -62,7 +62,7 @@ Then check it against the quality bar (`poster-design` §8), look closely (text 
 
 ## 7. Critique and fix
 In a short note (`poster-critique` for the full pass):
-1. **2-second test:** the eye lands on the hook or the product first — not the footer, logo or a decoration.
+1. **2-second test:** the eye lands on the hook or the product first — not the contacts, logo or a decoration.
 2. **Message:** every fact exact; the offer prominent; CTA and contact findable.
 3. **Hierarchy & consistency:** one dominant element, one accent, ≤ 2 fonts.
 4. **Legibility:** headline the most contrasted thing; nothing over the product or a face; facts readable at phone size.
@@ -76,7 +76,7 @@ Approve the first ratio, then derive the others in one turn (same model, the app
 |---|---|---|
 | Sale / promo | product hero, energetic brand field | kicker `ХЯМДРАЛ`, `display` `-18%` or offer pill, old → new price pills, CTA, contacts |
 | New product | product close-up, premium light, one prop telling the benefit | `ШИНЭ` kicker, product name two-tone, one benefit line, price pill, CTA, contacts |
-| Event / opening | venue or symbol, atmosphere | event name, date · time · place in the footer, CTA `Бүгдийг урьж байна` |
+| Event / opening | venue or symbol, atmosphere | event name, date · time · place near the bottom, CTA `Бүгдийг урьж байна` |
 | Greeting | symbolic still life (`mongolian-culture`) | occasion title, short wish, brand line; contacts only if given |
 | Anniversary | occasion mood with a big calm area | `display` number + `ЖИЛИЙН ОЙ`, name, wish |
 | Hiring | workplace or team, calm brand field | `АЖИЛД УРЬЖ БАЙНА`, position, 2–3 check items, contacts |
