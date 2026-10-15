@@ -1,6 +1,6 @@
 ---
 name: graphic-elements
-description: Using icons, patterns, gradient scrims and simple shapes on posters and reel cards — when they help and when they are clutter: `icon` on add_text fact lines (phone, location, clock, calendar, web, mail, delivery, gift, star, check, heart, percent, arrow), `scrim` gradients so text reads on a photo, decorative patterns (geometric, Mongolian ulzii / khee borders) asked from the image model as calm low-contrast texture, badges and bands. Load for posters and cards with contact/date/place lines, busy photos behind text, or a flat-looking design.
+description: Using icons, patterns, gradient scrims and simple shapes on posters and reel cards — when they help and when they are clutter: `icon` on add_text fact lines (phone, location, clock, calendar, web, mail, delivery, gift, star, check, heart, percent, arrow, leaf), `scrim` gradients so text reads on a photo, decorative patterns (geometric, Mongolian ulzii / khee borders) asked from the image model as calm low-contrast texture, badges and bands. Load for posters and cards with contact/date/place lines, busy photos behind text, or a flat-looking design.
 ---
 
 # Graphic elements — icons, patterns, gradients

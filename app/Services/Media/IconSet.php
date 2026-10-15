@@ -11,7 +11,7 @@ namespace App\Services\Media;
 class IconSet
 {
     // Дэмжигдэх icon-уудын нэрс; танихгүй нэр сум (arrow) болно.
-    public const NAMES = ['phone', 'location', 'clock', 'calendar', 'web', 'mail', 'star', 'check', 'heart', 'gift', 'delivery', 'percent', 'arrow', 'instagram', 'facebook', 'chat', 'user'];
+    public const NAMES = ['phone', 'location', 'clock', 'calendar', 'web', 'mail', 'star', 'check', 'heart', 'gift', 'delivery', 'percent', 'arrow', 'instagram', 'facebook', 'chat', 'user', 'leaf'];
 
     // Одоо зурж буй 4× томруулсан даавуу.
     private \GdImage $img;
@@ -88,6 +88,7 @@ class IconSet
             'facebook' => $this->facebook(),
             'chat' => $this->chat(),
             'user' => $this->user(),
+            'leaf' => $this->leaf(),
             default => $this->arrow(),
         };
 
@@ -178,6 +179,23 @@ class IconSet
         $this->circle(30, 36, 23, $this->ink);
         $this->circle(70, 36, 23, $this->ink);
         $this->poly([[8.5, 44], [91.5, 44], [50, 90]], $this->ink);
+    }
+
+    // Навч (эко, байгаль орчин): хоёр нумаар хүрээлэгдсэн ташуу навч, дундуураа тунгалаг судал.
+    private function leaf(): void
+    {
+        [$ax, $ay, $bx, $by] = [14, 86, 88, 12];
+        $pts = [];
+        foreach ([1, -1] as $side) {
+            for ($i = 0; $i <= 16; $i++) {
+                $t = $side === 1 ? $i / 16 : 1 - $i / 16;
+                $bulge = sin(M_PI * $t) * 22 * $side;
+                // ташуу тэнхлэг дээрх цэг + перпендикуляр чиглэлд гүдгэр.
+                $pts[] = [$ax + ($bx - $ax) * $t + $bulge * 0.7071, $ay + ($by - $ay) * $t + $bulge * 0.7071];
+            }
+        }
+        $this->poly($pts, $this->ink);
+        $this->poly([[18, 84], [22, 84], [84, 18], [84, 14]], $this->clear);
     }
 
     // Бэлэг: таг, хайрцаг, босоо тууз (тунгалаг зурвас) ба хоёр гогцоо.
