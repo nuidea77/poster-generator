@@ -1,6 +1,6 @@
 ---
 name: poster-layouts
-description: Proven layouts from professional Mongolian ad posters (clinics, telecom, retail) and how to build them with add_text — pill badges and chips, frosted glass cards, CTA bars with an icon, benefit checklists, rows of 3–4 steps / services / gifts, a footer info bar (address left, phone right), product callout pills, minimal premium layouts with lots of air. Load for service, clinic, telecom, promo, giveaway and any poster with several offers, steps or benefits.
+description: Proven layouts from professional Mongolian ad posters (clinics, telecom, retail) and how to build them with add_text — pill badges and chips, frosted glass cards, CTA bars with an icon, benefit checklists, rows of 3–4 steps / services / gifts, product callout pills, minimal premium layouts with lots of air. Load for service, clinic, telecom, promo, giveaway and any poster with several offers, steps or benefits.
 ---
 
 # Poster layouts that work
@@ -17,7 +17,6 @@ Studied from professional Mongolian posters (a clinic package, a telecom promo, 
 | **Row of 3–4** | `small` bold items, the 2nd–4th with `same_line: true`, aligns `left` / `center` / `right` → equal columns, one size (all `center` → one centred group) | services (`ЭХО · РЕНТГЕН · ШИНЖИЛГЭЭ · ҮЗЛЭГ`), gifts, steps, features |
 | **Step flow** | 2–3 glass chips in a row, last one an accent pill with an icon | `Unitel app` → `Багц шилжих` → `Бэлэг авах` |
 | **Checklist** | 3–4 `small` lines, `icon: check`, `align: left` | benefits of a service or package |
-| **Footer info bar** | `footer_style: band` + `footer_color`: address left, phone bold right, a second row for hours/web | one option among open / band / pill |
 
 Rows of 3–4 work best when the **visual already has matching spots** (round photo insets, product tiles, icons in a row) — ask the image model for "a row of four round photo insets evenly spaced across the lower third, empty below each for a caption", then put the captions in `lower_third` / `bottom` as one row. Without matching spots, a row of words alone is still clean.
 
@@ -31,7 +30,6 @@ Rows of 3–4 work best when the **visual already has matching spots** (round ph
 | **CTA with arrow** | pill + `icon: arrow` (the arrow trails the text): `Захиалах →`, `Бүртгүүлэх →`, `Дэлгэрэнгүй →` | the action, at the bottom of the content, above the footer |
 | **Feature pills** | 3 stacked `small` pills/glass with `icon: check` (or numbers `01` `02` `03` as separate display items) | benefits, steps, what is included |
 | **Big stat** | `display` number (`76%`, `4.9★`, `10,000+`) + a `small` label under it | trust, results |
-| **Contact strip** | `footer_style: pill` — a rounded bar inset from the edges; one row of 3: web · social · phone | another option; or `open`: plain facts straight on the picture |
 
 ## 2. Layout recipes
 **Clinic / service package (Medica style)** — 4:5

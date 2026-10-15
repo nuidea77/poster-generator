@@ -217,16 +217,6 @@ class CreativeAgent
         return str_replace('{{SKILLS}}', $this->skills->prompt(), file_get_contents(resource_path('ai/creative-director.md')));
     }
 
-    /** Footer-ийн санаанууд; зэрэг хийгдэж буй постерууд бүгд нэг ижил зурвас руу орохгүйн тулд ажлаар ээлжилнэ. */
-    public const FOOTERS = [
-        'open: no strip — the facts in small plain type straight on a calm, dark foot of the picture, plain icons, no dividers',
-        'open + scrim bottom: facts in one quiet row over a soft dark fade, plain icons',
-        'pill: a rounded bar inset from the edges in white or a light tint with dark text',
-        'band: a full-width strip in the deepest tone of the palette, plain icons, dividers',
-        'open, centred: the facts centred in one or two short lines under the CTA, like a signature',
-        'pill in the accent-free dark tone with circle icons',
-    ];
-
     /** poster-design §4-ийн composition map-ууд; харилцагчийн постеруудад ээлжилнэ. */
     public const MAPS = ['hero_type', 'split', 'frame_arch', 'bottom_heavy', 'centred_icon', 'diagonal', 'grid', 'full_bleed', 'radial', 'axial', 'product_callouts'];
 
@@ -327,12 +317,9 @@ class CreativeAgent
         $lines[] = '## Client brief';
         $lines[] = $creation->prompt;
 
-        // Постерт: олон янз байдлын сануулга ба ажлын id-гаар ээлжилсэн footer санаа.
+        // Постерт: харилцагчийн сүүлийн постеруудын дизайн (олон янз байдлын сануулга).
         if ($creation->type === Creation::POSTER && ! config('ai.agent.free_layout')) {
             array_push($lines, ...$this->recentDesigns($creation));
-            $lines[] = '';
-            $lines[] = '## Footer idea for this poster';
-            $lines[] = 'Suggested (not required — pick another if the picture asks for it, but do not default to a band): '.self::FOOTERS[$creation->id % count(self::FOOTERS)].'.';
         }
 
         // Медиа төсөв ба үнийн жагсаалт: agent төлөвлөгөөгөө үүнд багтаана.

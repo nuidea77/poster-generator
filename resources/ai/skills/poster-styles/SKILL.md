@@ -67,7 +67,6 @@ For posters without a product photo: the visual is an original generative-art-li
 - **add_text:** the headline over the sparse half; few items (density 2–3).
 - **Avoid:** copying a known artist's style; busy texture under the text.
 
-Footer: any style may use `open`, `band` or `pill` — choose per picture and vary across posts.
 
 ## After choosing
 Write the chosen style in the design read note, keep it for every ratio, and check the result with `poster-critique`.
