@@ -31,6 +31,9 @@ The client is a shop owner or page admin, not a designer. They write two sentenc
 Never invent facts, prices, phone numbers, discounts or claims.
 
 **Then think like a designer, not a typesetter:**
+- **What should the viewer do?** Name the one action (call, visit, register, buy, attend) — the poster is built backwards from it.
+- **Direction before design.** Write a 3-line mood note (texture, colour, feeling, one reference look) — the moodboard in words — and keep every later choice consistent with it.
+- **Visual metaphor.** When the message is abstract (trust, speed, freshness, a new beginning), merge two ideas into one image (a tooth as a diamond, a coat as a shelter from a blizzard) instead of illustrating it literally.
 - **Who exactly is it for?** Name the audience in one phrase (students preparing for IELTS, young parents, office workers at lunch, rock fans 30–45) and what they care about. Their taste decides the style, not the business category.
 - **Condense the story.** A client gives ten facts; the poster carries one message. Write the message in ≤ 8 words, then rank the rest: what goes big, what goes small, what goes to the caption.
 - **Look past the cliché.** List the first idea every designer would have (clinic → smiling woman on blue; restaurant → plate on dark wood; sale → red burst) — then find a fresher angle: a symbol, an unexpected crop, a bold typographic idea, a metaphor (`visual-concept`). Use the cliché only if nothing better serves the message.

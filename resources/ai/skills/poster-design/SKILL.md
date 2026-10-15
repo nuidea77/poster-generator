@@ -28,6 +28,8 @@ Before any prompt, write one sentence: **"The poster shows ___ so that the viewe
 Pick one hero: the product, a person's emotion, a bold number (`-40%`, `25 жил`, `1 ХОНОГ`), or a symbol (a rose for a rock band's anniversary). Everything else supports it.
 
 ## 2b. Design fundamentals
+**Three levels (the 3-second rule).** Every poster must work at three distances: **Level 1 — the hook** (the hero image or the headline, readable across a room); **Level 2 — the core message** (offer, date, price, subheadline, readable at arm's length); **Level 3 — details** (description, contacts, partner logos, small print, only read up close). Assign every item a level before setting it; Level 1 has one item.
+
 **Hierarchy and reading path.** The eye enters at the focal point, then follows a path — top-left → bottom-right (Z), or centre → out. Order the blocks along it: hook → hero → offer → action → contacts. Size, colour and isolation make something important; make only one thing loudest.
 
 **Colour harmony** — choose one scheme deliberately and name it in the prompt:
@@ -45,6 +47,7 @@ Topic colours as a starting point, never a rule: health → clean white + one co
 **Reading patterns:** a poster with little text reads in a **Z** (top-left → top-right → diagonal → bottom-left → bottom-right): headline top, hero across, offer and action at the bottom right. Text-heavy layouts read in an **F** down the left edge — keep their lines left-aligned.
 
 **Gestalt — how the eye groups things:**
+- **Continuation:** the eye follows lines and directions — a gaze, an arm, a diagonal band, a road — point them at the headline or the CTA, never off the frame.
 - **Proximity:** what belongs together sits close (kicker on the headline, price on the product name); separate groups get a clear gap.
 - **Similarity:** the same job gets the same look (all benefit lines the same size and icon; one button style).
 - **Closure:** a partly drawn shape (a cut circle, a cropped arch, a subject cut by the frame) is completed by the eye — tension and elegance without more elements.
@@ -105,6 +108,8 @@ E CENTRED ICON    F DIAGONAL        G GRID/TILES      H FULL-BLEED MOOD
 - **J Axial** — one strong diagonal (or vertical) axis painted across the frame — a band, a beam of light, a road, a ribbon; the subject and the type hang off that axis. Type stays horizontal (the tool cannot rotate it); the axis carries the movement.
 - **K Product + callouts** — the product dead centre and large; 2–4 short feature callouts (`small`, with icons) left and right of it at its height, headline above, price/offer and contacts below (tech, gadgets, cosmetics). A variant: headline and description in a left column, the product big on the right.
 
+**Proportions:** split the frame by the golden ratio (≈ 62 / 38) rather than halves — image 62% / type 38%, or the headline block at 38% height. A baseline rhythm: line gaps and block gaps are multiples of one unit, so text lines line up across columns.
+
 **Grid types behind these maps:** column grid (text on 1–2 shared column edges — most posters), modular grid (equal tiles — G), hierarchical grid (blocks sized by importance — A, D), radial (I), axial (J). Name the grid you use; every block must sit on it.
 
 **Variety:** the brief lists the client's last posters (map, style, palette, type). Make each new one clearly different in map, style, palette and headline treatment — a feed of look-alikes is a failure. Report your choices in `deliver_poster`'s `design` so the next poster can differ from this one.
@@ -149,6 +154,12 @@ A poster is 4–6 blocks: **Logo · Headline · Subheadline · Visual hook · De
 
 ## 6. Colour
 Palette from the logo / brand / packaging, as hex. Max 2 main + 1 accent; the accent is used once or twice (offer, CTA). Type colour contrasts strongly with what is behind it. Mood: premium → dark/neutral + one jewel tone; food → warm; youth/sport → saturated, hard light; family → warm, soft; health → clean whites with one confident brand colour, not pale blue everywhere. Style recipes: `poster-styles`; avoiding generic looks: `poster-taste`.
+
+## 6b. Brand alignment
+If the client gave brand material (logo, colours, a reference, a brandbook), it wins over any style preset: their exact hex colours, their font feel, their tone of voice (formal, youthful, playful, respectful) in both words and picture. Use the real product photos they sent; the logo keeps its clear space (`logo-placement`).
+
+## 6c. Expressive type (what the tool can do)
+Type is an image element too: an oversized headline cropped by the subject (the subject stands in front — ask the visual for the person/product to overlap where the headline will sit only when a layer order is possible; otherwise place the headline beside), very tight stacked lines, a single giant number, two-tone emphasis, caps vs lower case contrast. The tool cannot curve, rotate or 3D-extrude letters — express energy through scale, crop of the picture and colour instead.
 
 ## 7. Logo
 Placed last with `add_logo` (the client's file, pixel-exact) — size, corner, clear space per **`logo-placement`**. In the visual prompt: "no logos", and keep a calm corner. Never invent a logo; without one the brand name may be a `small` text line.

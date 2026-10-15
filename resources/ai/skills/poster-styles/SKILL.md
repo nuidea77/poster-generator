@@ -1,6 +1,6 @@
 ---
 name: poster-styles
-description: Named poster style directions with exact recipes — Minimal Editorial, Soft Structuralism, Editorial Warmth, Ethereal Tech, Swiss Industrial, Tactical Dark, Colour-field Tech and Generative Abstract — each with when to use, palette, visual prompt wording, add_text settings (fonts, roles, shapes) and what to avoid. Load after the design read (poster-taste) when choosing the look of a poster or set.
+description: Named poster style directions with exact recipes — Minimal Editorial, Soft Structuralism, Editorial Warmth, Ethereal Tech, Swiss Industrial, Tactical Dark, Colour-field Tech, Generative Abstract, Neo-Brutalism, Acid / Psychedelic, Retro & Y2K and 3D Surreal — each with when to use, palette, visual prompt wording, add_text settings (fonts, roles, shapes) and what to avoid. Load after the design read (poster-taste) when choosing the look of a poster or set.
 origin: Adapted from "minimalist-ui", "high-end-visual-design" and "industrial-brutalist-ui" in Leonxlnx/taste-skill (MIT, see LICENSE.txt); the generative section draws on ideas from Anthropic's "algorithmic-art" skill (Apache-2.0) — web/CSS and p5.js rules translated to image prompts + add_text
 ---
 
@@ -18,6 +18,10 @@ Pick **one** style per poster set and commit to it; never mix two. The brand's o
 | Swiss Industrial | events, conferences, architecture, bold campaigns | 8 / 4 / 7 |
 | Tactical Dark | gaming, tech launches, security, sports | 7 / 5 / 7 |
 | Generative Abstract | announcements without a product photo, abstract brands, music, art | 6 / 2 / 6 |
+| Neo-Brutalism | youth brands, streetwear, startups, bold sales | 9 / 5 / 9 |
+| Acid / Psychedelic | music festivals, parties, clubs, concerts | 9 / 4 / 10 |
+| Retro & Y2K | fashion drops, cafés, music, nostalgia campaigns | 7 / 4 / 7 |
+| 3D Surreal | tech launches, apps, beauty, futuristic products | 7 / 2 / 7 |
 
 ## Minimal Editorial
 - **Palette:** off-white `F7F6F3` or white canvas, charcoal `2F3437` text (never pure black), muted grey `787774`; one washed pastel for tags (pale blue `E1F3FE` / text `1F6C9F`, pale green `EDF3EC` / `346538`).
@@ -67,6 +71,30 @@ For posters without a product photo: the visual is an original generative-art-li
 - **add_text:** the headline over the sparse half; few items (density 2–3).
 - **Avoid:** copying a known artist's style; busy texture under the text.
 
+
+## Neo-Brutalism
+- **Palette:** flat saturated blocks (acid yellow `F5E50B`, hot red `FF3B30`, cobalt `2547F4`) on off-white, pure black `000000` for type and outlines.
+- **Visual prompt:** "flat bold colour blocks, hard black outlines around the product, hard drop shadow offset down-right with no blur, raw collage cut-outs, deliberately unpolished, high contrast, no gradients".
+- **add_text:** huge `condensed` caps headline, black on a flat colour; `rect` boxes with black text; everything left on a hard grid; one sticker-like `pill` at most.
+- **Avoid:** soft shadows, glass, pastel, rounded friendliness.
+
+## Acid / Psychedelic
+- **Palette:** clashing neons (acid green `B6FF00`, magenta `FF2BD6`, electric blue `2E5BFF`) on black, or a liquid chrome gradient.
+- **Visual prompt:** "warped liquid shapes, melting chrome and iridescent swirls, 60s–70s psychedelic curves, grainy, vivid saturated colours, the centre left calm and dark for the title".
+- **add_text:** massive `condensed` or `rounded` headline in white or one neon on the calm dark centre; date and venue small `sans`; no boxes.
+- **Avoid:** using it for clinics, finance, food — and more than one neon behind text.
+
+## Retro & Y2K
+- **Palette:** faded cream, tomato red, mustard, teal (retro) — or silver, baby blue, lilac, chrome (Y2K).
+- **Visual prompt (retro):** "70s print feel, halftone dots, paper grain, faded warm colours, rounded sunburst behind the product". **(Y2K):** "early-2000s digital look, glossy chrome and translucent plastic shapes, soft star sparkles, lilac and baby-blue gradient sky".
+- **add_text:** `rounded` or `bold_sans` headline, two-tone; small `pill` tags; retro → cream type on red, Y2K → white type with a dark scrim.
+- **Avoid:** mixing the two eras; clean minimal layouts with a retro filter only.
+
+## 3D Surreal
+- **Palette:** soft gradient field (peach→lilac, mint→sky) or deep night blue, one glossy accent.
+- **Visual prompt:** "surreal 3D render, the product floating among abstract glossy shapes (spheres, arches, stairs), soft studio light, dreamlike impossible scale, clean background with a calm area for the headline".
+- **add_text:** white or deep-navy `bold_sans` headline over the calm area; few items (density 2–3); one `glass` chip.
+- **Avoid:** busy shapes behind the text, more than one accent.
 
 ## After choosing
 Write the chosen style in the design read note, keep it for every ratio, and check the result with `poster-critique`.
