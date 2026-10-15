@@ -421,9 +421,11 @@ class CreativeAgent
             $lines[] = $design;
         }
         // Жишээ сан: агент find_references-ийг ихэвчлэн алгасдаг тул жагсаалтыг брифэнд шууд өгнө.
-        if ($creation->type === Creation::POSTER && ($refs = app(ReferenceLibrary::class)->search(null, null, 40))) {
+        // Сан томорсон тул бүгдийг биш: брифийн салбарын жишээ эхэнд, бусад салбараас цөөн.
+        $library = $creation->type === Creation::POSTER ? app(ReferenceLibrary::class)->forBrief($creation->prompt.' '.json_encode($creation->product, JSON_UNESCAPED_UNICODE), (int) $creation->id) : ['refs' => []];
+        if ($refs = $library['refs']) {
             $lines[] = '';
-            $lines[] = '## Style reference library (curated examples)';
+            $lines[] = '## Style reference library (curated examples'.($library['category'] ? " — this looks like `{$library['category']}`, those first; `find_references` searches the rest" : '').')';
             $lines[] = 'If one fits this job, pass its id in generate_image `reference_image_ids` as a STYLE reference and say in the prompt exactly what to borrow (composition, light, colour mood) — never its text, logos or subject. Use at most one; skip if none fits. `find_references` shows previews.';
             foreach ($refs as $ref) {
                 $lines[] = "- `{$ref['id']}` [{$ref['category']}".($ref['style'] ? " · {$ref['style']}" : '')."] {$ref['title']}: {$ref['notes']}";

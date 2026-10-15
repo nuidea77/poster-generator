@@ -132,4 +132,23 @@ class ReferenceLibraryTest extends TestCase
         $disabled = StyleReference::where('enabled', false)->first();
         $this->assertNull($library->get("ref_{$disabled->id}"));
     }
+
+    public function test_brief_list_puts_the_guessed_category_first_and_spreads_the_rest(): void
+    {
+        foreach (['food' => 20, 'beauty' => 5, 'tech' => 5, 'event' => 5] as $cat => $n) {
+            for ($k = 0; $k < $n; $k++) {
+                StyleReference::create(['title' => "$cat $k", 'category' => $cat, 'path' => "references/$cat-$k.jpg", 'enabled' => true]);
+            }
+        }
+
+        $out = app(ReferenceLibrary::class)->forBrief('Бургер ресторан "Grill Nomad": шинэ бургер, хүргэлт', 7);
+        $this->assertSame('food', $out['category']);
+        $cats = array_column($out['refs'], 'category');
+        $this->assertSame(array_fill(0, 14, 'food'), array_slice($cats, 0, 14)); // at most 14 of the guessed category
+        $this->assertCount(24, $cats);
+        $this->assertEqualsCanonicalizing(['beauty', 'tech', 'event'], array_values(array_unique(array_slice($cats, 14))));
+
+        // No keyword: no category, just a spread.
+        $this->assertNull(app(ReferenceLibrary::class)->forBrief('x')['category']);
+    }
 }
