@@ -60,7 +60,7 @@ class TextOverlay
      * @param  string  $scrim  текстийн бүсийн ард зөөлөн градиент: none | top | bottom | top_bottom
      * @return string Шинэ файлын бүтэн зам (дуудагч нь зөөнө).
      */
-    public function burn(string $video, array $items, float $duration, bool $still = false, array $reserved = [], string $scrim = 'none', string $scrimColor = '000000'): string
+    public function burn(string $video, array $items, float $duration, bool $still = false, string $scrim = 'none', string $scrimColor = '000000'): string
     {
         $this->placed = [];
         $this->lastScrim = [$scrim, $this->hex($scrimColor)];
@@ -87,25 +87,15 @@ class TextOverlay
             $blocks = [];
 
             $list = array_values($items);
-            // Мөрүүд: same_line-тай item өмнөх item-ийн мөрөнд нэгдэнэ. 2 item текстийн хоёр
-            // ирмэгт; 3+ item өргөнийг тэнцүү баганаар хуваана (алхам, бэлэг, онцлог).
-            [$rowOf, $rowSize, $rowLen, $r] = [[], [], [], -1];
+            // Мөрүүд: same_line-тай item өмнөх item-ийн мөрөнд нэгдэнэ. Код мөрийг өөрөө зохицуулахгүй:
+            // item бүр agent-ийн өгсөн align-аар байрлана, ижил align-тай item-ууд хажуу хажуудаа бүлэг болно.
+            [$rowOf, $rowSize, $r] = [[], [], -1];
             // Role-ийн хэмжээний хувь.
             $roleSize = fn ($it) => self::SIZES[$it['role'] ?? ''] ?? self::SIZES['subtitle'];
-            // Item-д мөрөнд хэрэгтэй зай: тэмдэгтүүд (+ icon, + panel) × role-ийн хэмжээ.
-            $len = fn ($it) => (max(4, mb_strlen((string) ($it['text'] ?? ''))) + (($it['icon'] ?? 'none') !== 'none' ? 2 : 0)
-                + (! empty($it['box']) || ($it['box_shape'] ?? '') === 'glass' ? 2.5 : 0)) * $roleSize($it);
-
-            $badge = fn ($it) => ! empty($it['box']); // дүүргэсэн pill (үнэ, санал); glass chip урт шошготой хослож болно
-            // Item бүрт мөрийн дугаар ба мөр доторх баганыг онооно.
+            // Item бүрт мөрийн дугаар ба мөр доторх дарааллыг онооно.
             foreach ($list as $j => $it) {
-                // Хоёр badge зэрэгцэх нь хоёулаа богино (≤ 12 тэмдэгт) үед л: үнийн pill-ийн хажууд урт
-                // саналын pill хоёуланг нь жижигрүүлдэг тул оронд нь доор нь давхарлана.
-                $tooLong = $j > 0 && ! empty($it['same_line']) && $badge($it) && $badge($list[$j - 1])
-                    && max(mb_strlen((string) ($it['text'] ?? '')), mb_strlen((string) ($list[$j - 1]['text'] ?? ''))) > 12;
-                $r += empty($it['same_line']) || $j === 0 || $tooLong ? 1 : 0;
+                $r += empty($it['same_line']) || $j === 0 ? 1 : 0;
                 $rowSize[$r] = ($rowSize[$r] ?? 0) + 1;
-                $rowLen[$r] = ($rowLen[$r] ?? 0) + $len($it);
                 $rowOf[$j] = [$r, $rowSize[$r] - 1];
             }
 
@@ -127,37 +117,22 @@ class TextOverlay
                     $font = 'condensed'; // Playfair-ийн old-style цифр том үсгээс доош унжина ("15 ЖИЛ" сул харагдсан)
                 }
 
-                // same_line: энэ item өмнөхтэйгөө нэг мөрөнд (жишээ нь утас зүүн, хүргэлт баруун);
-                // хос тус бүр өргөний хагасыг авч, төвд тэгшилсэн хос зүүн / баруун болж хуваагдана.
+                // same_line: энэ item өмнөхтэйгөө нэг мөрөнд. Нэг мөрөнд хэд хэдэн item байвал
+                // align бүр өөрийн бүлэг (зүүн ирмэг / төв / баруун ирмэг) болно — 'cluster'.
                 [$rowNo, $column] = $rowOf[$i];
                 $columns = $rowSize[$rowNo];
                 $same = $column > 0;
-                $paired = $columns > 1;
-                // Хос нь өргөнийг текстийн уртаар хуваана (богино утасны хажууд урт хаяг);
-                // 3+ мөрөнд тэнцүү багана.
-                $share = $columns === 2 ? $len($item) / $rowLen[$rowNo] : 1 / $columns;
                 $align = in_array($item['align'] ?? '', ['left', 'right', 'center'], true) ? $item['align'] : 'center';
-                // Мөрийн бүх item ижил тэгшилгээтэй бол (бүгд center / left / right) agent тэднийг
-                // бөөнөөр нь хүссэн: ирмэгүүд рүү тараахгүй, нэг бүлэг болгож тэр тэгшилгээгээр тавина.
-                $rowAligns = array_unique(array_map(fn ($k) => in_array($list[$k]['align'] ?? '', ['left', 'right', 'center'], true) ? $list[$k]['align'] : 'center',
-                    array_keys(array_filter($rowOf, fn ($rc) => $rc[0] === $rowNo))));
-                $clusterAlign = $columns > 1 && count($rowAligns) === 1 ? $align : null;
+                $clusterAlign = $columns > 1 ? $align : null;
                 if ($clusterAlign) {
                     $align = 'cluster';
-                } elseif ($columns === 2 && $align === 'center') {
-                    $align = $same ? 'right' : 'left';
-                } elseif ($columns > 2) {
-                    $align = 'column'; // өөрийн баганын төвд
                 }
 
-                // Эхний тооцоо: role-ийн хэмжээ, гэхдээ хамгийн урт мөр (том үсэг 12% илүү өргөн)
-                // мөрөнд ногдох өргөнд багтахаар багасгана.
+                // Хэмжээ = role-ийн хэмжээ. Цорын ганц хамгаалалт: хамгийн өргөн мөр кадраас хальж
+                // тасрахгүйн тулд кадрын өргөний 86%-д багтана (100pt-ээр хэмжээд, ×0.75 = px→pt).
                 $longest = max(array_map('mb_strlen', explode("\n", $text)));
                 $caps = mb_strtoupper($text) === $text ? 1.12 : 1.0;
                 $size = (int) round(min($w, $h) * $roleSize($item));
-                $size = (int) min($size, floor($w * (0.84 * $share - ($paired ? 0.02 : 0)) / max(1, $longest * self::WIDTH[$font] * $caps)));
-                // Дараа нь жинхэнэ glyph-уудыг хэмжинэ (өргөн serif том үсэг тооцоог давдаг): хамгийн өргөн
-                // мөр panel-тайгаа өргөний 86%-д багтах ёстой. 100pt-ээр хэмжээд (×0.75 = px→pt) харьцаагаар хэрэглэнэ.
                 $fontFile = resource_path('fonts/'.self::FONTS[$font]);
                 $widest = max(array_map(fn ($line) => ($box = imagettfbbox(100 * 0.75, 0, $fontFile, $line)) ? $box[2] - $box[0] : 0, explode("\n", $text)));
                 // Panel-ийн хэлбэр: rect (drawtext box), pill (бөөрөнхий, box өнгөтэй), card эсвэл glass (царцсан цайвар pill).
@@ -169,7 +144,7 @@ class TextOverlay
                 // $boxed = panel-ийн хэвтээ дотор зай em-ээр (rect 0.7, бөөрөнхий 1.4).
                 $panel = ! empty($item['box']) || in_array($shape, ['glass', 'outline'], true);
                 $boxed = $panel ? ($shape === 'rect' ? 0.7 : 1.4) : 0.0;
-                $size = (int) max(8, min($size, floor($w * ($paired ? 0.86 * $share - 0.03 : 0.86) / max(0.01, $widest / 100 + $boxed + ($paired && ($item['icon'] ?? 'none') !== 'none' ? 1.3 : 0)))));
+                $size = (int) max(8, min($size, floor($w * 0.86 / max(0.01, $widest / 100 + $boxed + (($item['icon'] ?? 'none') !== 'none' ? 1.3 : 0)))));
                 $soft = ! $still && ! $panel && in_array($item['role'] ?? '', ['subtitle', 'small'], true); // видео дээр зөөлөн бараан panel
                 $pad = (int) round($size * ($shape === 'card' ? 0.7 : ($panel ? 0.35 : ($soft ? 0.4 : 0))));
                 $lines = substr_count($text, "\n") + 1;
@@ -186,18 +161,10 @@ class TextOverlay
                     + ['ems' => ['pad' => $pad / max(1, $size), 'line' => ($display ? 0.9 : 1.2) + $pitch * ($lines - 1), 'gap' => $display ? 0.12 : (empty($item['rule']) ? 0.3 : 0.9), 'width' => min($w * 0.9 / max(1, $size), $longest * self::WIDTH[$font] * $caps)]];
             }
 
-            // Нэг мөрийн item-ууд нэг хэмжээтэй (хамгийн жижиг нь), дараа нь блок бүр өөрийн хайрцгийг авна.
+            // Блок бүр өөрийн хэмжээгээр хайрцгаа авна (мөрийн item-уудын хэмжээг тэнцүүлэхгүй).
             foreach ($blocks as $position => $set) {
-                $rowMin = [];
-                foreach ($set as $b) {
-                    $key = $b['rowNo'].':'.($b['item']['role'] ?? '').($b['columns'] === 2 && $b['shape'] !== 'rect' ? ':badge' : '');
-                    $rowMin[$key] = min($rowMin[$key] ?? PHP_INT_MAX, $b['size']);
-                }
                 foreach ($set as $k => $b) {
-                    // 3+ мөр: ижил role → нэг хэмжээ. Хос нь өөрийн хэмжээгээ хадгална, зөвхөн нэг role-ийн
-                    // хоёр badge (pill/glass) таарах ёстой (үнийн pill саналын pill-ийн хажууд).
-                    $badge = $b['shape'] !== 'rect';
-                    $size = $b['columns'] > 2 || ($badge && $b['columns'] === 2) ? $rowMin[$b['rowNo'].':'.($b['item']['role'] ?? '').($b['columns'] === 2 ? ':badge' : '')] ?? $b['size'] : $b['size'];
+                    $size = $b['size'];
                     $pad = (int) round($size * $b['ems']['pad']);
                     $blocks[$position][$k] = ['size' => $size, 'pad' => $pad,
                         'width' => (int) round($size * $b['ems']['width']) + 2 * $pad,
@@ -233,11 +200,6 @@ class TextOverlay
                     $group = $zoneHeight($blocks['bottom']);
                     $y = max($floor, min($y, $bottomLimit - $group));
                 }
-                // Lower third нь доод бүсээс дээр дуусах ёстой.
-                if ($position === 'lower_third' && isset($blocks['lower_third'])) {
-                    $below = isset($blocks['bottom']) ? $zoneHeight($blocks['bottom']) : 0;
-                    $y = max($floor, min($y, $bottomLimit - $below - $zoneHeight($blocks['lower_third'])));
-                }
 
                 $row = null; // сүүлийн блок эхэлсэн мөр: ['y' => дээд, 'gap' => …, 'end' => дараагийн чөлөөт y]
                 $rowH = []; // мөр бүр хамгийн өндөр item-ийнхээ өндөртэй; жижиг item-ууд дотор нь төвлөрнө
@@ -253,14 +215,6 @@ class TextOverlay
                         $y = $row['y'];
                     }
 
-                    // Логооос (эсвэл нөөцөлсөн талбайгаас) зай авна: давхцах бол доор нь шилжүүлнэ (0.3em зайтай).
-                    foreach ($same ? [] : $reserved as [$x0, $y0, $x1, $y1]) {
-                        $top0 = $y0 * $h - $size * 0.3;
-                        $bottom0 = $y1 * $h + $size * 0.3;
-                        if ($y < $bottom0 && $y + $b['height'] > $top0) {
-                            $y = (int) round($bottom0);
-                        }
-                    }
                     // Мөрийн дотор босоо төвлөрүүлж, фонтыг түр хавтсанд f{i}.ttf нэрээр хуулна.
                     $rowStart = $same ? $row['y'] : $y;
                     $y = $rowStart + intdiv($rowH[$b['rowNo']] - $b['height'], 2);
@@ -284,10 +238,9 @@ class TextOverlay
                     $right = $b['align'] === 'right';
                     // Хажуугийн зай = өргөний 7% (LogoOverlay-ийн зайтай ижил).
                     $margin = (int) round($w * 0.07);
-                    // Энэ item-ийн төв: кадрын төв, эсвэл 3+ мөрөнд өөрийн баганын төв.
-                    $cx = $b['align'] === 'column' ? (int) round($margin + ($w - 2 * $margin) * ($b['column'] + 0.5) / $b['columns']) : (int) round($w / 2);
-                    // Бүлэг мөр: мөрийн бүх item-ийн бодит өргөнийг (icon + текст + panel) хэмжиж, тэдгээрийг
-                    // тогтмол зайтайгаар зэрэгцүүлээд бүлгийг зүүн / төв / баруун тийш тавина.
+                    $cx = (int) round($w / 2);
+                    // Бүлэг: мөрийн ижил align-тай item-уудын бодит өргөнийг (icon + текст + panel) хэмжиж,
+                    // тогтмол зайтайгаар зэрэгцүүлээд бүлгийг тэр align-ийн дагуу зүүн / төв / баруун тийш тавина.
                     if ($b['align'] === 'cluster') {
                         $itemWidth = function (array $o): int {
                             $bb = imagettfbbox($o['size'] * 0.75, 0, resource_path('fonts/'.self::FONTS[$o['font']]), $o['text']);
@@ -298,7 +251,7 @@ class TextOverlay
 
                             return ($bb[2] - $bb[0]) + ($hasIcon ? $iconPx + (int) round($o['size'] * 0.35) : 0) + 2 * $padX;
                         };
-                        $mates = array_values(array_filter($blocks[$position], fn ($o) => $o['rowNo'] === $b['rowNo']));
+                        $mates = array_values(array_filter($blocks[$position], fn ($o) => $o['rowNo'] === $b['rowNo'] && $o['clusterAlign'] === $b['clusterAlign']));
                         $widths = array_map($itemWidth, $mates);
                         $gapPx = (int) round($w * 0.05);
                         $total = array_sum($widths) + $gapPx * (count($mates) - 1);
@@ -307,7 +260,7 @@ class TextOverlay
                             'right' => $w - $margin - $total,
                             default => (int) round(($w - $total) / 2),
                         });
-                        $k = $b['column'];
+                        $k = (int) array_search($b['i'], array_column($mates, 'i'), true);
                         $cx = $start + array_sum(array_slice($widths, 0, $k)) + $gapPx * $k + intdiv($widths[$k], 2);
                     }
                     $x = match (true) {
@@ -474,7 +427,7 @@ class TextOverlay
             }
 
             if (! $filters) {
-                throw new AiException('All text items were empty (only blank lines). Put the real words in "text" as plain UTF-8 letters — no blank-line padding, no \u escapes; to clear a logo, add_logo first and the text moves below it by itself.');
+                throw new AiException('All text items were empty (only blank lines). Put the real words in "text" as plain UTF-8 letters — no blank-line padding, no \u escapes.');
             }
 
             // Оролтыг түр хавтсанд энгийн нэрээр хуулна.

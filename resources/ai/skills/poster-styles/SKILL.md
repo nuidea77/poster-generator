@@ -128,7 +128,7 @@ Almost no photo: the letters, the grid and one or two flat shapes carry the whol
 
 ## Data & Infographic (numbers made instant)
 - **Information architecture:** read the brief, pick the ONE key insight (e.g. "92% тэнцсэн"), then 2–4 supporting facts; drop the rest to the caption.
-- **Stat blocks instead of charts:** the tool draws text, not charts — show numbers as big `display`/`title` figures with a `small` label under each, in a row of 2–4 (`same_line`, equal columns via mixed aligns `left` / `center` / `right`) or a 2×2 grid. Keep the same number format and size for every stat.
+- **Stat blocks instead of charts:** the tool draws text, not charts — show numbers as big `display`/`title` figures with a `small` label under each, in a row of 2–4 (`same_line`, spread via mixed aligns `left` / `center` / `right`) or a 2×2 grid. Keep the same number format and size for every stat.
 - **When a chart is essential:** ask the image model for a clean, label-free shape only (simple bars of stated relative heights, a donut with a stated share, a rising line) on a calm area, and set every number and label with add_text beside it — never trust the model's own proportions or labels; keep it to one simple chart.
 - **Chunking:** numbered steps (`1`, `2`, `3` as `title` numbers, the step text `small`), each step in its own `card` or under one consistent icon; arrows (`icon: arrow`) to show flow.
 - **Icons:** one icon set, one style (all `plain` or all `circle`), one colour; each icon means one thing.

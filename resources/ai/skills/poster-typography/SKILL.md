@@ -78,7 +78,7 @@ The number alone in a `display` item (about twice a title), the word under it as
 
 ## 5. Pills, cards, rows, facts
 - `box: true` + `box_shape`: `pill` (accent badge, CTA), `glass` (frosted chip, labels), `card` (rounded content card for a short paragraph on a photo), `rect` (square panel). The CTA uses `icon: arrow` (it trails the text).
-- Rows: the 2nd–4th item of a row gets `same_line: true`. The aligns decide the row: all `center` (or all `left` / all `right`) → the items sit together as one group, centred (or on that edge); mixed aligns (`left` + `right`, or `left` / `center` / `right`) → spread to the two edges, 3–4 items in equal columns.
+- Rows: the 2nd–4th item of a row gets `same_line: true`. Each item sits where its own `align` puts it: items with the same align sit side by side as one group (on the left edge, centred, or on the right edge). Sizes are not evened out and nothing is moved for you — choose the roles, aligns and positions so the row reads as you intend.
 - Icons before one-line facts: one fact per item, never several facts joined by `·` behind one icon.
 - **Contact facts** (address, phone, social, web, hours) are ordinary text items placed wherever the design needs them (usually near the bottom, `position: bottom`).
 

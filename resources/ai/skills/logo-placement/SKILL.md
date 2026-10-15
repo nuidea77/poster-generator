@@ -7,7 +7,7 @@ description: Where and how big to put the client's logo with add_logo on posters
 
 The logo **signs** the ad; it is not the headline. It goes on with `add_logo` — the client's own file, pixel-exact, only scaled evenly — never drawn by a model.
 
-Order: on posters usually `add_text` then `add_logo` (pick a corner away from the headline). When the logo shares a zone with text (reel end cards, a centred logo above a title) do **`add_logo` first, then `add_text`** — text added afterwards is moved below the logo automatically. Never pad text with empty lines to push it around.
+Order: on posters usually `add_text` then `add_logo` (pick a corner away from the headline). When the logo shares a zone with text (reel end cards, a centred logo above a title) place the text yourself so it clears the logo — nothing moves text out of the logo's way. Never pad text with empty lines to push it around.
 
 ## 1. Read the logo first
 Look at the attached file and name its type:

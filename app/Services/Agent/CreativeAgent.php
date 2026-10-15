@@ -468,7 +468,7 @@ class CreativeAgent
                             'role' => ['type' => 'string', 'enum' => ['display', 'title', 'price', 'subtitle', 'small'], 'description' => 'display = a huge hero number or 1–2 short words (15, -30%, 2026), about twice a title'],
                             'position' => ['type' => 'string', 'enum' => ['top', 'center', 'lower_third', 'bottom'], 'description' => 'Vertical zone; zones stack top to bottom without overlapping. Contact facts (address, phone, hours, web, social) are ordinary items placed wherever the design needs them, usually bottom'],
                             'align' => ['type' => 'string', 'enum' => ['center', 'left', 'right']],
-                            'same_line' => ['type' => 'boolean', 'description' => 'true = on the same row as the previous item. The row follows the items\' align: all the same align (all center / all left / all right) = one tight group placed that way; mixed (left … right, or left / center / right) = spread to the edges, 3–4 items in equal columns. Usually false'],
+                            'same_line' => ['type' => 'boolean', 'description' => 'true = on the same row as the previous item. Each item sits where its own align puts it; items of the row with the same align sit side by side as one group (left edge / centre / right edge). Usually false'],
                             'font' => ['type' => 'string', 'enum' => array_keys(TextOverlay::FONTS)],
                             'color' => ['type' => 'string', 'description' => 'Hex, e.g. FFFFFF'],
                             'box' => ['type' => 'boolean', 'description' => 'Solid panel behind the text'],
@@ -830,9 +830,9 @@ class CreativeAgent
             $patched = "Patched onto the last full layout ({$updated} item(s) updated, {$added} added; ".count($merged).' items drawn). ';
         }
 
-        // Постерын яг хүрээн дээр бичнэ; лого зэрэг reserved хэсгээс зайлсхийнэ.
+        // Постерын яг хүрээн дээр бичнэ.
         $base = $this->exactFrame($asset);
-        $tmp = $this->text->burn($base ?? MediaStore::absolute($asset['path']), $in['items'], (float) ($asset['duration'] ?? 0), $still, $asset['reserved'] ?? [], (string) ($in['scrim'] ?? 'none'), (string) ($in['scrim_color'] ?? '000000'));
+        $tmp = $this->text->burn($base ?? MediaStore::absolute($asset['path']), $in['items'], (float) ($asset['duration'] ?? 0), $still, (string) ($in['scrim'] ?? 'none'), (string) ($in['scrim_color'] ?? '000000'));
         // Хэмжилт (зөвхөн хүргэх үед нэг удаа ашиглана): цэвэр зурган дээр мөр бүрийн доорх хэсэг.
         $clean = $base ?? MediaStore::absolute($asset['path']);
         $checks = $still ? ['busy' => $this->text->busyLines($clean), 'faint' => $this->text->lowContrastLines($clean)] : [];
@@ -844,7 +844,7 @@ class CreativeAgent
         $new = $creation->addAsset([
             'kind' => $asset['kind'], 'source' => 'generated', 'provider' => 'text',
             'path' => $file['path'], 'prompt' => 'text on '.$asset['id'].': '.implode(' | ', $lines),
-            'aspect' => $asset['aspect'] ?? null, 'duration' => $asset['duration'] ?? null, 'reserved' => $asset['reserved'] ?? [],
+            'aspect' => $asset['aspect'] ?? null, 'duration' => $asset['duration'] ?? null,
             'note' => 'typography', 'cost' => 0.0,
             // Хэсэгчилсэн засвар дараа нь үүнтэй нийлэхийн тулд бүтэн layout-ыг хадгална.
             'from' => $asset['id'], 'layout' => $in['items'], 'checks' => $checks,
@@ -910,7 +910,6 @@ class CreativeAgent
             'kind' => $asset['kind'], 'source' => 'generated', 'provider' => 'logo',
             'path' => $file['path'], 'prompt' => "logo {$in['position']} on {$asset['id']}",
             'aspect' => $asset['aspect'] ?? null, 'duration' => $asset['duration'] ?? null,
-            'reserved' => [...($asset['reserved'] ?? []), $placed['box']], // add_text үүнээс зайтай байна
             'note' => 'logo', 'cost' => 0.0,
         ]);
 

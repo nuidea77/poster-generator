@@ -783,7 +783,7 @@ class CreationTest extends TestCase
         $this->assertGreaterThan($address[3] - $address[1], $phoneBig[3] - $phoneBig[1]);
     }
 
-    public function test_rows_of_three_share_columns_and_pills_are_drawn_under_the_text(): void
+    public function test_row_items_sit_at_their_own_align_and_pills_are_drawn_under_the_text(): void
     {
         if (! Process::run([config('ai.ffmpeg'), '-version'])->successful()) {
             $this->markTestSkipped('ffmpeg not installed');
@@ -803,10 +803,10 @@ class CreationTest extends TestCase
         [$a, $b, $c, $pill] = array_column($overlay->placed, 'rect');
         $this->assertSame([$a[1], $a[3]], [$b[1], $b[3]]);   // one row, one size
         $this->assertSame($a[1], $c[1]);
-        $column = (1080 - 2 * 76) / 3;
-        foreach ([$a, $b, $c] as $k => $r) {
-            $this->assertEqualsWithDelta(76 + $column * ($k + 0.5), ($r[0] + $r[2]) / 2, 3); // centred in its column
-        }
+        // Each item sits at its own align: left edge, centre, right edge (margin 7% = 76 px).
+        $this->assertEqualsWithDelta(76, $a[0], 15);  // rect = estimated width, the glyphs are measured
+        $this->assertEqualsWithDelta(540, ($b[0] + $b[2]) / 2, 3);
+        $this->assertEqualsWithDelta(1080 - 76, $c[2], 15);
 
         // The pill: green fill left of the text, rounded (the corner stays background).
         $green = fn (int $x, int $y) => (imagecolorat($img, $x, $y) >> 8 & 0xFF) > 150 && (imagecolorat($img, $x, $y) >> 16 & 0xFF) < 100;
@@ -905,28 +905,6 @@ class CreationTest extends TestCase
         $this->assertSame(127, $rgba(2, 2)[3]);                       // outside the disc: transparent
         $this->assertSame([255, 255, 255, 0], $rgba(50, 8));          // the white disc
         $this->assertEqualsWithDelta(0x4C, $rgba(39, 50)[0], 30);     // the phone outline in violet inside it
-    }
-
-    public function test_a_long_offer_pill_is_stacked_under_the_price_pill(): void
-    {
-        if (! Process::run([config('ai.ffmpeg'), '-version'])->successful()) {
-            $this->markTestSkipped('ffmpeg not installed');
-        }
-
-        $bg = imagecreatetruecolor(1080, 1350);
-        $file = sys_get_temp_dir().'/bg-'.uniqid().'.png';
-        imagepng($bg, $file);
-        $pill = fn (string $t, bool $same) => ['text' => $t, 'role' => 'price', 'position' => 'top', 'align' => 'center', 'same_line' => $same, 'font' => 'bold_sans', 'color' => 'FFFFFF', 'box' => true, 'box_color' => 'C2410C', 'box_shape' => 'pill', 'icon' => 'none'];
-        $overlay = app(TextOverlay::class);
-
-        @unlink($overlay->burn($file, [$pill('9,900₮', false), $pill('2 ДАХЬ АЯГА 50% ХЯМД', true)], 0, true));
-        [$price, $offer] = array_column($overlay->placed, 'rect');
-        $this->assertGreaterThan($price[3], $offer[1]); // the long offer moved under the price
-
-        @unlink($overlay->burn($file, [$pill('9,900₮', false), $pill('-50%', true)], 0, true));
-        [$price, $offer] = array_column($overlay->placed, 'rect');
-        $this->assertSame($price[1], $offer[1]);        // two short badges stay side by side
-        @unlink($file);
     }
 
     public function test_a_partial_add_text_is_patched_onto_the_last_full_layout(): void
@@ -1120,63 +1098,6 @@ class CreationTest extends TestCase
         $this->assertSame(1, $count('?status=active'));
         $this->assertSame(1, $count('?status=failed&type=poster'));
         $this->assertSame(0, $count('?status=failed&type=reel'));
-    }
-
-    public function test_text_moves_below_a_logo_placed_in_the_same_zone(): void
-    {
-        if (! Process::run([config('ai.ffmpeg'), '-version'])->successful()) {
-            $this->markTestSkipped('ffmpeg not installed');
-        }
-
-        $make = function (int $w, int $h, array $rgb) {
-            $img = imagecreatetruecolor($w, $h);
-            imagefill($img, 0, 0, imagecolorallocate($img, ...$rgb));
-            ob_start();
-            imagepng($img);
-
-            return ob_get_clean();
-        };
-        Storage::disk('public')->put('in/logo.png', $make(300, 300, [255, 0, 0]));
-        Storage::disk('public')->put('in/card.png', $make(1080, 1920, [0, 0, 0]));
-
-        $title = ['text' => 'НЭЭЛТТЭЙ ӨДӨРЛӨГ', 'role' => 'title', 'position' => 'top', 'align' => 'center', 'font' => 'bold_sans', 'color' => 'FFFFFF', 'box' => false, 'box_color' => '', 'start' => 0, 'end' => 0, 'animation' => 'none'];
-        Http::fake([
-            'api.anthropic.com/*' => Http::sequence()
-                ->push($this->turn([['add_logo', ['asset_id' => 'img_1', 'position' => 'top_center', 'width' => 0.3, 'remove_background' => false, 'plate' => 'none']]]))
-                ->push($this->turn([['add_text', ['asset_id' => 'img_2', 'items' => [$title]]]]))
-                ->push($this->turn([['finish', ['summary' => 'ok']]])),
-        ]);
-
-        $creation = Creation::create(['user_id' => $this->user->id, 'type' => 'poster', 'formats' => ['9:16'], 'prompt' => 'x', 'status' => 'running',
-            'inputs' => [['id' => 'logo', 'kind' => 'image', 'role' => 'logo', 'source' => 'upload', 'path' => 'in/logo.png']],
-            'assets' => [['id' => 'img_1', 'kind' => 'image', 'source' => 'generated', 'provider' => 'gemini', 'path' => 'in/card.png', 'aspect' => '9:16', 'cost' => 0.039]]]);
-
-        app(CreativeAgent::class)->run($creation);
-        $creation->refresh();
-
-        // Logo: 324 px square at top_center, from 13% of 1920 = 250 px down to 574 px.
-        [$x0, $y0, $x1, $y1] = $creation->asset('img_2')['reserved'][0];
-        $this->assertEqualsWithDelta([0.35, 0.1302, 0.65, 0.2990], [$x0, $y0, $x1, $y1], 0.002);
-        $this->assertSame($creation->asset('img_2')['reserved'], $creation->asset('img_3')['reserved']);
-
-        // The white title must start below the red logo: no white pixel inside the logo rows.
-        $img = imagecreatefromstring(Storage::disk('public')->get($creation->asset('img_3')['path']));
-        $white = 0;
-        for ($y = 250; $y < 574; $y += 4) {
-            for ($x = 0; $x < 1080; $x += 4) {
-                $c = imagecolorat($img, $x, $y);
-                $white += (($c >> 16 & 0xFF) > 200 && ($c >> 8 & 0xFF) > 200) ? 1 : 0;
-            }
-        }
-        $this->assertSame(0, $white, 'text overlaps the logo');
-        $found = false;
-        for ($y = 580; $y < 900 && ! $found; $y += 2) {
-            for ($x = 100; $x < 980 && ! $found; $x += 2) {
-                $c = imagecolorat($img, $x, $y);
-                $found = ($c >> 16 & 0xFF) > 200 && ($c >> 8 & 0xFF) > 200;
-            }
-        }
-        $this->assertTrue($found, 'title not found below the logo');
     }
 
     public function test_gemini_says_why_no_image_came_back(): void
