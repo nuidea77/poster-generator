@@ -18,6 +18,9 @@ description: The running list of mistakes found in real test posters — wrong h
 - **One phrase torn apart.** Lines that read as one phrase (`5 сая₮` + `хүртэлх зээл`, `-30%` + `хямдрал`) sit tight together — the gap inside a phrase is smaller than the gap to the next block. With free `y`, compute it: next `y` = this `y` + its line height + a small gap, not a round number.
 - **Type touching the subject.** Headline letters must clear a head, product or hand by a visible gap (≥ 2% of the frame); if the hero number reaches the hair, make it smaller or move it up.
 - **The separator dot.** Type the middle dot ` · ` directly as a character, never as an escape.
+- **Mood words printed as copy.** The adjectives that end a brief (`Найдвартай, хурдан`, `Тансаг, эмэгтэйлэг`, `Хөгжилтэй, аюулгүй`) describe the look and tone — they are direction for you, not a line for the poster. Print them only if the client clearly wrote them as a slogan.
+- **A suffix on its own line.** A case ending belongs to its number: `2.5 сая₮-өөс эхэлнэ` or `2.5 сая₮` + `-аас эхэлнэ` on the same line — never a line that starts with `-аас`, `-өөс`, `-д`.
+- **Lines and rings cutting through text.** A painted ring, light streak or edge line that crosses a text line looks like a strike-through. Keep text fully inside or fully outside such shapes.
 
 ## The visual
 - **A drawn frame or mock-up.** The image must be full bleed, edge to edge. Never call it a "poster" in the image prompt (models then draw a framed print, a white border, an inner mat or a fade band); say "full-bleed image filling the whole frame, no border, no frame, no margin". If the returned image has a border, regenerate.
